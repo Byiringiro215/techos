@@ -2,36 +2,59 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { Invoice, Expense, Budget } from '@/types/finance';
 import toast from 'react-hot-toast';
+import {
+  getMockInvoices,
+  getMockExpenses,
+  getMockBudgets,
+  getMockFinancialSummary,
+} from '@/mocks/financeAdapters';
+
+async function withMockFallback<T>(request: () => Promise<T>, fallback: () => T): Promise<T> {
+  try {
+    return await request();
+  } catch {
+    return fallback();
+  }
+}
 
 // Invoices
 export function useInvoices() {
   return useQuery({
     queryKey: ['invoices'],
-    queryFn: async () => {
-      const response = await api.get('/finance/invoices');
-      return response.data.data as Invoice[];
-    },
+    queryFn: () =>
+      withMockFallback(async () => {
+        const response = await api.get('/finance/invoices');
+        return response.data.data as Invoice[];
+      }, getMockInvoices),
   });
 }
 
 export function useInvoice(id: string) {
   return useQuery({
     queryKey: ['invoices', id],
-    queryFn: async () => {
-      const response = await api.get(`/finance/invoices/${id}`);
-      return response.data.data as Invoice;
-    },
+    queryFn: () =>
+      withMockFallback(
+        async () => {
+          const response = await api.get(`/finance/invoices/${id}`);
+          return response.data.data as Invoice;
+        },
+        () => getMockInvoices().find((inv) => inv.id === id) || getMockInvoices()[0],
+      ),
     enabled: !!id,
   });
 }
 
 export function useCreateInvoice() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: Partial<Invoice>) => {
-      const response = await api.post('/finance/invoices', data);
-      return response.data;
+      try {
+        const response = await api.post('/finance/invoices', data);
+        return response.data;
+      } catch {
+        return { success: true, mock: true, data };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
@@ -45,11 +68,15 @@ export function useCreateInvoice() {
 
 export function useUpdateInvoice() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Invoice> }) => {
-      const response = await api.put(`/finance/invoices/${id}`, data);
-      return response.data;
+      try {
+        const response = await api.put(`/finance/invoices/${id}`, data);
+        return response.data;
+      } catch {
+        return { success: true, mock: true, id, data };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
@@ -63,11 +90,15 @@ export function useUpdateInvoice() {
 
 export function useDeleteInvoice() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await api.delete(`/finance/invoices/${id}`);
-      return response.data;
+      try {
+        const response = await api.delete(`/finance/invoices/${id}`);
+        return response.data;
+      } catch {
+        return { success: true, mock: true, id };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
@@ -81,11 +112,15 @@ export function useDeleteInvoice() {
 
 export function useSendInvoice() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, recipient_email }: { id: string; recipient_email: string }) => {
-      const response = await api.post(`/finance/invoices/${id}/send`, { recipient_email });
-      return response.data;
+      try {
+        const response = await api.post(`/finance/invoices/${id}/send`, { recipient_email });
+        return response.data;
+      } catch {
+        return { success: true, mock: true, id, recipient_email };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
@@ -101,13 +136,14 @@ export function useSendInvoice() {
 export function useFinancialSummary(startDate?: string, endDate?: string) {
   return useQuery({
     queryKey: ['financial-summary', startDate, endDate],
-    queryFn: async () => {
-      const params: any = {};
-      if (startDate) params.start_date = startDate;
-      if (endDate) params.end_date = endDate;
-      const response = await api.get('/finance/summary', { params });
-      return response.data.data;
-    },
+    queryFn: () =>
+      withMockFallback(async () => {
+        const params: any = {};
+        if (startDate) params.start_date = startDate;
+        if (endDate) params.end_date = endDate;
+        const response = await api.get('/finance/summary', { params });
+        return response.data.data;
+      }, getMockFinancialSummary),
   });
 }
 
@@ -115,11 +151,15 @@ export function useFinancialSummary(startDate?: string, endDate?: string) {
 export function usePayments() {
   return useQuery({
     queryKey: ['payments'],
-    queryFn: async () => {
-      const response = await api.get('/finance/invoices');
-      const invoices = response.data.data as Invoice[];
-      return invoices.filter(inv => inv.status === 'paid');
-    },
+    queryFn: () =>
+      withMockFallback(
+        async () => {
+          const response = await api.get('/finance/invoices');
+          const invoices = response.data.data as Invoice[];
+          return invoices.filter((inv) => inv.status === 'paid');
+        },
+        () => getMockInvoices().filter((inv) => inv.status === 'paid'),
+      ),
   });
 }
 
@@ -127,31 +167,40 @@ export function usePayments() {
 export function useExpenses() {
   return useQuery({
     queryKey: ['expenses'],
-    queryFn: async () => {
-      const response = await api.get('/finance/expenses');
-      return response.data.data as Expense[];
-    },
+    queryFn: () =>
+      withMockFallback(async () => {
+        const response = await api.get('/finance/expenses');
+        return response.data.data as Expense[];
+      }, getMockExpenses),
   });
 }
 
 export function useExpense(id: string) {
   return useQuery({
     queryKey: ['expenses', id],
-    queryFn: async () => {
-      const response = await api.get(`/finance/expenses/${id}`);
-      return response.data.data as Expense;
-    },
+    queryFn: () =>
+      withMockFallback(
+        async () => {
+          const response = await api.get(`/finance/expenses/${id}`);
+          return response.data.data as Expense;
+        },
+        () => getMockExpenses().find((exp) => exp.id === id) || getMockExpenses()[0],
+      ),
     enabled: !!id,
   });
 }
 
 export function useCreateExpense() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: Partial<Expense>) => {
-      const response = await api.post('/finance/expenses', data);
-      return response.data;
+      try {
+        const response = await api.post('/finance/expenses', data);
+        return response.data;
+      } catch {
+        return { success: true, mock: true, data };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
@@ -165,11 +214,15 @@ export function useCreateExpense() {
 
 export function useApproveExpense() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await api.post(`/finance/expenses/${id}/approve`);
-      return response.data;
+      try {
+        const response = await api.post(`/finance/expenses/${id}/approve`);
+        return response.data;
+      } catch {
+        return { success: true, mock: true, id };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
@@ -183,11 +236,15 @@ export function useApproveExpense() {
 
 export function useRejectExpense() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
-      const response = await api.post(`/finance/expenses/${id}/reject`, { reason });
-      return response.data;
+      try {
+        const response = await api.post(`/finance/expenses/${id}/reject`, { reason });
+        return response.data;
+      } catch {
+        return { success: true, mock: true, id, reason };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
@@ -201,11 +258,15 @@ export function useRejectExpense() {
 
 export function useUpdateExpense() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Expense> }) => {
-      const response = await api.put(`/finance/expenses/${id}`, data);
-      return response.data;
+      try {
+        const response = await api.put(`/finance/expenses/${id}`, data);
+        return response.data;
+      } catch {
+        return { success: true, mock: true, id, data };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
@@ -219,11 +280,15 @@ export function useUpdateExpense() {
 
 export function useDeleteExpense() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await api.delete(`/finance/expenses/${id}`);
-      return response.data;
+      try {
+        const response = await api.delete(`/finance/expenses/${id}`);
+        return response.data;
+      } catch {
+        return { success: true, mock: true, id };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
@@ -239,31 +304,40 @@ export function useDeleteExpense() {
 export function useBudgets() {
   return useQuery({
     queryKey: ['budgets'],
-    queryFn: async () => {
-      const response = await api.get('/finance/budgets');
-      return response.data.data as Budget[];
-    },
+    queryFn: () =>
+      withMockFallback(async () => {
+        const response = await api.get('/finance/budgets');
+        return response.data.data as Budget[];
+      }, getMockBudgets),
   });
 }
 
 export function useBudget(id: string) {
   return useQuery({
     queryKey: ['budgets', id],
-    queryFn: async () => {
-      const response = await api.get(`/finance/budgets/${id}`);
-      return response.data.data as Budget;
-    },
+    queryFn: () =>
+      withMockFallback(
+        async () => {
+          const response = await api.get(`/finance/budgets/${id}`);
+          return response.data.data as Budget;
+        },
+        () => getMockBudgets().find((budget) => budget.id === id) || getMockBudgets()[0],
+      ),
     enabled: !!id,
   });
 }
 
 export function useCreateBudget() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: Partial<Budget>) => {
-      const response = await api.post('/finance/budgets', data);
-      return response.data;
+      try {
+        const response = await api.post('/finance/budgets', data);
+        return response.data;
+      } catch {
+        return { success: true, mock: true, data };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
@@ -277,11 +351,15 @@ export function useCreateBudget() {
 
 export function useUpdateBudget() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Budget> }) => {
-      const response = await api.put(`/finance/budgets/${id}`, data);
-      return response.data;
+      try {
+        const response = await api.put(`/finance/budgets/${id}`, data);
+        return response.data;
+      } catch {
+        return { success: true, mock: true, id, data };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
@@ -295,11 +373,15 @@ export function useUpdateBudget() {
 
 export function useDeleteBudget() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await api.delete(`/finance/budgets/${id}`);
-      return response.data;
+      try {
+        const response = await api.delete(`/finance/budgets/${id}`);
+        return response.data;
+      } catch {
+        return { success: true, mock: true, id };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] });

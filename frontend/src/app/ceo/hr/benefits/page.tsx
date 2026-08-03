@@ -35,30 +35,30 @@ export default function BenefitsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-white">Benefits</h1>
-        <p className="text-gray-400 mt-2">Employee benefits and perks administration</p>
+        <h1 className="text-3xl font-bold text-ink">Benefits</h1>
+        <p className="text-ink-muted mt-2">Employee benefits and perks administration</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
-          <Shield className="h-8 w-8 text-white mb-3" />
-          <p className="text-sm text-gray-400">Active Benefits</p>
-          <p className="text-3xl font-bold text-white mt-1">{benefits.length}</p>
+        <Card className="p-6 bg-surface border border-border">
+          <Shield className="h-8 w-8 text-ink mb-3" />
+          <p className="text-sm text-ink-muted">Active Benefits</p>
+          <p className="text-3xl font-bold text-ink mt-1">{benefits.length}</p>
         </Card>
-        <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
-          <Users className="h-8 w-8 text-white mb-3" />
-          <p className="text-sm text-gray-400">Total Enrollments</p>
-          <p className="text-3xl font-bold text-white mt-1">643</p>
+        <Card className="p-6 bg-surface border border-border">
+          <Users className="h-8 w-8 text-ink mb-3" />
+          <p className="text-sm text-ink-muted">Total Enrollments</p>
+          <p className="text-3xl font-bold text-ink mt-1">643</p>
         </Card>
-        <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
-          <DollarSign className="h-8 w-8 text-white mb-3" />
-          <p className="text-sm text-gray-400">Monthly Cost</p>
-          <p className="text-3xl font-bold text-white mt-1">$172.6K</p>
+        <Card className="p-6 bg-surface border border-border">
+          <DollarSign className="h-8 w-8 text-ink mb-3" />
+          <p className="text-sm text-ink-muted">Monthly Cost</p>
+          <p className="text-3xl font-bold text-ink mt-1">$172.6K</p>
         </Card>
-        <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
-          <TrendingUp className="h-8 w-8 text-green-400 mb-3" />
-          <p className="text-sm text-gray-400">Avg Participation</p>
-          <p className="text-3xl font-bold text-white mt-1">86%</p>
+        <Card className="p-6 bg-surface border border-border">
+          <TrendingUp className="h-8 w-8 text-success mb-3" />
+          <p className="text-sm text-ink-muted">Avg Participation</p>
+          <p className="text-3xl font-bold text-ink mt-1">86%</p>
         </Card>
       </div>
 
@@ -67,34 +67,34 @@ export default function BenefitsPage() {
           const Icon = benefit.icon;
           const pct = Math.round((benefit.enrolled / benefit.total) * 100);
           return (
-            <Card key={benefit.id} className="p-6 bg-[#0a0a0a] border border-gray-800 hover:border-gray-700 transition-all">
+            <Card key={benefit.id} className="p-6 bg-surface border border-border hover:border-border-strong transition-all">
               <div className="flex items-start justify-between mb-4">
-                <div className="p-3 bg-white rounded-lg">
-                  <Icon className="h-5 w-5 text-black" />
+                <div className="p-3 bg-brand-mist rounded-lg">
+                  <Icon className="h-5 w-5 text-brand" />
                 </div>
                 {getStatusBadge(benefit.status)}
               </div>
-              <h3 className="text-lg font-semibold text-white mb-1">{benefit.name}</h3>
-              <p className="text-sm text-gray-500 mb-4">{benefit.type}</p>
+              <h3 className="text-lg font-semibold text-ink mb-1">{benefit.name}</h3>
+              <p className="text-sm text-ink-muted mb-4">{benefit.type}</p>
               
               <div className="space-y-2 mb-4">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Enrolled</span>
-                  <span className="text-white font-medium">{benefit.enrolled}/{benefit.total}</span>
+                  <span className="text-ink-muted">Enrolled</span>
+                  <span className="text-ink font-medium">{benefit.enrolled}/{benefit.total}</span>
                 </div>
-                <div className="w-full bg-[#1a1a1a] rounded-full h-2">
+                <div className="w-full bg-bg-muted rounded-full h-2">
                   <div
-                    className="h-2 rounded-full bg-white"
+                    className="h-2 rounded-full bg-brand-mist"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <p className="text-xs text-gray-500 text-right">{pct}% participation</p>
+                <p className="text-xs text-ink-muted text-right">{pct}% participation</p>
               </div>
               
               {benefit.cost > 0 && (
-                <div className="pt-4 border-t border-gray-800 flex items-center justify-between">
-                  <span className="text-sm text-gray-400">Monthly Cost</span>
-                  <span className="text-white font-semibold">${(benefit.cost / 1000).toFixed(1)}K</span>
+                <div className="pt-4 border-t border-border flex items-center justify-between">
+                  <span className="text-sm text-ink-muted">Monthly Cost</span>
+                  <span className="text-ink font-semibold">${(benefit.cost / 1000).toFixed(1)}K</span>
                 </div>
               )}
             </Card>

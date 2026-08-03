@@ -2,13 +2,25 @@ import { io, Socket } from 'socket.io-client';
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:4000';
 
+/** Realtime is opt-in — mock/frontend-only mode must not spam console errors. */
+export const isRealtimeEnabled = () => process.env.NEXT_PUBLIC_ENABLE_WS === 'true';
+
 class SocketClient {
   private socket: Socket | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
+  private gaveUpLogged = false;
 
-  connect(userId?: string) {
+  connect(userId?: string): Socket | null {
+    if (!isRealtimeEnabled()) {
+      return null;
+    }
+
     if (this.socket?.connected) {
+      return this.socket;
+    }
+
+    if (this.socket) {
       return this.socket;
     }
 
@@ -29,26 +41,27 @@ class SocketClient {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('✅ WebSocket connected');
       this.reconnectAttempts = 0;
+      this.gaveUpLogged = false;
     });
 
-    this.socket.on('disconnect', (reason) => {
-      console.log('❌ WebSocket disconnected:', reason);
+    this.socket.on('disconnect', () => {
+      // no-op — callers use isConnected from context
     });
 
-    this.socket.on('connect_error', (error) => {
-      console.error('❌ WebSocket connection error:', error);
+    this.socket.on('connect_error', () => {
       this.reconnectAttempts++;
-      
-      if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        console.error('❌ Max reconnection attempts reached');
+      if (this.reconnectAttempts >= this.maxReconnectAttempts && !this.gaveUpLogged) {
+        this.gaveUpLogged = true;
+        console.warn(
+          `[socket] Could not reach ${WS_URL}. Set NEXT_PUBLIC_ENABLE_WS=true when the server is running.`,
+        );
       }
     });
 
-    this.socket.on('reconnect', (attemptNumber) => {
-      console.log(`✅ WebSocket reconnected after ${attemptNumber} attempts`);
+    this.socket.on('reconnect', () => {
       this.reconnectAttempts = 0;
+      this.gaveUpLogged = false;
     });
   }
 
@@ -66,8 +79,6 @@ class SocketClient {
   emit(event: string, data?: any) {
     if (this.socket?.connected) {
       this.socket.emit(event, data);
-    } else {
-      console.warn('Socket not connected, cannot emit:', event);
     }
   }
 

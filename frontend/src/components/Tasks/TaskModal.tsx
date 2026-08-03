@@ -100,13 +100,13 @@ export function TaskModal({ isOpen, onClose, task, defaultStatus = 'todo', proje
     <Modal isOpen={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit} className="w-full max-w-2xl bg-white p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-black">
+          <h2 className="text-2xl font-bold text-ink">
             {task ? 'Edit Task' : 'Create Task'}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-black"
+            className="text-ink-muted hover:text-ink"
           >
             <X className="h-6 w-6" />
           </button>
@@ -115,7 +115,7 @@ export function TaskModal({ isOpen, onClose, task, defaultStatus = 'todo', proje
         <div className="space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
+            <label className="block text-sm font-medium text-ink mb-2">
               Title *
             </label>
             <Input
@@ -128,14 +128,14 @@ export function TaskModal({ isOpen, onClose, task, defaultStatus = 'todo', proje
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
+            <label className="block text-sm font-medium text-ink mb-2">
               Description
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full px-4 py-2 border border-border focus:outline-none focus:ring-2 focus:ring-surface"
               placeholder="Task description"
             />
           </div>
@@ -143,13 +143,13 @@ export function TaskModal({ isOpen, onClose, task, defaultStatus = 'todo', proje
           {/* Status & Priority Row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-black mb-2">
+              <label className="block text-sm font-medium text-ink mb-2">
                 Status *
               </label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as Task['status'] })}
-                className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-2 border border-border focus:outline-none focus:ring-2 focus:ring-surface"
               >
                 <option value="todo">To Do</option>
                 <option value="in_progress">In Progress</option>
@@ -158,13 +158,13 @@ export function TaskModal({ isOpen, onClose, task, defaultStatus = 'todo', proje
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-black mb-2">
+              <label className="block text-sm font-medium text-ink mb-2">
                 Priority *
               </label>
               <select
                 value={formData.priority}
                 onChange={(e) => setFormData({ ...formData, priority: e.target.value as Task['priority'] })}
-                className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-2 border border-border focus:outline-none focus:ring-2 focus:ring-surface"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -177,7 +177,7 @@ export function TaskModal({ isOpen, onClose, task, defaultStatus = 'todo', proje
           {/* Estimation Row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 Estimated Hours
               </label>
@@ -192,7 +192,7 @@ export function TaskModal({ isOpen, onClose, task, defaultStatus = 'todo', proje
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
                 Story Points
               </label>
@@ -208,7 +208,7 @@ export function TaskModal({ isOpen, onClose, task, defaultStatus = 'todo', proje
 
           {/* Due Date */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+            <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               Due Date
             </label>
@@ -221,7 +221,7 @@ export function TaskModal({ isOpen, onClose, task, defaultStatus = 'todo', proje
 
           {/* Tags */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+            <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
               <Tag className="h-4 w-4" />
               Tags
             </label>
@@ -237,7 +237,7 @@ export function TaskModal({ isOpen, onClose, task, defaultStatus = 'todo', proje
             <div className="p-4 bg-gray-50 border border-gray-200">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Time Logged:</span>
-                <span className="font-semibold text-black">{task.time_logged}h</span>
+                <span className="font-semibold text-ink">{task.time_logged}h</span>
               </div>
             </div>
           )}

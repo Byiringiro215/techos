@@ -19,35 +19,35 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
               type="checkbox"
               id={checkboxId}
               className={cn(
-                'h-5 w-5 border-2 border-gray-300 rounded',
-                'focus:ring-2 focus:ring-black focus:ring-offset-2',
+                'peer h-4 w-4 border-2 border-border-strong rounded bg-surface',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
                 'disabled:cursor-not-allowed disabled:opacity-50',
-                'checked:bg-black checked:border-black',
+                'checked:bg-brand checked:border-brand',
                 'appearance-none cursor-pointer',
-                error && 'border-red-500',
+                error && 'border-danger',
                 className
               )}
               ref={ref}
               {...props}
             />
-            <Check 
+            <Check
               className={cn(
-                "absolute left-0.5 top-0.5 h-4 w-4 text-white pointer-events-none",
-                "opacity-0 peer-checked:opacity-100"
-              )} 
+                'absolute left-0 top-0 h-4 w-4 text-ink-inverse pointer-events-none',
+                'opacity-0 peer-checked:opacity-100',
+              )}
             />
           </div>
           {label && (
             <label
               htmlFor={checkboxId}
-              className="ml-2 text-sm text-gray-700 cursor-pointer select-none"
+              className="ml-2 text-sm text-ink-secondary cursor-pointer select-none"
             >
               {label}
             </label>
           )}
         </div>
         {error && (
-          <p className="mt-1 text-sm text-red-600">{error}</p>
+          <p className="mt-1 text-sm text-danger">{error}</p>
         )}
       </div>
     );

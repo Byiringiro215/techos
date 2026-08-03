@@ -112,13 +112,13 @@ export function EventModal({ isOpen, onClose, event, defaultDate }: EventModalPr
     <Modal isOpen={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit} className="w-full max-w-2xl bg-white p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-black">
+          <h2 className="text-2xl font-bold text-ink">
             {event ? 'Edit Event' : 'Create Event'}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-black"
+            className="text-ink-muted hover:text-ink"
           >
             <X className="h-6 w-6" />
           </button>
@@ -127,7 +127,7 @@ export function EventModal({ isOpen, onClose, event, defaultDate }: EventModalPr
         <div className="space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
+            <label className="block text-sm font-medium text-ink mb-2">
               Event Title *
             </label>
             <Input
@@ -140,14 +140,14 @@ export function EventModal({ isOpen, onClose, event, defaultDate }: EventModalPr
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
+            <label className="block text-sm font-medium text-ink mb-2">
               Description
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full px-4 py-2 border border-border focus:outline-none focus:ring-2 focus:ring-surface"
               placeholder="Event details"
             />
           </div>
@@ -159,9 +159,9 @@ export function EventModal({ isOpen, onClose, event, defaultDate }: EventModalPr
               id="is_all_day"
               checked={formData.is_all_day}
               onChange={(e) => setFormData({ ...formData, is_all_day: e.target.checked })}
-              className="h-4 w-4 border-gray-300 focus:ring-black"
+              className="h-4 w-4 border-border focus:ring-surface"
             />
-            <label htmlFor="is_all_day" className="text-sm font-medium text-black">
+            <label htmlFor="is_all_day" className="text-sm font-medium text-ink">
               All-day event
             </label>
           </div>
@@ -169,7 +169,7 @@ export function EventModal({ isOpen, onClose, event, defaultDate }: EventModalPr
           {/* Time Range */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 Start Time *
               </label>
@@ -182,7 +182,7 @@ export function EventModal({ isOpen, onClose, event, defaultDate }: EventModalPr
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 End Time *
               </label>
@@ -198,7 +198,7 @@ export function EventModal({ isOpen, onClose, event, defaultDate }: EventModalPr
 
           {/* Location */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+            <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
               <MapPin className="h-4 w-4" />
               Location
             </label>
@@ -211,14 +211,14 @@ export function EventModal({ isOpen, onClose, event, defaultDate }: EventModalPr
 
           {/* Reminder */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+            <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
               <Bell className="h-4 w-4" />
               Reminder
             </label>
             <select
               value={formData.reminder_minutes}
               onChange={(e) => setFormData({ ...formData, reminder_minutes: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full px-4 py-2 border border-border focus:outline-none focus:ring-2 focus:ring-surface"
             >
               <option value="">No reminder</option>
               <option value="0">At time of event</option>

@@ -93,13 +93,13 @@ export function ContactModal({ isOpen, onClose, contact }: ContactModalProps) {
     <Modal isOpen={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit} className="w-full max-w-2xl bg-white p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-black">
+          <h2 className="text-2xl font-bold text-ink">
             {contact ? 'Edit Contact' : 'New Contact'}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-black"
+            className="text-ink-muted hover:text-ink"
           >
             <X className="h-6 w-6" />
           </button>
@@ -108,7 +108,7 @@ export function ContactModal({ isOpen, onClose, contact }: ContactModalProps) {
         <div className="space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+            <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
               <User className="h-4 w-4" />
               Full Name *
             </label>
@@ -123,7 +123,7 @@ export function ContactModal({ isOpen, onClose, contact }: ContactModalProps) {
           {/* Email & Phone */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 Email
               </label>
@@ -136,7 +136,7 @@ export function ContactModal({ isOpen, onClose, contact }: ContactModalProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
                 <Phone className="h-4 w-4" />
                 Phone
               </label>
@@ -152,7 +152,7 @@ export function ContactModal({ isOpen, onClose, contact }: ContactModalProps) {
           {/* Company & Position */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
                 <Building className="h-4 w-4" />
                 Company
               </label>
@@ -164,7 +164,7 @@ export function ContactModal({ isOpen, onClose, contact }: ContactModalProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-black mb-2">
+              <label className="block text-sm font-medium text-ink mb-2">
                 Position
               </label>
               <Input
@@ -177,7 +177,7 @@ export function ContactModal({ isOpen, onClose, contact }: ContactModalProps) {
 
           {/* Tags */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+            <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
               <Tag className="h-4 w-4" />
               Tags
             </label>
@@ -190,14 +190,14 @@ export function ContactModal({ isOpen, onClose, contact }: ContactModalProps) {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
+            <label className="block text-sm font-medium text-ink mb-2">
               Notes
             </label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full px-4 py-2 border border-border focus:outline-none focus:ring-2 focus:ring-surface"
               placeholder="Additional information about this contact"
             />
           </div>
@@ -206,8 +206,8 @@ export function ContactModal({ isOpen, onClose, contact }: ContactModalProps) {
           {contact && contact.lead_score !== undefined && (
             <div className="p-4 bg-gray-50 border border-gray-200">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Lead Score</span>
-                <span className="text-2xl font-bold text-black">{contact.lead_score}</span>
+                <span className="text-sm font-medium text-ink-secondary">Lead Score</span>
+                <span className="text-2xl font-bold text-ink">{contact.lead_score}</span>
               </div>
             </div>
           )}

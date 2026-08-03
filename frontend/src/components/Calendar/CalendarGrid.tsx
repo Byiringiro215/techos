@@ -85,14 +85,14 @@ export function CalendarGrid({ events, onEventClick, onDateClick }: CalendarGrid
             <span
               className={`text-sm font-medium ${
                 isToday(day)
-                  ? 'bg-black text-white h-6 w-6 rounded-full flex items-center justify-center'
-                  : 'text-gray-700'
+                  ? 'bg-bg-inverse text-ink h-6 w-6 rounded-full flex items-center justify-center'
+                  : 'text-ink-secondary'
               }`}
             >
               {day}
             </span>
             {dayEvents.length > 0 && (
-              <span className="text-xs text-gray-500">{dayEvents.length}</span>
+              <span className="text-xs text-ink-muted">{dayEvents.length}</span>
             )}
           </div>
 
@@ -106,7 +106,7 @@ export function CalendarGrid({ events, onEventClick, onDateClick }: CalendarGrid
                 }}
                 className={`text-xs p-1 truncate cursor-pointer hover:opacity-80 ${
                   event.is_all_day
-                    ? 'bg-gray-800 text-white'
+                    ? 'bg-bg-muted text-ink'
                     : 'bg-gray-200 text-gray-800'
                 }`}
               >
@@ -121,7 +121,7 @@ export function CalendarGrid({ events, onEventClick, onDateClick }: CalendarGrid
               </div>
             ))}
             {dayEvents.length > 3 && (
-              <div className="text-xs text-gray-500 pl-1">
+              <div className="text-xs text-ink-muted pl-1">
                 +{dayEvents.length - 3} more
               </div>
             )}
@@ -137,7 +137,7 @@ export function CalendarGrid({ events, onEventClick, onDateClick }: CalendarGrid
     <div className="bg-white border border-gray-200">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <h2 className="text-xl font-semibold text-black">
+        <h2 className="text-xl font-semibold text-ink">
           {monthNames[month]} {year}
         </h2>
         <div className="flex items-center gap-2">
@@ -170,7 +170,7 @@ export function CalendarGrid({ events, onEventClick, onDateClick }: CalendarGrid
         {dayNames.map(day => (
           <div
             key={day}
-            className="p-2 text-center text-sm font-semibold text-gray-700 border-r border-gray-200 last:border-r-0"
+            className="p-2 text-center text-sm font-semibold text-ink-secondary border-r border-gray-200 last:border-r-0"
           >
             {day}
           </div>

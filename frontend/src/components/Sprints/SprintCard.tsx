@@ -21,7 +21,7 @@ export function SprintCard({ sprint, onClick }: SprintCardProps) {
       case 'active':
         return 'bg-green-100 text-green-800 border-green-300';
       case 'completed':
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return 'bg-bg-muted text-gray-800 border-border';
       default:
         return 'bg-blue-100 text-blue-800 border-blue-300';
     }
@@ -64,7 +64,7 @@ export function SprintCard({ sprint, onClick }: SprintCardProps) {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-black mb-1">{sprint.name}</h3>
+            <h3 className="text-lg font-semibold text-ink mb-1">{sprint.name}</h3>
             {sprint.goal && (
               <p className="text-sm text-gray-600 line-clamp-2">{sprint.goal}</p>
             )}
@@ -90,8 +90,8 @@ export function SprintCard({ sprint, onClick }: SprintCardProps) {
         {/* Days Remaining (for active sprints) */}
         {sprint.status === 'active' && (
           <div className="flex items-center gap-2 text-sm">
-            <Target className="h-4 w-4 text-gray-500" />
-            <span className={`font-medium ${daysRemaining < 3 ? 'text-red-600' : 'text-gray-700'}`}>
+            <Target className="h-4 w-4 text-ink-muted" />
+            <span className={`font-medium ${daysRemaining < 3 ? 'text-red-600' : 'text-ink-secondary'}`}>
               {daysRemaining > 0 ? `${daysRemaining} days remaining` : 'Overdue'}
             </span>
           </div>

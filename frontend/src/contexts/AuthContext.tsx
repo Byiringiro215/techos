@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { UserRole, getDefaultRoute } from '@/types/roles';
+import { UserRole } from '@/types/roles';
+import { getDefaultRoute } from '@/lib/rbac';
 
 interface User {
   id: string;

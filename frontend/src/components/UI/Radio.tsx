@@ -17,10 +17,10 @@ export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
             type="radio"
             id={radioId}
             className={cn(
-              'h-5 w-5 border-2 border-gray-300 rounded-full',
-              'focus:ring-2 focus:ring-black focus:ring-offset-2',
+              'h-4 w-4 border-2 border-border-strong rounded-full bg-bg-muted appearance-none',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40',
               'disabled:cursor-not-allowed disabled:opacity-50',
-              'checked:bg-black checked:border-black',
+              'checked:border-white checked:bg-white',
               'cursor-pointer',
               error && 'border-red-500',
               className
@@ -31,44 +31,16 @@ export const Radio = React.forwardRef<HTMLInputElement, RadioProps>(
           {label && (
             <label
               htmlFor={radioId}
-              className="ml-2 text-sm text-gray-700 cursor-pointer select-none"
+              className="ml-2 text-sm text-ink-secondary cursor-pointer select-none"
             >
               {label}
             </label>
           )}
         </div>
-        {error && (
-          <p className="mt-1 text-sm text-red-600">{error}</p>
-        )}
+        {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
       </div>
     );
   }
 );
 
 Radio.displayName = 'Radio';
-
-// Radio Group Component
-export interface RadioGroupProps {
-  label?: string;
-  error?: string;
-  children: React.ReactNode;
-  className?: string;
-}
-
-export function RadioGroup({ label, error, children, className }: RadioGroupProps) {
-  return (
-    <div className={cn('w-full', className)}>
-      {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {label}
-        </label>
-      )}
-      <div className="space-y-2">
-        {children}
-      </div>
-      {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
-      )}
-    </div>
-  );
-}

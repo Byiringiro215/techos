@@ -21,11 +21,11 @@ export function Card({ children, className, hover = false, padding = 'md', onCli
     <div
       onClick={onClick}
       className={cn(
-        'bg-[#0a0a0a] border border-gray-800',
-        hover && 'hover:border-white transition-colors cursor-pointer',
+        'bg-surface border border-border rounded-xl shadow-sm',
+        hover && 'hover:border-brand/40 hover:shadow-md transition-all duration-fast cursor-pointer',
         onClick && 'cursor-pointer',
         paddings[padding],
-        className
+        className,
       )}
     >
       {children}

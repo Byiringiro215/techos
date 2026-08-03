@@ -12,28 +12,28 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-black mb-1">
+          <label className="block text-sm font-medium text-ink-secondary mb-1">
             {label}
-            {props.required && <span className="text-red-600 ml-1">*</span>}
+            {props.required && <span className="text-danger ml-1">*</span>}
           </label>
         )}
         <input
           ref={ref}
           type={type}
           className={cn(
-            'block w-full px-3 py-2 border rounded-none text-black placeholder-gray-400',
-            'focus:outline-none focus:ring-2 focus:ring-black focus:border-black',
-            'disabled:bg-gray-100 disabled:cursor-not-allowed',
-            error ? 'border-red-500' : 'border-gray-300',
-            className
+            'block w-full px-3 py-2 bg-bg-muted border rounded-xl text-ink placeholder:text-ink-muted',
+            'focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/30 focus:bg-surface',
+            'disabled:bg-bg-subtle disabled:text-ink-muted disabled:cursor-not-allowed',
+            error ? 'border-danger' : 'border-transparent',
+            className,
           )}
           {...props}
         />
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-        {helperText && !error && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
+        {error && <p className="mt-1 text-sm text-danger">{error}</p>}
+        {helperText && !error && <p className="mt-1 text-sm text-ink-muted">{helperText}</p>}
       </div>
     );
-  }
+  },
 );
 
 Input.displayName = 'Input';

@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/UI/Card';
 import { Badge } from '@/components/UI/Badge';
 import { LoadingSpinner } from '@/components/UI/LoadingSpinner';
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react';
 
 export default function FinancialOverviewPage() {
+  const router = useRouter();
   const { data: summary, isLoading: summaryLoading } = useFinancialSummary();
   const { data: invoices, isLoading: invoicesLoading } = useInvoices();
   const { data: expenses, isLoading: expensesLoading } = useExpenses();
@@ -77,62 +79,70 @@ export default function FinancialOverviewPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Financial Overview</h1>
-          <p className="text-gray-400 mt-2">Company financial performance and metrics</p>
+          <h1 className="text-3xl font-bold text-ink">Financial Overview</h1>
+          <p className="text-ink-muted mt-2">Company financial performance and metrics</p>
         </div>
         {overdueInvoices > 0 && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-red-900/30 border border-red-800 rounded-lg">
-            <AlertTriangle className="h-4 w-4 text-red-400" />
-            <span className="text-sm text-red-400 font-medium">{overdueInvoices} overdue invoices</span>
+          <div className="flex items-center gap-2 px-4 py-2 bg-danger-soft border border-danger/20 rounded-xl">
+            <AlertTriangle className="h-4 w-4 text-danger" />
+            <span className="text-sm text-danger-text font-medium">{overdueInvoices} overdue invoices</span>
           </div>
         )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
+        <Card className="p-6 bg-surface border border-border">
           <div className="flex items-start justify-between">
             <div>
-              <DollarSign className="h-8 w-8 text-green-400 mb-3" />
-              <p className="text-sm text-gray-400">Total Revenue</p>
-              <p className="text-3xl font-bold text-white mt-1">${(totalRevenue / 1000000).toFixed(2)}M</p>
+              <div className="h-10 w-10 rounded-xl bg-success-soft text-success flex items-center justify-center mb-3">
+                <DollarSign className="h-5 w-5" />
+              </div>
+              <p className="text-sm text-ink-muted">Total Revenue</p>
+              <p className="text-3xl font-bold text-ink mt-1">${(totalRevenue / 1000000).toFixed(2)}M</p>
             </div>
-            <div className="flex items-center gap-1 text-green-400 text-sm">
+            <div className="flex items-center gap-1 text-success text-sm">
               <ArrowUp className="h-3 w-3" />
               <span>+12.5%</span>
             </div>
           </div>
         </Card>
-        <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
+        <Card className="p-6 bg-surface border border-border">
           <div className="flex items-start justify-between">
             <div>
-              <TrendingDown className="h-8 w-8 text-red-400 mb-3" />
-              <p className="text-sm text-gray-400">Total Expenses</p>
-              <p className="text-3xl font-bold text-white mt-1">${(totalExpenses / 1000).toFixed(0)}K</p>
+              <div className="h-10 w-10 rounded-xl bg-danger-soft text-danger flex items-center justify-center mb-3">
+                <TrendingDown className="h-5 w-5" />
+              </div>
+              <p className="text-sm text-ink-muted">Total Expenses</p>
+              <p className="text-3xl font-bold text-ink mt-1">${(totalExpenses / 1000).toFixed(0)}K</p>
             </div>
-            <div className="flex items-center gap-1 text-red-400 text-sm">
+            <div className="flex items-center gap-1 text-danger text-sm">
               <ArrowUp className="h-3 w-3" />
               <span>+4.2%</span>
             </div>
           </div>
         </Card>
-        <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
+        <Card className="p-6 bg-surface border border-border">
           <div className="flex items-start justify-between">
             <div>
-              <PiggyBank className="h-8 w-8 text-white mb-3" />
-              <p className="text-sm text-gray-400">Net Profit</p>
-              <p className="text-3xl font-bold text-white mt-1">${(profit / 1000).toFixed(0)}K</p>
+              <div className="h-10 w-10 rounded-xl bg-brand-mist text-brand flex items-center justify-center mb-3">
+                <PiggyBank className="h-5 w-5" />
+              </div>
+              <p className="text-sm text-ink-muted">Net Profit</p>
+              <p className="text-3xl font-bold text-ink mt-1">${(profit / 1000).toFixed(0)}K</p>
             </div>
             <Badge variant="success">{profitMargin}% margin</Badge>
           </div>
         </Card>
-        <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
+        <Card className="p-6 bg-surface border border-border">
           <div className="flex items-start justify-between">
             <div>
-              <Wallet className="h-8 w-8 text-white mb-3" />
-              <p className="text-sm text-gray-400">Pending Items</p>
-              <p className="text-3xl font-bold text-white mt-1">{pendingInvoices + pendingExpenses}</p>
+              <div className="h-10 w-10 rounded-xl bg-brand-mist text-brand flex items-center justify-center mb-3">
+                <Wallet className="h-5 w-5" />
+              </div>
+              <p className="text-sm text-ink-muted">Pending Items</p>
+              <p className="text-3xl font-bold text-ink mt-1">{pendingInvoices + pendingExpenses}</p>
             </div>
-            <div className="text-right text-xs text-gray-500">
+            <div className="text-right text-xs text-ink-muted">
               <p>{pendingInvoices} invoices</p>
               <p>{pendingExpenses} expenses</p>
             </div>
@@ -141,15 +151,15 @@ export default function FinancialOverviewPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="p-6 lg:col-span-2 bg-[#0a0a0a] border border-gray-800">
+        <Card className="p-6 lg:col-span-2 bg-surface border border-border">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-ink flex items-center gap-2">
               <Receipt className="h-5 w-5" /> Recent Invoices
             </h2>
-            <Link href="/ceo/finance/invoices" className="text-sm text-gray-400 hover:text-white">View All</Link>
+            <Link href="/ceo/finance/invoices" className="text-sm text-ink-muted hover:text-ink">View All</Link>
           </div>
           {recentInvoices.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-ink-muted">
               <FileText className="h-12 w-12 mx-auto mb-2" />
               <p>No invoices yet</p>
             </div>
@@ -166,15 +176,19 @@ export default function FinancialOverviewPage() {
               </TableHeader>
               <TableBody>
                 {recentInvoices.map(inv => (
-                  <TableRow key={inv.id}>
+                  <TableRow
+                    key={inv.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/ceo/finance/invoices/${inv.id}`)}
+                  >
                     <TableCell>
-                      <Link href={`/ceo/finance/invoices/${inv.id}`} className="text-white font-medium hover:opacity-80">
+                      <Link href={`/ceo/finance/invoices/${inv.id}`} className="text-ink font-medium hover:opacity-80">
                         {inv.invoice_number}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-gray-300">{inv.client_name}</TableCell>
-                    <TableCell className="text-white font-medium">${inv.amount?.toLocaleString()}</TableCell>
-                    <TableCell className="text-gray-400">{new Date(inv.due_date).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-ink-secondary">{inv.client_name}</TableCell>
+                    <TableCell className="text-ink font-medium">${inv.amount?.toLocaleString()}</TableCell>
+                    <TableCell className="text-ink-muted">{new Date(inv.due_date).toLocaleDateString()}</TableCell>
                     <TableCell>{getInvoiceBadge(inv.status)}</TableCell>
                   </TableRow>
                 ))}
@@ -183,16 +197,16 @@ export default function FinancialOverviewPage() {
           )}
         </Card>
 
-        <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
+        <Card className="p-6 bg-surface border border-border">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-ink flex items-center gap-2">
               <Clock className="h-5 w-5" /> Pending Expenses
             </h2>
-            <Link href="/ceo/finance/expenses/approve" className="text-sm text-gray-400 hover:text-white">Review</Link>
+            <Link href="/ceo/finance/expenses/approve" className="text-sm text-ink-muted hover:text-ink">Review</Link>
           </div>
           {pendingExpenseList.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <CheckCircle className="h-12 w-12 mx-auto mb-2 text-green-400" />
+            <div className="text-center py-8 text-ink-muted">
+              <CheckCircle className="h-12 w-12 mx-auto mb-2 text-success" />
               <p>No pending expenses</p>
             </div>
           ) : (
@@ -201,15 +215,15 @@ export default function FinancialOverviewPage() {
                 <Link
                   key={exp.id}
                   href={`/ceo/finance/expenses/${exp.id}`}
-                  className="block p-3 bg-[#1a1a1a] border border-gray-800 rounded-lg hover:border-gray-700 transition-all"
+                  className="block p-3 bg-bg-muted border border-border rounded-lg hover:border-border-strong transition-all"
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <p className="font-medium text-white text-sm">{exp.title}</p>
+                    <p className="font-medium text-ink text-sm">{exp.title}</p>
                     {getExpenseBadge(exp.status)}
                   </div>
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-gray-500">{exp.category} · {new Date(exp.date).toLocaleDateString()}</p>
-                    <p className="text-sm text-white font-semibold">${exp.amount?.toLocaleString()}</p>
+                    <p className="text-xs text-ink-muted">{exp.category} · {new Date(exp.date).toLocaleDateString()}</p>
+                    <p className="text-sm text-ink font-semibold">${exp.amount?.toLocaleString()}</p>
                   </div>
                 </Link>
               ))}
@@ -218,12 +232,12 @@ export default function FinancialOverviewPage() {
         </Card>
       </div>
 
-      <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
+      <Card className="p-6 bg-surface border border-border">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-ink flex items-center gap-2">
             <CreditCard className="h-5 w-5" /> Budget Utilization
           </h2>
-          <Link href="/ceo/finance/budgets" className="text-sm text-gray-400 hover:text-white">Manage Budgets</Link>
+          <Link href="/ceo/finance/budgets" className="text-sm text-ink-muted hover:text-ink">Manage Budgets</Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {(budgetUtilization.length === 0 ? [
@@ -234,27 +248,27 @@ export default function FinancialOverviewPage() {
             { name: 'HR Budget', amount: 60000, spent: 33000, pct: 55, currency: 'USD', period: 'yearly' },
             { name: 'R&D Budget', amount: 200000, spent: 140000, pct: 70, currency: 'USD', period: 'yearly' },
           ] : budgetUtilization).map(budget => (
-            <div key={budget.name || (budget as any).id} className="p-4 bg-[#1a1a1a] border border-gray-800 rounded-lg">
+            <div key={budget.name || (budget as any).id} className="p-4 bg-bg-muted border border-border rounded-lg">
               <div className="flex items-center justify-between mb-2">
-                <p className="font-medium text-white text-sm">{budget.name}</p>
-                <span className={`text-xs px-2 py-1 rounded ${
-                  (budget.pct || 0) >= 90 ? 'bg-red-900/30 text-red-400' :
-                  (budget.pct || 0) >= 75 ? 'bg-yellow-900/30 text-yellow-400' :
-                  'bg-gray-800 text-gray-400'
+                <p className="font-medium text-ink text-sm">{budget.name}</p>
+                <span className={`text-xs px-2 py-1 rounded-lg ${
+                  (budget.pct || 0) >= 90 ? 'bg-danger-soft text-danger-text' :
+                  (budget.pct || 0) >= 75 ? 'bg-warning-soft text-warning-text' :
+                  'bg-bg-subtle text-ink-muted'
                 }`}>
                   {budget.pct || 0}% used
                 </span>
               </div>
-              <div className="w-full bg-gray-800 rounded-full h-2 mb-2">
+              <div className="w-full bg-bg-subtle rounded-full h-2 mb-2">
                 <div
                   className={`h-2 rounded-full ${
-                    (budget.pct || 0) >= 90 ? 'bg-red-500' :
-                    (budget.pct || 0) >= 75 ? 'bg-yellow-500' : 'bg-white'
+                    (budget.pct || 0) >= 90 ? 'bg-danger' :
+                    (budget.pct || 0) >= 75 ? 'bg-warning' : 'bg-brand'
                   }`}
                   style={{ width: `${budget.pct || 0}%` }}
                 />
               </div>
-              <div className="flex items-center justify-between text-xs text-gray-500">
+              <div className="flex items-center justify-between text-xs text-ink-muted">
                 <span>${((budget.spent || 0) / 1000).toFixed(0)}K spent</span>
                 <span>${(budget.amount / 1000).toFixed(0)}K total</span>
               </div>

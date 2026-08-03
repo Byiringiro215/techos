@@ -45,44 +45,44 @@ export default function RecruitmentPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Recruitment</h1>
-          <p className="text-gray-400 mt-2">Open positions, candidates and hiring pipeline</p>
+          <h1 className="text-3xl font-bold text-ink">Recruitment</h1>
+          <p className="text-ink-muted mt-2">Open positions, candidates and hiring pipeline</p>
         </div>
-        <button className="px-4 py-2 bg-white text-black text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2">
+        <button className="px-4 py-2 bg-brand text-ink-inverse text-sm font-medium rounded-xl hover:bg-brand-deep transition-colors flex items-center gap-2">
           <Plus className="h-4 w-4" />
           New Job Posting
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
-          <Briefcase className="h-8 w-8 text-white mb-3" />
-          <p className="text-sm text-gray-400">Open Positions</p>
-          <p className="text-3xl font-bold text-white mt-1">
+        <Card className="p-6 bg-surface border border-border">
+          <Briefcase className="h-8 w-8 text-ink mb-3" />
+          <p className="text-sm text-ink-muted">Open Positions</p>
+          <p className="text-3xl font-bold text-ink mt-1">
             {jobPostings.filter(j => j.status === 'open').length}
           </p>
         </Card>
-        <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
-          <Users className="h-8 w-8 text-white mb-3" />
-          <p className="text-sm text-gray-400">Total Applicants</p>
-          <p className="text-3xl font-bold text-white mt-1">89</p>
+        <Card className="p-6 bg-surface border border-border">
+          <Users className="h-8 w-8 text-ink mb-3" />
+          <p className="text-sm text-ink-muted">Total Applicants</p>
+          <p className="text-3xl font-bold text-ink mt-1">89</p>
         </Card>
-        <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
-          <Clock className="h-8 w-8 text-yellow-400 mb-3" />
-          <p className="text-sm text-gray-400">In Interviews</p>
-          <p className="text-3xl font-bold text-white mt-1">12</p>
+        <Card className="p-6 bg-surface border border-border">
+          <Clock className="h-8 w-8 text-warning mb-3" />
+          <p className="text-sm text-ink-muted">In Interviews</p>
+          <p className="text-3xl font-bold text-ink mt-1">12</p>
         </Card>
-        <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
-          <UserPlus className="h-8 w-8 text-green-400 mb-3" />
-          <p className="text-sm text-gray-400">Hires This Month</p>
-          <p className="text-3xl font-bold text-white mt-1">3</p>
+        <Card className="p-6 bg-surface border border-border">
+          <UserPlus className="h-8 w-8 text-success mb-3" />
+          <p className="text-sm text-ink-muted">Hires This Month</p>
+          <p className="text-3xl font-bold text-ink mt-1">3</p>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="p-6 lg:col-span-2 bg-[#0a0a0a] border border-gray-800">
+        <Card className="p-6 lg:col-span-2 bg-surface border border-border">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-ink flex items-center gap-2">
               <Briefcase className="h-5 w-5" /> Open Positions
             </h2>
           </div>
@@ -98,25 +98,25 @@ export default function RecruitmentPage() {
                 <Link
                   key={job.id}
                   href={`/ceo/hr/recruitment/${job.id}`}
-                  className="block p-4 bg-[#1a1a1a] border border-gray-800 rounded-lg hover:border-gray-700 transition-all"
+                  className="block p-4 bg-bg-muted border border-border rounded-lg hover:border-border-strong transition-all"
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="font-semibold text-white">{job.title}</h3>
+                      <h3 className="font-semibold text-ink">{job.title}</h3>
                       <div className="flex items-center gap-4 mt-2 flex-wrap">
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                        <span className="text-xs text-ink-muted flex items-center gap-1">
                           <Briefcase className="h-3 w-3" /> {job.department}
                         </span>
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                        <span className="text-xs text-ink-muted flex items-center gap-1">
                           <MapPin className="h-3 w-3" /> {job.location}
                         </span>
-                        <span className="text-xs text-gray-400">{job.type}</span>
-                        <span className="text-xs text-gray-500">Posted {job.posted}</span>
+                        <span className="text-xs text-ink-muted">{job.type}</span>
+                        <span className="text-xs text-ink-muted">Posted {job.posted}</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       {getStatusBadge(job.status)}
-                      <div className="flex items-center gap-1 text-sm text-gray-400">
+                      <div className="flex items-center gap-1 text-sm text-ink-muted">
                         <Users className="h-3 w-3" /> {job.applicants} applicants
                       </div>
                     </div>
@@ -127,29 +127,29 @@ export default function RecruitmentPage() {
           )}
         </Card>
 
-        <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
+        <Card className="p-6 bg-surface border border-border">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-ink flex items-center gap-2">
               <FileText className="h-5 w-5" /> Recent Candidates
             </h2>
-            <Link href="/ceo/hr/recruitment/candidates" className="text-sm text-gray-400 hover:text-white">
+            <Link href="/ceo/hr/recruitment/candidates" className="text-sm text-ink-muted hover:text-ink">
               View All
             </Link>
           </div>
           <div className="space-y-3">
             {candidates.map(c => (
-              <div key={c.id} className="p-3 bg-[#1a1a1a] border border-gray-800 rounded-lg">
+              <div key={c.id} className="p-3 bg-bg-muted border border-border rounded-lg">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center text-black text-xs font-semibold">
+                  <div className="h-8 w-8 rounded-full bg-brand-mist flex items-center justify-center text-brand text-xs font-semibold">
                     {c.name.split(' ').map(n => n[0]).join('')}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-white text-sm truncate">{c.name}</p>
-                    <p className="text-xs text-gray-500 truncate">{c.position}</p>
+                    <p className="font-medium text-ink text-sm truncate">{c.name}</p>
+                    <p className="text-xs text-ink-muted truncate">{c.position}</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500">{c.applied}</p>
+                  <p className="text-xs text-ink-muted">{c.applied}</p>
                   {getStatusBadge(c.status)}
                 </div>
               </div>

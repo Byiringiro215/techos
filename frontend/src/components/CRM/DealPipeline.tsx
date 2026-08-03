@@ -16,7 +16,7 @@ export function DealPipeline({ deals, onDealClick, onCreateDeal }: DealPipelineP
   const updateDeal = useUpdateDeal();
 
   const stages: { id: Deal['stage']; title: string; color: string }[] = [
-    { id: 'lead', title: 'Lead', color: 'border-gray-300' },
+    { id: 'lead', title: 'Lead', color: 'border-border' },
     { id: 'qualified', title: 'Qualified', color: 'border-blue-500' },
     { id: 'proposal', title: 'Proposal', color: 'border-purple-500' },
     { id: 'negotiation', title: 'Negotiation', color: 'border-yellow-500' },
@@ -73,15 +73,15 @@ export function DealPipeline({ deals, onDealClick, onCreateDeal }: DealPipelineP
             {/* Stage Header */}
             <div className={`border-t-4 ${stage.color} bg-white p-4 mb-3 border border-gray-200`}>
               <div className="flex items-center justify-between mb-1">
-                <h3 className="font-semibold text-black text-sm">{stage.title}</h3>
+                <h3 className="font-semibold text-ink text-sm">{stage.title}</h3>
                 <button
                   onClick={() => onCreateDeal(stage.id)}
-                  className="text-gray-400 hover:text-black"
+                  className="text-ink-muted hover:text-ink"
                 >
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-ink-muted">
                 {stageDeals.length} deals · {formatCurrency(totalValue)}
               </div>
             </div>

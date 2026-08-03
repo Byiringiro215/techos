@@ -48,54 +48,54 @@ export default function EmployeeDetailPage() {
       <div className="flex items-center gap-4">
         <button
           onClick={() => router.back()}
-          className="p-2 hover:bg-[#1a1a1a] rounded-lg text-gray-400 hover:text-white"
+          className="p-2 hover:bg-bg-muted rounded-lg text-ink-muted hover:text-ink"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-3xl font-bold text-white">
+          <h1 className="text-3xl font-bold text-ink">
             {employee?.user?.first_name} {employee?.user?.last_name}
           </h1>
-          <p className="text-gray-400 mt-1">{employee?.position} · {employee?.department}</p>
+          <p className="text-ink-muted mt-1">{employee?.position} · {employee?.department}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
+        <Card className="p-6 bg-surface border border-border">
           <div className="flex flex-col items-center text-center mb-6">
-            <div className="h-24 w-24 rounded-full bg-white flex items-center justify-center text-black font-bold text-2xl mb-4">
+            <div className="h-24 w-24 rounded-full bg-brand-mist flex items-center justify-center text-brand font-bold text-2xl mb-4">
               {employee?.user?.first_name?.[0]}{employee?.user?.last_name?.[0]}
             </div>
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-xl font-semibold text-ink">
               {employee?.user?.first_name} {employee?.user?.last_name}
             </h2>
-            <p className="text-gray-400 mt-1">{employee?.position}</p>
+            <p className="text-ink-muted mt-1">{employee?.position}</p>
             <div className="mt-3">{getStatusBadge(employee?.status || 'active')}</div>
           </div>
-          <div className="space-y-3 border-t border-gray-800 pt-4">
+          <div className="space-y-3 border-t border-border pt-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500 flex items-center gap-2">
                 <Mail className="h-4 w-4" /> Email
               </span>
-              <span className="text-sm text-white">{employee?.user?.email}</span>
+              <span className="text-sm text-ink">{employee?.user?.email}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500 flex items-center gap-2">
                 <Hash className="h-4 w-4" /> Employee #
               </span>
-              <span className="text-sm text-white">{employee?.employee_number}</span>
+              <span className="text-sm text-ink">{employee?.employee_number}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500 flex items-center gap-2">
                 <Building className="h-4 w-4" /> Department
               </span>
-              <span className="text-sm text-white">{employee?.department}</span>
+              <span className="text-sm text-ink">{employee?.department}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500 flex items-center gap-2">
                 <Calendar className="h-4 w-4" /> Hire Date
               </span>
-              <span className="text-sm text-white">
+              <span className="text-sm text-ink">
                 {employee?.hire_date ? new Date(employee.hire_date).toLocaleDateString() : '-'}
               </span>
             </div>
@@ -104,51 +104,51 @@ export default function EmployeeDetailPage() {
                 <span className="text-sm text-gray-500 flex items-center gap-2">
                   <FileText className="h-4 w-4" /> Salary
                 </span>
-                <span className="text-sm text-white">${employee.salary.toLocaleString()}/yr</span>
+                <span className="text-sm text-ink">${employee.salary.toLocaleString()}/yr</span>
               </div>
             )}
           </div>
-          <div className="flex gap-2 mt-6 pt-4 border-t border-gray-800">
-            <button className="flex-1 py-2 px-4 text-sm border border-gray-700 text-gray-300 rounded-lg hover:bg-[#1a1a1a] flex items-center justify-center gap-2">
+          <div className="flex gap-2 mt-6 pt-4 border-t border-border">
+            <button className="flex-1 py-2 px-4 text-sm border border-border-strong text-ink-secondary rounded-lg hover:bg-bg-muted flex items-center justify-center gap-2">
               <Edit className="h-4 w-4" /> Edit
             </button>
-            <button className="py-2 px-4 text-sm border border-red-900 text-red-400 rounded-lg hover:bg-red-900/30">
+            <button className="py-2 px-4 text-sm border border-red-900 text-danger rounded-lg hover:bg-danger-soft">
               <Trash2 className="h-4 w-4" />
             </button>
           </div>
         </Card>
 
         <div className="lg:col-span-2 space-y-6">
-          <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
-            <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+          <Card className="p-6 bg-surface border border-border">
+            <h3 className="font-semibold text-ink mb-4 flex items-center gap-2">
               <Briefcase className="h-5 w-5" /> Employment Details
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-[#1a1a1a] border border-gray-800 rounded-lg">
+              <div className="p-4 bg-bg-muted border border-border rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">Position</p>
-                <p className="text-white font-medium">{employee?.position || '-'}</p>
+                <p className="text-ink font-medium">{employee?.position || '-'}</p>
               </div>
-              <div className="p-4 bg-[#1a1a1a] border border-gray-800 rounded-lg">
+              <div className="p-4 bg-bg-muted border border-border rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">Department</p>
-                <p className="text-white font-medium">{employee?.department || '-'}</p>
+                <p className="text-ink font-medium">{employee?.department || '-'}</p>
               </div>
-              <div className="p-4 bg-[#1a1a1a] border border-gray-800 rounded-lg">
+              <div className="p-4 bg-bg-muted border border-border rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">Employee Number</p>
-                <p className="text-white font-medium">{employee?.employee_number || '-'}</p>
+                <p className="text-ink font-medium">{employee?.employee_number || '-'}</p>
               </div>
-              <div className="p-4 bg-[#1a1a1a] border border-gray-800 rounded-lg">
+              <div className="p-4 bg-bg-muted border border-border rounded-lg">
                 <p className="text-xs text-gray-500 mb-1">Status</p>
                 {getStatusBadge(employee?.status || 'active')}
               </div>
             </div>
           </Card>
 
-          <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
+          <Card className="p-6 bg-surface border border-border">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-white flex items-center gap-2">
+              <h3 className="font-semibold text-ink flex items-center gap-2">
                 <User className="h-5 w-5" /> Recent Activity
               </h3>
-              <Link href={`/ceo/hr/performance/${id}`} className="text-sm text-gray-400 hover:text-white">
+              <Link href={`/ceo/hr/performance/${id}`} className="text-sm text-ink-muted hover:text-ink">
                 View All
               </Link>
             </div>
@@ -158,13 +158,13 @@ export default function EmployeeDetailPage() {
                 { title: '5 days vacation approved', time: '1 month ago', type: 'success' },
                 { title: 'Project milestone reached', time: '2 months ago', type: 'info' },
               ].map((activity, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 bg-[#1a1a1a] border border-gray-800 rounded-lg">
+                <div key={i} className="flex items-center gap-3 p-3 bg-bg-muted border border-border rounded-lg">
                   <div className={`h-2 w-2 rounded-full ${
                     activity.type === 'success' ? 'bg-green-400' :
                     activity.type === 'warning' ? 'bg-yellow-400' : 'bg-blue-400'
                   }`} />
                   <div className="flex-1">
-                    <p className="text-sm text-white">{activity.title}</p>
+                    <p className="text-sm text-ink">{activity.title}</p>
                     <p className="text-xs text-gray-500">{activity.time}</p>
                   </div>
                 </div>

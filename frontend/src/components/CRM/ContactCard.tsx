@@ -12,7 +12,7 @@ interface ContactCardProps {
 
 export function ContactCard({ contact, onClick }: ContactCardProps) {
   const getScoreColor = (score?: number) => {
-    if (!score) return 'bg-gray-100 text-gray-700';
+    if (!score) return 'bg-bg-muted text-ink-secondary';
     if (score >= 80) return 'bg-green-100 text-green-800 border-green-300';
     if (score >= 60) return 'bg-yellow-100 text-yellow-800 border-yellow-300';
     return 'bg-red-100 text-red-800 border-red-300';
@@ -28,7 +28,7 @@ export function ContactCard({ contact, onClick }: ContactCardProps) {
               <User className="h-5 w-5 text-gray-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-black">{contact.name}</h3>
+              <h3 className="font-semibold text-ink">{contact.name}</h3>
               {contact.position && (
                 <p className="text-sm text-gray-600">{contact.position}</p>
               )}
@@ -58,7 +58,7 @@ export function ContactCard({ contact, onClick }: ContactCardProps) {
               <a
                 href={`mailto:${contact.email}`}
                 onClick={(e) => e.stopPropagation()}
-                className="hover:text-black"
+                className="hover:text-ink"
               >
                 {contact.email}
               </a>
@@ -70,7 +70,7 @@ export function ContactCard({ contact, onClick }: ContactCardProps) {
               <a
                 href={`tel:${contact.phone}`}
                 onClick={(e) => e.stopPropagation()}
-                className="hover:text-black"
+                className="hover:text-ink"
               >
                 {contact.phone}
               </a>
@@ -81,17 +81,17 @@ export function ContactCard({ contact, onClick }: ContactCardProps) {
         {/* Tags */}
         {contact.tags && contact.tags.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
-            <Tag className="h-3 w-3 text-gray-400" />
+            <Tag className="h-3 w-3 text-ink-muted" />
             {contact.tags.slice(0, 3).map((tag, index) => (
               <span
                 key={index}
-                className="text-xs px-2 py-1 bg-gray-100 text-gray-700 border border-gray-200"
+                className="text-xs px-2 py-1 bg-bg-muted text-ink-secondary border border-gray-200"
               >
                 {tag}
               </span>
             ))}
             {contact.tags.length > 3 && (
-              <span className="text-xs text-gray-500">+{contact.tags.length - 3}</span>
+              <span className="text-xs text-ink-muted">+{contact.tags.length - 3}</span>
             )}
           </div>
         )}

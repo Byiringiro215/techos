@@ -2,188 +2,142 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Lock, Mail, User } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
 import { UserRole } from '@/types/roles';
 import api from '@/lib/api';
-import toast from 'react-hot-toast';
-import Link from 'next/link';
+import { getRoleRoute } from '@/lib/roleRoutes';
+import { buildDemoSession } from '@/lib/demoAuth';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { AuthField } from '@/components/auth/AuthField';
+import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
 
 export default function RegisterPage() {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    firstName: '',
-    lastName: '',
-    role: UserRole.SOFTWARE_ENGINEER as UserRole,
-  });
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
 
+  const validate = () => {
+    const next: Record<string, string> = {};
+    if (!username.trim()) next.username = 'Username is required';
+    if (!email.trim()) next.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = 'Enter a valid email';
+    if (!password) next.password = 'Password is required';
+    else if (password.length < 8) next.password = 'Minimum 8 characters';
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
     setLoading(true);
 
+    const parts = username.trim().split(/\s+/);
+    const firstName = parts[0] || 'Demo';
+    const lastName = parts.slice(1).join(' ') || 'User';
+    const role = UserRole.SOFTWARE_ENGINEER;
+
     try {
-      const response = await api.post('/auth/register', formData);
-      
+      const response = await api.post('/auth/register', {
+        email,
+        password,
+        firstName,
+        lastName,
+        role,
+      });
       if (response.data.success) {
         const user = response.data.data.user;
         setAuth(user, response.data.data.token);
         toast.success('Account created successfully!');
-        
-        // Redirect based on user role
-        const roleRoutes: Record<string, string> = {
-          'ceo': '/ceo',
-          'cto': '/cto',
-          'finance': '/finance',
-          'software_engineer': '/software-engineer',
-          'ui_ux_designer': '/ui-ux-designer',
-          'customer_support': '/customer-support',
-        };
-        
-        const redirectRoute = roleRoutes[user.role] || '/';
-        router.push(redirectRoute);
+        router.push(getRoleRoute(user.role));
+        return;
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Registration failed');
+      toast.error('Registration failed');
+    } catch {
+      const session = buildDemoSession(role);
+      setAuth(
+        {
+          ...session.user,
+          email,
+          firstName,
+          lastName,
+          name: username.trim(),
+        },
+        session.token,
+      );
+      toast.success('Account ready (demo mode)');
+      router.push(session.redirectTo);
     } finally {
       setLoading(false);
     }
   };
 
-  // Role options with descriptions
-  const roleOptions = [
-    { value: UserRole.CEO, label: 'CEO', description: 'Chief Executive Officer' },
-    { value: UserRole.CTO, label: 'CTO', description: 'Chief Technology Officer' },
-    { value: UserRole.FINANCE, label: 'Finance', description: 'Financial & Revenue Management' },
-    { value: UserRole.SOFTWARE_ENGINEER, label: 'Software Engineer', description: 'Develop and maintain code' },
-    { value: UserRole.UI_UX_DESIGNER, label: 'UI/UX Designer', description: 'Design user interfaces' },
-    { value: UserRole.CUSTOMER_SUPPORT, label: 'Customer Support', description: 'Support customers' },
-  ];
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      <div className="max-w-md w-full space-y-8 p-8">
-        <div>
-          <h1 className="text-4xl font-bold text-center text-black">TechOS</h1>
-          <p className="mt-2 text-center text-gray-600">
-            The Operating System for Software Companies
-          </p>
-          <h2 className="mt-6 text-2xl font-bold text-center text-black">
-            Create your account
-          </h2>
-        </div>
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-black">
-                  First Name
-                </label>
-                <input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  required
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-black focus:outline-none focus:ring-black focus:border-black sm:text-sm"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-black">
-                  Last Name
-                </label>
-                <input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  required
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-black focus:outline-none focus:ring-black focus:border-black sm:text-sm"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-black">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-black focus:outline-none focus:ring-black focus:border-black sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-black">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={8}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-black focus:outline-none focus:ring-black focus:border-black sm:text-sm"
-              />
-              <p className="mt-1 text-xs text-gray-500">Minimum 8 characters</p>
-            </div>
+    <AuthShell
+      panelSide="right"
+      panel={
+        <>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">Welcome Back!</h2>
+          <p className="mt-3 text-sm text-white/90">Already have an account?</p>
+          <Link
+            href="/login"
+            className="mt-7 inline-flex min-w-[150px] items-center justify-center rounded-xl border-2 border-white px-10 py-2.5 text-sm font-semibold text-white transition hover:bg-white hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          >
+            Login
+          </Link>
+        </>
+      }
+      form={
+        <div className="w-full max-w-sm mx-auto">
+          <h1 className="text-center text-3xl font-bold text-ink tracking-tight">Registration</h1>
 
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-black">
-                Your Role
-              </label>
-              <select
-                id="role"
-                name="role"
-                required
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white text-black focus:outline-none focus:ring-black focus:border-black sm:text-sm"
-              >
-                {roleOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label} - {option.description}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-gray-500">
-                Select the role that best matches your position
-              </p>
-            </div>
-          </div>
+          <form className="mt-8 space-y-4" onSubmit={handleSubmit} noValidate>
+            <AuthField
+              icon={<User className="h-4 w-4" />}
+              placeholder="Username"
+              autoComplete="username"
+              value={username}
+              error={errors.username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <AuthField
+              icon={<Mail className="h-4 w-4" />}
+              type="email"
+              placeholder="Email"
+              autoComplete="email"
+              value={email}
+              error={errors.email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <AuthField
+              icon={<Lock className="h-4 w-4" />}
+              type="password"
+              placeholder="Password"
+              autoComplete="new-password"
+              value={password}
+              error={errors.password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
 
-          <div>
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50"
+              className="mt-2 w-full rounded-xl bg-brand py-3.5 text-sm font-semibold text-white shadow-md shadow-brand/25 transition hover:bg-brand-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 disabled:opacity-60"
             >
-              {loading ? 'Creating account...' : 'Create account'}
+              {loading ? 'Creating account...' : 'Register'}
             </button>
-          </div>
+          </form>
 
-          <div className="text-center">
-            <Link href="/login" className="text-sm text-black hover:underline">
-              Already have an account? Sign in
-            </Link>
-          </div>
-        </form>
-      </div>
-    </div>
+          <SocialAuthButtons mode="register" />
+        </div>
+      }
+    />
   );
 }

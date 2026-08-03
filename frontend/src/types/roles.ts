@@ -16,26 +16,26 @@ export enum Permission {
   EDIT_PROJECTS = 'edit_projects',
   DELETE_PROJECTS = 'delete_projects',
   MANAGE_TASKS = 'manage_tasks',
-  
+
   // HR
   VIEW_EMPLOYEES = 'view_employees',
   MANAGE_EMPLOYEES = 'manage_employees',
   VIEW_LEAVE_REQUESTS = 'view_leave_requests',
   APPROVE_LEAVE_REQUESTS = 'approve_leave_requests',
-  
+
   // Finance
   VIEW_INVOICES = 'view_invoices',
   CREATE_INVOICES = 'create_invoices',
   VIEW_EXPENSES = 'view_expenses',
   APPROVE_EXPENSES = 'approve_expenses',
   VIEW_FINANCIAL_REPORTS = 'view_financial_reports',
-  
+
   // CRM
   VIEW_CONTACTS = 'view_contacts',
   MANAGE_CONTACTS = 'manage_contacts',
   VIEW_DEALS = 'view_deals',
   MANAGE_DEALS = 'manage_deals',
-  
+
   // Product
   VIEW_FEATURES = 'view_features',
   MANAGE_FEATURES = 'manage_features',
@@ -43,32 +43,32 @@ export enum Permission {
   MANAGE_BUGS = 'manage_bugs',
   VIEW_RELEASES = 'view_releases',
   MANAGE_RELEASES = 'manage_releases',
-  
+
   // Communication
   VIEW_MESSAGES = 'view_messages',
   SEND_MESSAGES = 'send_messages',
   VIEW_MEETINGS = 'view_meetings',
   SCHEDULE_MEETINGS = 'schedule_meetings',
-  
+
   // Documents & Analytics
   VIEW_DOCUMENTS = 'view_documents',
   MANAGE_DOCUMENTS = 'manage_documents',
   VIEW_ANALYTICS = 'view_analytics',
-  
+
   // AI & Integrations
   USE_AI = 'use_ai',
   MANAGE_INTEGRATIONS = 'manage_integrations',
-  
+
   // Settings
   VIEW_SETTINGS = 'view_settings',
   MANAGE_ORGANIZATION = 'manage_organization',
   MANAGE_USERS = 'manage_users',
-  
+
   // Announcements & Calendar
   VIEW_ANNOUNCEMENTS = 'view_announcements',
   CREATE_ANNOUNCEMENTS = 'create_announcements',
   VIEW_CALENDAR = 'view_calendar',
-  
+
   // Goals & Reports
   VIEW_GOALS = 'view_goals',
   MANAGE_GOALS = 'manage_goals',
@@ -77,8 +77,8 @@ export enum Permission {
 
 // Role to permissions mapping
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  [UserRole.CEO]: Object.values(Permission), // CEO has all permissions
-  
+  [UserRole.CEO]: Object.values(Permission),
+
   [UserRole.CTO]: [
     Permission.VIEW_PROJECTS,
     Permission.CREATE_PROJECTS,
@@ -106,84 +106,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.VIEW_REPORTS,
     Permission.VIEW_ANNOUNCEMENTS,
   ],
-  
-  [UserRole.COO]: [
-    Permission.VIEW_PROJECTS,
-    Permission.CREATE_PROJECTS,
-    Permission.EDIT_PROJECTS,
-    Permission.MANAGE_TASKS,
-    Permission.VIEW_EMPLOYEES,
-    Permission.MANAGE_EMPLOYEES,
-    Permission.VIEW_LEAVE_REQUESTS,
-    Permission.APPROVE_LEAVE_REQUESTS,
-    Permission.VIEW_INVOICES,
-    Permission.VIEW_EXPENSES,
-    Permission.APPROVE_EXPENSES,
-    Permission.VIEW_FINANCIAL_REPORTS,
-    Permission.VIEW_ANALYTICS,
-    Permission.VIEW_DOCUMENTS,
-    Permission.MANAGE_DOCUMENTS,
-    Permission.VIEW_MESSAGES,
-    Permission.SEND_MESSAGES,
-    Permission.VIEW_MEETINGS,
-    Permission.SCHEDULE_MEETINGS,
-    Permission.VIEW_CALENDAR,
-    Permission.VIEW_GOALS,
-    Permission.MANAGE_GOALS,
-    Permission.VIEW_REPORTS,
-    Permission.VIEW_ANNOUNCEMENTS,
-    Permission.CREATE_ANNOUNCEMENTS,
-  ],
-  
-  [UserRole.PRODUCT_MANAGER]: [
-    Permission.VIEW_PROJECTS,
-    Permission.CREATE_PROJECTS,
-    Permission.EDIT_PROJECTS,
-    Permission.MANAGE_TASKS,
-    Permission.VIEW_FEATURES,
-    Permission.MANAGE_FEATURES,
-    Permission.VIEW_BUGS,
-    Permission.MANAGE_BUGS,
-    Permission.VIEW_RELEASES,
-    Permission.MANAGE_RELEASES,
-    Permission.VIEW_ANALYTICS,
-    Permission.VIEW_DOCUMENTS,
-    Permission.MANAGE_DOCUMENTS,
-    Permission.USE_AI,
-    Permission.VIEW_MESSAGES,
-    Permission.SEND_MESSAGES,
-    Permission.VIEW_MEETINGS,
-    Permission.SCHEDULE_MEETINGS,
-    Permission.VIEW_CALENDAR,
-    Permission.VIEW_GOALS,
-    Permission.VIEW_REPORTS,
-    Permission.VIEW_ANNOUNCEMENTS,
-  ],
-  
-  [UserRole.ENGINEERING_MANAGER]: [
-    Permission.VIEW_PROJECTS,
-    Permission.CREATE_PROJECTS,
-    Permission.EDIT_PROJECTS,
-    Permission.MANAGE_TASKS,
-    Permission.VIEW_FEATURES,
-    Permission.MANAGE_FEATURES,
-    Permission.VIEW_BUGS,
-    Permission.MANAGE_BUGS,
-    Permission.VIEW_RELEASES,
-    Permission.VIEW_ANALYTICS,
-    Permission.VIEW_DOCUMENTS,
-    Permission.MANAGE_DOCUMENTS,
-    Permission.USE_AI,
-    Permission.VIEW_MESSAGES,
-    Permission.SEND_MESSAGES,
-    Permission.VIEW_MEETINGS,
-    Permission.SCHEDULE_MEETINGS,
-    Permission.VIEW_CALENDAR,
-    Permission.VIEW_GOALS,
-    Permission.VIEW_REPORTS,
-    Permission.VIEW_ANNOUNCEMENTS,
-  ],
-  
+
   [UserRole.SOFTWARE_ENGINEER]: [
     Permission.VIEW_PROJECTS,
     Permission.MANAGE_TASKS,
@@ -198,7 +121,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.VIEW_CALENDAR,
     Permission.VIEW_ANNOUNCEMENTS,
   ],
-  
+
   [UserRole.UI_UX_DESIGNER]: [
     Permission.VIEW_PROJECTS,
     Permission.MANAGE_TASKS,
@@ -213,57 +136,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.VIEW_CALENDAR,
     Permission.VIEW_ANNOUNCEMENTS,
   ],
-  
-  [UserRole.HR_MANAGER]: [
-    Permission.VIEW_EMPLOYEES,
-    Permission.MANAGE_EMPLOYEES,
-    Permission.VIEW_LEAVE_REQUESTS,
-    Permission.APPROVE_LEAVE_REQUESTS,
-    Permission.VIEW_ANALYTICS,
-    Permission.VIEW_DOCUMENTS,
-    Permission.MANAGE_DOCUMENTS,
-    Permission.VIEW_MESSAGES,
-    Permission.SEND_MESSAGES,
-    Permission.VIEW_MEETINGS,
-    Permission.SCHEDULE_MEETINGS,
-    Permission.VIEW_CALENDAR,
-    Permission.VIEW_ANNOUNCEMENTS,
-    Permission.CREATE_ANNOUNCEMENTS,
-  ],
-  
-  [UserRole.SALES]: [
-    Permission.VIEW_CONTACTS,
-    Permission.MANAGE_CONTACTS,
-    Permission.VIEW_DEALS,
-    Permission.MANAGE_DEALS,
-    Permission.VIEW_ANALYTICS,
-    Permission.VIEW_DOCUMENTS,
-    Permission.MANAGE_DOCUMENTS,
-    Permission.USE_AI,
-    Permission.VIEW_MESSAGES,
-    Permission.SEND_MESSAGES,
-    Permission.VIEW_MEETINGS,
-    Permission.SCHEDULE_MEETINGS,
-    Permission.VIEW_CALENDAR,
-    Permission.VIEW_ANNOUNCEMENTS,
-  ],
-  
-  [UserRole.MARKETING]: [
-    Permission.VIEW_CONTACTS,
-    Permission.MANAGE_CONTACTS,
-    Permission.VIEW_ANALYTICS,
-    Permission.VIEW_DOCUMENTS,
-    Permission.MANAGE_DOCUMENTS,
-    Permission.USE_AI,
-    Permission.VIEW_MESSAGES,
-    Permission.SEND_MESSAGES,
-    Permission.VIEW_MEETINGS,
-    Permission.SCHEDULE_MEETINGS,
-    Permission.VIEW_CALENDAR,
-    Permission.VIEW_ANNOUNCEMENTS,
-    Permission.CREATE_ANNOUNCEMENTS,
-  ],
-  
+
   [UserRole.FINANCE]: [
     Permission.VIEW_INVOICES,
     Permission.CREATE_INVOICES,
@@ -279,39 +152,11 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.VIEW_CALENDAR,
     Permission.VIEW_ANNOUNCEMENTS,
   ],
-  
+
   [UserRole.CUSTOMER_SUPPORT]: [
     Permission.VIEW_CONTACTS,
     Permission.MANAGE_CONTACTS,
     Permission.VIEW_BUGS,
-    Permission.VIEW_DOCUMENTS,
-    Permission.VIEW_MESSAGES,
-    Permission.SEND_MESSAGES,
-    Permission.VIEW_MEETINGS,
-    Permission.VIEW_CALENDAR,
-    Permission.VIEW_ANNOUNCEMENTS,
-  ],
-  
-  [UserRole.OPERATIONS]: [
-    Permission.VIEW_PROJECTS,
-    Permission.VIEW_EMPLOYEES,
-    Permission.VIEW_EXPENSES,
-    Permission.VIEW_ANALYTICS,
-    Permission.VIEW_DOCUMENTS,
-    Permission.MANAGE_DOCUMENTS,
-    Permission.VIEW_MESSAGES,
-    Permission.SEND_MESSAGES,
-    Permission.VIEW_MEETINGS,
-    Permission.SCHEDULE_MEETINGS,
-    Permission.VIEW_CALENDAR,
-    Permission.VIEW_ANNOUNCEMENTS,
-  ],
-  
-  [UserRole.ADMIN]: Object.values(Permission), // Admin has all permissions
-  
-  [UserRole.MEMBER]: [
-    Permission.VIEW_PROJECTS,
-    Permission.MANAGE_TASKS,
     Permission.VIEW_DOCUMENTS,
     Permission.VIEW_MESSAGES,
     Permission.SEND_MESSAGES,

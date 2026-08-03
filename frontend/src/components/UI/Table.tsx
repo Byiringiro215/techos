@@ -8,51 +8,45 @@ export interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
 
 export function Table({ className, children, ...props }: TableProps) {
   return (
-    <div className="overflow-x-auto border border-gray-800 rounded-lg bg-[#0a0a0a]">
-      <table
-        className={cn('w-full text-sm text-left text-gray-300', className)}
-        {...props}
-      >
+    <div className="overflow-x-auto border border-border rounded-xl bg-surface shadow-sm">
+      <table className={cn('w-full text-sm text-left text-ink-secondary', className)} {...props}>
         {children}
       </table>
     </div>
   );
 }
 
-export interface TableHeaderProps extends React.HTMLAttributes<HTMLTableSectionElement> {
-  children: React.ReactNode;
-}
-
-export function TableHeader({ className, children, ...props }: TableHeaderProps) {
+export function TableHeader({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLTableSectionElement> & { children: React.ReactNode }) {
   return (
-    <thead
-      className={cn('bg-[#1a1a1a] border-b border-gray-800', className)}
-      {...props}
-    >
+    <thead className={cn('bg-bg-muted border-b border-border', className)} {...props}>
       {children}
     </thead>
   );
 }
 
-export interface TableBodyProps extends React.HTMLAttributes<HTMLTableSectionElement> {
-  children: React.ReactNode;
-}
-
-export function TableBody({ className, children, ...props }: TableBodyProps) {
+export function TableBody({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLTableSectionElement> & { children: React.ReactNode }) {
   return (
-    <tbody className={cn('divide-y divide-gray-800 bg-[#0a0a0a]', className)} {...props}>
+    <tbody className={cn('divide-y divide-border bg-surface', className)} {...props}>
       {children}
     </tbody>
   );
 }
 
-export interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
-  children: React.ReactNode;
-}
-
-export function TableRow({ className, children, ...props }: TableRowProps) {
+export function TableRow({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLTableRowElement> & { children: React.ReactNode }) {
   return (
-    <tr className={cn('hover:bg-[#1a1a1a] transition-colors', className)} {...props}>
+    <tr className={cn('hover:bg-surface-hover transition-colors', className)} {...props}>
       {children}
     </tr>
   );
@@ -65,20 +59,20 @@ export interface TableHeadProps extends React.ThHTMLAttributes<HTMLTableCellElem
   onSort?: () => void;
 }
 
-export function TableHead({ 
-  className, 
-  children, 
-  sortable = false, 
-  sortDirection, 
+export function TableHead({
+  className,
+  children,
+  sortable = false,
+  sortDirection,
   onSort,
-  ...props 
+  ...props
 }: TableHeadProps) {
   return (
     <th
       className={cn(
-        'px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider',
-        sortable && 'cursor-pointer select-none hover:bg-[#252525]',
-        className
+        'px-6 py-3 text-xs font-semibold text-ink-muted uppercase tracking-wider',
+        sortable && 'cursor-pointer select-none hover:bg-surface-active',
+        className,
       )}
       onClick={sortable ? onSort : undefined}
       {...props}
@@ -87,17 +81,17 @@ export function TableHead({
         {children}
         {sortable && (
           <div className="flex flex-col">
-            <ChevronUp 
+            <ChevronUp
               className={cn(
                 'h-3 w-3 -mb-1',
-                sortDirection === 'asc' ? 'text-white' : 'text-gray-600'
-              )} 
+                sortDirection === 'asc' ? 'text-brand' : 'text-ink-muted/50',
+              )}
             />
-            <ChevronDown 
+            <ChevronDown
               className={cn(
                 'h-3 w-3',
-                sortDirection === 'desc' ? 'text-white' : 'text-gray-600'
-              )} 
+                sortDirection === 'desc' ? 'text-brand' : 'text-ink-muted/50',
+              )}
             />
           </div>
         )}
@@ -106,13 +100,13 @@ export function TableHead({
   );
 }
 
-export interface TableCellProps extends React.TdHTMLAttributes<HTMLTableCellElement> {
-  children: React.ReactNode;
-}
-
-export function TableCell({ className, children, ...props }: TableCellProps) {
+export function TableCell({
+  className,
+  children,
+  ...props
+}: React.TdHTMLAttributes<HTMLTableCellElement> & { children: React.ReactNode }) {
   return (
-    <td className={cn('px-6 py-4 whitespace-nowrap text-gray-300', className)} {...props}>
+    <td className={cn('px-6 py-4 whitespace-nowrap text-ink-secondary', className)} {...props}>
       {children}
     </td>
   );

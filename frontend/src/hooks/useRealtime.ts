@@ -154,7 +154,7 @@ export function useRealtimeProjectUpdates() {
 export function useTyping(channelId?: string, userName?: string) {
   const { sendTyping, stopTyping } = useSocket();
   const [isTyping, setIsTyping] = React.useState(false);
-  const timeoutRef = React.useRef<NodeJS.Timeout>();
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleTyping = useCallback(() => {
     if (!channelId || !userName) return;
