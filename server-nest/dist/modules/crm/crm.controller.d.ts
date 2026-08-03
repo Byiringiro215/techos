@@ -1,0 +1,102 @@
+import { CrmService } from './crm.service';
+import { CreateContactDto } from './dto/create-contact.dto';
+import { CreateDealDto } from './dto/create-deal.dto';
+export declare class CrmController {
+    private crmService;
+    constructor(crmService: CrmService);
+    createContact(user: any, createContactDto: CreateContactDto): Promise<{
+        success: boolean;
+        data: import("../../entities").Contact;
+    }>;
+    findAllContacts(user: any, filters: any): Promise<{
+        success: boolean;
+        data: {
+            deal_count: number;
+            total_revenue: any;
+            id: string;
+            org_id: string;
+            first_name: string;
+            last_name: string;
+            email: string;
+            phone: string;
+            company_name: string;
+            job_title: string;
+            type: string;
+            status: string;
+            source: string;
+            notes: string;
+            custom_fields: any;
+            created_at: Date;
+        }[];
+    }>;
+    findOneContact(user: any, id: string): Promise<{
+        success: boolean;
+        data: {
+            deals: any[];
+            id: string;
+            org_id: string;
+            first_name: string;
+            last_name: string;
+            email: string;
+            phone: string;
+            company_name: string;
+            job_title: string;
+            type: string;
+            status: string;
+            source: string;
+            notes: string;
+            custom_fields: any;
+            created_at: Date;
+        };
+    }>;
+    updateContact(user: any, id: string, updateData: any): Promise<{
+        success: boolean;
+        data: import("../../entities").Contact;
+    }>;
+    deleteContact(user: any, id: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    scoreContact(user: any, id: string): Promise<{
+        success: boolean;
+        data: {
+            contact_id: string;
+            score: number;
+            rating: string;
+        };
+    }>;
+    createDeal(user: any, createDealDto: CreateDealDto): Promise<{
+        success: boolean;
+        data: import("../../entities").Deal;
+    }>;
+    findAllDeals(user: any, filters: any): Promise<{
+        success: boolean;
+        data: any[];
+    }>;
+    findOneDeal(user: any, id: string): Promise<{
+        success: boolean;
+        data: any;
+    }>;
+    updateDeal(user: any, id: string, updateData: any): Promise<{
+        success: boolean;
+        data: import("../../entities").Deal;
+    }>;
+    deleteDeal(user: any, id: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    getPipelineStats(user: any): Promise<{
+        success: boolean;
+        data: {
+            pipeline: {
+                stage: string;
+                count: number;
+                total_value: number;
+            }[];
+            win_rate: string;
+            total_deals: number;
+            total_pipeline_value: number;
+            total_revenue: number;
+        };
+    }>;
+}
