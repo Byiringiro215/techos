@@ -20,7 +20,7 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const { email, password, firstName, lastName, organizationName } = registerDto;
+    const { email, password, firstName, lastName, role, organizationName } = registerDto;
 
     // Check if user exists
     const existingUser = await this.usersRepository.findOne({ where: { email } });
@@ -28,18 +28,25 @@ export class AuthService {
       throw new ConflictException('Email already exists');
     }
 
-    // Create organization
-    const organization = this.organizationsRepository.create({
-      id: randomUUID(),
-      name: organizationName,
-      slug: organizationName.toLowerCase().replace(/\s+/g, '-'),
+    // Get or create the single organization
+    let organization = await this.organizationsRepository.findOne({
+      where: { slug: 'techos-company' } // Single organization for all users
     });
-    await this.organizationsRepository.save(organization);
+
+    if (!organization) {
+      // Create organization if it doesn't exist (first user registration)
+      organization = this.organizationsRepository.create({
+        id: randomUUID(),
+        name: organizationName || 'TechOS Company',
+        slug: 'techos-company',
+      });
+      await this.organizationsRepository.save(organization);
+    }
 
     // Hash password
     const password_hash = await bcrypt.hash(password, 10);
 
-    // Create user
+    // Create user with selected role
     const user = this.usersRepository.create({
       id: randomUUID(),
       org_id: organization.id,
@@ -47,7 +54,7 @@ export class AuthService {
       password_hash,
       first_name: firstName,
       last_name: lastName,
-      role: UserRole.ADMIN,
+      role: role, // Use the role provided by user
       status: 'active',
     });
     await this.usersRepository.save(user);

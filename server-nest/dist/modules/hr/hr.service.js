@@ -212,7 +212,7 @@ let HrService = class HrService {
         };
     }
     async approveLeaveRequest(id, org_id, user_id, user_role) {
-        if (![user_entity_1.UserRole.HR_MANAGER, user_entity_1.UserRole.CEO].includes(user_role)) {
+        if (![user_entity_1.UserRole.CEO].includes(user_role)) {
             throw new common_1.ForbiddenException('You do not have permission to approve leave requests');
         }
         const leaveRequest = await this.leaveRequestsRepository.findOne({
@@ -242,7 +242,7 @@ let HrService = class HrService {
         };
     }
     async rejectLeaveRequest(id, org_id, user_id, user_role, rejection_reason) {
-        if (![user_entity_1.UserRole.HR_MANAGER, user_entity_1.UserRole.CEO].includes(user_role)) {
+        if (![user_entity_1.UserRole.CEO].includes(user_role)) {
             throw new common_1.ForbiddenException('You do not have permission to reject leave requests');
         }
         const leaveRequest = await this.leaveRequestsRepository.findOne({
@@ -303,7 +303,7 @@ let HrService = class HrService {
             });
         }
         const hrUsers = await this.usersRepository.find({
-            where: { org_id, role: user_entity_1.UserRole.HR_MANAGER },
+            where: { org_id, role: user_entity_1.UserRole.CEO },
         });
         for (const hrUser of hrUsers) {
             await this.notificationsService.create(org_id, {

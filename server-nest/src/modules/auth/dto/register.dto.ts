@@ -1,10 +1,7 @@
-import { IsEmail, IsString, MinLength, IsNotEmpty } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsNotEmpty, IsEnum, IsOptional } from 'class-validator';
+import { UserRole } from '../../../entities/user.entity';
 
 export class RegisterDto {
-  @IsNotEmpty()
-  @IsString()
-  organizationName: string;
-
   @IsNotEmpty()
   @IsEmail()
   email: string;
@@ -21,4 +18,12 @@ export class RegisterDto {
   @IsNotEmpty()
   @IsString()
   lastName: string;
+
+  @IsNotEmpty()
+  @IsEnum(UserRole)
+  role: UserRole;
+
+  @IsOptional()
+  @IsString()
+  organizationName?: string;
 }

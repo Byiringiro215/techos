@@ -64,17 +64,22 @@ let AuthService = class AuthService {
         this.jwtService = jwtService;
     }
     async register(registerDto) {
-        const { email, password, firstName, lastName, organizationName } = registerDto;
+        const { email, password, firstName, lastName, role, organizationName } = registerDto;
         const existingUser = await this.usersRepository.findOne({ where: { email } });
         if (existingUser) {
             throw new common_1.ConflictException('Email already exists');
         }
-        const organization = this.organizationsRepository.create({
-            id: (0, crypto_1.randomUUID)(),
-            name: organizationName,
-            slug: organizationName.toLowerCase().replace(/\s+/g, '-'),
+        let organization = await this.organizationsRepository.findOne({
+            where: { slug: 'techos-company' }
         });
-        await this.organizationsRepository.save(organization);
+        if (!organization) {
+            organization = this.organizationsRepository.create({
+                id: (0, crypto_1.randomUUID)(),
+                name: organizationName || 'TechOS Company',
+                slug: 'techos-company',
+            });
+            await this.organizationsRepository.save(organization);
+        }
         const password_hash = await bcrypt.hash(password, 10);
         const user = this.usersRepository.create({
             id: (0, crypto_1.randomUUID)(),
@@ -83,7 +88,7 @@ let AuthService = class AuthService {
             password_hash,
             first_name: firstName,
             last_name: lastName,
-            role: user_entity_1.UserRole.ADMIN,
+            role: role,
             status: 'active',
         });
         await this.usersRepository.save(user);

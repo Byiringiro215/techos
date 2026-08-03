@@ -2,19 +2,10 @@ import { Organization } from './organization.entity';
 export declare enum UserRole {
     CEO = "ceo",
     CTO = "cto",
-    COO = "coo",
-    PRODUCT_MANAGER = "product_manager",
-    ENGINEERING_MANAGER = "engineering_manager",
+    FINANCE = "finance",
     SOFTWARE_ENGINEER = "software_engineer",
     UI_UX_DESIGNER = "ui_ux_designer",
-    HR_MANAGER = "hr_manager",
-    SALES = "sales",
-    MARKETING = "marketing",
-    FINANCE = "finance",
-    CUSTOMER_SUPPORT = "customer_support",
-    OPERATIONS = "operations",
-    ADMIN = "admin",
-    MEMBER = "member"
+    CUSTOMER_SUPPORT = "customer_support"
 }
 export declare class User {
     id: string;

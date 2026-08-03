@@ -245,8 +245,8 @@ export class HrService {
   }
 
   async approveLeaveRequest(id: string, org_id: string, user_id: string, user_role: string) {
-    // Check if user has permission (HR Manager or CEO)
-    if (![UserRole.HR_MANAGER, UserRole.CEO].includes(user_role as UserRole)) {
+    // Check if user has permission (CEO handles HR operations)
+    if (![UserRole.CEO].includes(user_role as UserRole)) {
       throw new ForbiddenException('You do not have permission to approve leave requests');
     }
 
@@ -284,8 +284,8 @@ export class HrService {
   }
 
   async rejectLeaveRequest(id: string, org_id: string, user_id: string, user_role: string, rejection_reason?: string) {
-    // Check permission
-    if (![UserRole.HR_MANAGER, UserRole.CEO].includes(user_role as UserRole)) {
+    // Check permission (CEO handles HR operations)
+    if (![UserRole.CEO].includes(user_role as UserRole)) {
       throw new ForbiddenException('You do not have permission to reject leave requests');
     }
 
@@ -364,9 +364,9 @@ export class HrService {
       });
     }
 
-    // Notify HR team
+    // Notify HR team (CEO handles HR operations)
     const hrUsers = await this.usersRepository.find({
-      where: { org_id, role: UserRole.HR_MANAGER },
+      where: { org_id, role: UserRole.CEO },
     });
 
     for (const hrUser of hrUsers) {

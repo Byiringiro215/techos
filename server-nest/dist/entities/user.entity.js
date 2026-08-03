@@ -16,19 +16,10 @@ var UserRole;
 (function (UserRole) {
     UserRole["CEO"] = "ceo";
     UserRole["CTO"] = "cto";
-    UserRole["COO"] = "coo";
-    UserRole["PRODUCT_MANAGER"] = "product_manager";
-    UserRole["ENGINEERING_MANAGER"] = "engineering_manager";
+    UserRole["FINANCE"] = "finance";
     UserRole["SOFTWARE_ENGINEER"] = "software_engineer";
     UserRole["UI_UX_DESIGNER"] = "ui_ux_designer";
-    UserRole["HR_MANAGER"] = "hr_manager";
-    UserRole["SALES"] = "sales";
-    UserRole["MARKETING"] = "marketing";
-    UserRole["FINANCE"] = "finance";
     UserRole["CUSTOMER_SUPPORT"] = "customer_support";
-    UserRole["OPERATIONS"] = "operations";
-    UserRole["ADMIN"] = "admin";
-    UserRole["MEMBER"] = "member";
 })(UserRole || (exports.UserRole = UserRole = {}));
 let User = class User {
     id;
@@ -77,7 +68,7 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "name", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'varchar', default: UserRole.MEMBER }),
+    (0, typeorm_1.Column)({ type: 'varchar', default: UserRole.SOFTWARE_ENGINEER }),
     __metadata("design:type", String)
 ], User.prototype, "role", void 0);
 __decorate([
