@@ -32,7 +32,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           {/* Header */}
           <div>
             <div className="flex items-start justify-between mb-2">
-              <h3 className="text-lg font-semibold text-black line-clamp-1">
+              <h3 className="text-lg font-semibold text-ink line-clamp-1">
                 {project.name}
               </h3>
               <Badge variant={priorityColors[project.priority]} size="sm">

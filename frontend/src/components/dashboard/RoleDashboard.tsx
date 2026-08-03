@@ -20,37 +20,21 @@ export function RoleDashboard({ dashboardData }: RoleDashboardProps) {
   // Render dashboard based on role
   switch (userRole) {
     case UserRole.CEO:
-    case UserRole.COO:
-    case UserRole.ADMIN:
       return <ExecutiveDashboard dashboardData={dashboardData} />;
-    
+
     case UserRole.CTO:
-    case UserRole.ENGINEERING_MANAGER:
       return <TechLeadershipDashboard dashboardData={dashboardData} />;
-    
+
     case UserRole.SOFTWARE_ENGINEER:
     case UserRole.UI_UX_DESIGNER:
       return <EngineerDashboard dashboardData={dashboardData} />;
-    
-    case UserRole.PRODUCT_MANAGER:
-      return <ProductManagerDashboard dashboardData={dashboardData} />;
-    
-    case UserRole.HR_MANAGER:
-      return <HRDashboard dashboardData={dashboardData} />;
-    
-    case UserRole.SALES:
-    case UserRole.MARKETING:
-      return <SalesMarketingDashboard dashboardData={dashboardData} />;
-    
+
     case UserRole.FINANCE:
       return <FinanceDashboard dashboardData={dashboardData} />;
-    
+
     case UserRole.CUSTOMER_SUPPORT:
       return <SupportDashboard dashboardData={dashboardData} />;
-    
-    case UserRole.OPERATIONS:
-      return <OperationsDashboard dashboardData={dashboardData} />;
-    
+
     default:
       return <GenericDashboard dashboardData={dashboardData} />;
   }

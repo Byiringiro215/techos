@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
-import { socketClient } from '@/lib/socket';
+import { isRealtimeEnabled, socketClient } from '@/lib/socket';
 import { useAuthStore } from '@/store/authStore';
 import toast from 'react-hot-toast';
 
@@ -42,37 +42,44 @@ export function SocketProvider({ children }: SocketProviderProps) {
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !isRealtimeEnabled()) {
+      setSocket(null);
+      setIsConnected(false);
+      return;
+    }
 
-    // Connect socket
     const connectedSocket = socketClient.connect(user.id);
+    if (!connectedSocket) {
+      setSocket(null);
+      setIsConnected(false);
+      return;
+    }
+
     setSocket(connectedSocket);
 
-    // Setup event listeners
-    const handleConnect = () => {
-      setIsConnected(true);
-      console.log('🔌 Socket connected');
-    };
-
-    const handleDisconnect = () => {
-      setIsConnected(false);
-      console.log('🔌 Socket disconnected');
-    };
-
-    const handleNotification = (notification: any) => {
-      // Show toast notification
+    const handleConnect = () => setIsConnected(true);
+    const handleDisconnect = () => setIsConnected(false);
+    const handleNotification = (notification: {
+      message: string;
+      type?: 'error' | 'success' | 'warning' | string;
+    }) => {
       toast(notification.message, {
-        icon: notification.type === 'error' ? '❌' : 
-              notification.type === 'success' ? '✅' : 
-              notification.type === 'warning' ? '⚠️' : 'ℹ️',
+        icon:
+          notification.type === 'error'
+            ? '❌'
+            : notification.type === 'success'
+              ? '✅'
+              : notification.type === 'warning'
+                ? '⚠️'
+                : 'ℹ️',
       });
     };
 
     connectedSocket.on('connect', handleConnect);
     connectedSocket.on('disconnect', handleDisconnect);
     connectedSocket.on('notification', handleNotification);
+    if (connectedSocket.connected) setIsConnected(true);
 
-    // Cleanup
     return () => {
       connectedSocket.off('connect', handleConnect);
       connectedSocket.off('disconnect', handleDisconnect);

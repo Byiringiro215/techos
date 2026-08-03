@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { getRoleRoute } from '@/lib/roleRoutes';
 
 export default function Home() {
   const router = useRouter();
@@ -11,26 +12,15 @@ export default function Home() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      // Redirect based on user role
-      const roleRoutes: Record<string, string> = {
-        'ceo': '/ceo',
-        'cto': '/cto',
-        'finance': '/finance',
-        'software_engineer': '/software-engineer',
-        'ui_ux_designer': '/ui-ux-designer',
-        'customer_support': '/customer-support',
-      };
-      
-      const redirectRoute = roleRoutes[user.role] || '/login';
-      router.push(redirectRoute);
+      router.push(getRoleRoute(user.role));
     } else {
       router.push('/login');
     }
   }, [isAuthenticated, user, router]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
+    <div className="flex items-center justify-center min-h-screen page-shell">
+      <div className="h-10 w-10 animate-spin rounded-full border-2 border-border-strong border-t-brand" />
     </div>
   );
 }

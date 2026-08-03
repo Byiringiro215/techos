@@ -24,7 +24,7 @@ export default function BugCard({ bug, onEdit, onDelete }: BugCardProps) {
       open: 'bg-red-100 text-red-800',
       in_progress: 'bg-blue-100 text-blue-800',
       resolved: 'bg-green-100 text-green-800',
-      closed: 'bg-gray-100 text-gray-800',
+      closed: 'bg-bg-muted text-gray-800',
       wont_fix: 'bg-purple-100 text-purple-800',
     };
     return colors[status as keyof typeof colors] || colors.open;
@@ -73,26 +73,26 @@ export default function BugCard({ bug, onEdit, onDelete }: BugCardProps) {
         <span className={`px-2 py-1 text-xs font-semibold rounded uppercase ${getStatusColor(bug.status)}`}>
           {bug.status.replace('_', ' ')}
         </span>
-        <span className="px-2 py-1 text-xs font-semibold rounded uppercase bg-gray-100 text-gray-800">
+        <span className="px-2 py-1 text-xs font-semibold rounded uppercase bg-bg-muted text-gray-800">
           {bug.priority}
         </span>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-gray-500">
+      <div className="flex items-center justify-between text-sm text-ink-muted">
         <div>
           {bug.assignee ? (
-            <span>Assigned to: <span className="font-medium text-gray-700">{bug.assignee.firstName} {bug.assignee.lastName}</span></span>
+            <span>Assigned to: <span className="font-medium text-ink-secondary">{bug.assignee.firstName} {bug.assignee.lastName}</span></span>
           ) : (
-            <span className="text-gray-400">Unassigned</span>
+            <span className="text-ink-muted">Unassigned</span>
           )}
         </div>
         {bug.project && (
-          <span className="text-xs bg-gray-100 px-2 py-1 rounded">{bug.project.name}</span>
+          <span className="text-xs bg-bg-muted px-2 py-1 rounded">{bug.project.name}</span>
         )}
       </div>
 
       {bug.environment && (
-        <div className="mt-2 text-xs text-gray-500">
+        <div className="mt-2 text-xs text-ink-muted">
           <span className="font-medium">Environment:</span> {bug.environment}
         </div>
       )}
@@ -100,7 +100,7 @@ export default function BugCard({ bug, onEdit, onDelete }: BugCardProps) {
       {bug.tags && bug.tags.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {bug.tags.map((tag, idx) => (
-            <span key={idx} className="text-xs bg-black text-white px-2 py-1 rounded">
+            <span key={idx} className="text-xs bg-bg-inverse text-ink px-2 py-1 rounded">
               {tag}
             </span>
           ))}

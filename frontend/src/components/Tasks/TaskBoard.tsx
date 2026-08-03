@@ -21,7 +21,7 @@ export function TaskBoard({ projectId }: TaskBoardProps) {
   const [newTaskStatus, setNewTaskStatus] = useState<Task['status']>('todo');
 
   const columns = [
-    { id: 'todo' as const, title: 'To Do', color: 'border-gray-300' },
+    { id: 'todo' as const, title: 'To Do', color: 'border-border' },
     { id: 'in_progress' as const, title: 'In Progress', color: 'border-blue-500' },
     { id: 'done' as const, title: 'Done', color: 'border-green-500' },
   ];
@@ -64,15 +64,15 @@ export function TaskBoard({ projectId }: TaskBoardProps) {
           <div key={column.id} className="flex flex-col">
             <div className={`border-t-4 ${column.color} bg-white p-4 mb-4`}>
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-black">
+                <h3 className="font-semibold text-ink">
                   {column.title}
-                  <span className="ml-2 text-sm text-gray-500">
+                  <span className="ml-2 text-sm text-ink-muted">
                     ({getTasksByStatus(column.id).length})
                   </span>
                 </h3>
                 <button
                   onClick={() => handleCreateTask(column.id)}
-                  className="text-gray-400 hover:text-black"
+                  className="text-ink-muted hover:text-ink"
                 >
                   <Plus className="h-5 w-5" />
                 </button>

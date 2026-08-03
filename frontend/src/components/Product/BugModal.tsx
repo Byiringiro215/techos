@@ -67,14 +67,14 @@ export default function BugModal({ bug, onClose, onSubmit, isLoading }: BugModal
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-bg-inverse bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
       <div className="bg-white w-full max-w-3xl my-8">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">{bug ? 'Edit Bug' : 'Create New Bug'}</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              className="text-ink-muted hover:text-gray-600 text-2xl font-bold"
             >
               ×
             </button>
@@ -90,7 +90,7 @@ export default function BugModal({ bug, onClose, onSubmit, isLoading }: BugModal
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-4 py-2 border-2 border-gray-300 focus:border-black outline-none"
+                className="w-full px-4 py-2 border-2 border-border focus:border-black outline-none"
                 required
                 placeholder="Brief description of the bug"
               />
@@ -102,7 +102,7 @@ export default function BugModal({ bug, onClose, onSubmit, isLoading }: BugModal
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-2 border-2 border-gray-300 focus:border-black outline-none"
+                className="w-full px-4 py-2 border-2 border-border focus:border-black outline-none"
                 rows={3}
                 required
                 placeholder="Detailed description of the bug"
@@ -116,7 +116,7 @@ export default function BugModal({ bug, onClose, onSubmit, isLoading }: BugModal
                 <select
                   value={formData.severity}
                   onChange={(e) => setFormData({ ...formData, severity: e.target.value as BugSeverity })}
-                  className="w-full px-4 py-2 border-2 border-gray-300 focus:border-black outline-none"
+                  className="w-full px-4 py-2 border-2 border-border focus:border-black outline-none"
                   required
                 >
                   <option value="low">Low</option>
@@ -131,7 +131,7 @@ export default function BugModal({ bug, onClose, onSubmit, isLoading }: BugModal
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value as BugPriority })}
-                  className="w-full px-4 py-2 border-2 border-gray-300 focus:border-black outline-none"
+                  className="w-full px-4 py-2 border-2 border-border focus:border-black outline-none"
                   required
                 >
                   <option value="low">Low</option>
@@ -148,7 +148,7 @@ export default function BugModal({ bug, onClose, onSubmit, isLoading }: BugModal
               <textarea
                 value={formData.stepsToReproduce}
                 onChange={(e) => setFormData({ ...formData, stepsToReproduce: e.target.value })}
-                className="w-full px-4 py-2 border-2 border-gray-300 focus:border-black outline-none"
+                className="w-full px-4 py-2 border-2 border-border focus:border-black outline-none"
                 rows={3}
                 placeholder="1. Go to...&#10;2. Click on...&#10;3. Observe..."
               />
@@ -161,7 +161,7 @@ export default function BugModal({ bug, onClose, onSubmit, isLoading }: BugModal
                 <textarea
                   value={formData.expectedBehavior}
                   onChange={(e) => setFormData({ ...formData, expectedBehavior: e.target.value })}
-                  className="w-full px-4 py-2 border-2 border-gray-300 focus:border-black outline-none"
+                  className="w-full px-4 py-2 border-2 border-border focus:border-black outline-none"
                   rows={2}
                   placeholder="What should happen"
                 />
@@ -172,7 +172,7 @@ export default function BugModal({ bug, onClose, onSubmit, isLoading }: BugModal
                 <textarea
                   value={formData.actualBehavior}
                   onChange={(e) => setFormData({ ...formData, actualBehavior: e.target.value })}
-                  className="w-full px-4 py-2 border-2 border-gray-300 focus:border-black outline-none"
+                  className="w-full px-4 py-2 border-2 border-border focus:border-black outline-none"
                   rows={2}
                   placeholder="What actually happens"
                 />
@@ -186,7 +186,7 @@ export default function BugModal({ bug, onClose, onSubmit, isLoading }: BugModal
                 type="text"
                 value={formData.environment}
                 onChange={(e) => setFormData({ ...formData, environment: e.target.value })}
-                className="w-full px-4 py-2 border-2 border-gray-300 focus:border-black outline-none"
+                className="w-full px-4 py-2 border-2 border-border focus:border-black outline-none"
                 placeholder="e.g., Chrome 120, Windows 11, Production"
               />
             </div>
@@ -200,13 +200,13 @@ export default function BugModal({ bug, onClose, onSubmit, isLoading }: BugModal
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  className="flex-1 px-4 py-2 border-2 border-gray-300 focus:border-black outline-none"
+                  className="flex-1 px-4 py-2 border-2 border-border focus:border-black outline-none"
                   placeholder="Add tag and press Enter"
                 />
                 <button
                   type="button"
                   onClick={addTag}
-                  className="px-4 py-2 bg-black text-white hover:bg-gray-800"
+                  className="px-4 py-2 bg-bg-inverse text-ink hover:bg-bg-muted"
                 >
                   Add
                 </button>
@@ -214,12 +214,12 @@ export default function BugModal({ bug, onClose, onSubmit, isLoading }: BugModal
               {formData.tags && formData.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {formData.tags.map((tag, idx) => (
-                    <span key={idx} className="bg-black text-white px-3 py-1 text-sm flex items-center gap-2">
+                    <span key={idx} className="bg-bg-inverse text-ink px-3 py-1 text-sm flex items-center gap-2">
                       {tag}
                       <button
                         type="button"
                         onClick={() => removeTag(tag)}
-                        className="text-white hover:text-gray-300 font-bold"
+                        className="text-ink hover:text-ink-secondary font-bold"
                       >
                         ×
                       </button>
@@ -234,14 +234,14 @@ export default function BugModal({ bug, onClose, onSubmit, isLoading }: BugModal
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 border-2 border-black text-black hover:bg-gray-100"
+              className="px-6 py-2 border-2 border-black text-ink hover:bg-bg-muted"
               disabled={isLoading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-black text-white hover:bg-gray-800 disabled:bg-gray-400"
+              className="px-6 py-2 bg-bg-inverse text-ink hover:bg-bg-muted disabled:bg-gray-400"
               disabled={isLoading}
             >
               {isLoading ? 'Saving...' : bug ? 'Update Bug' : 'Create Bug'}

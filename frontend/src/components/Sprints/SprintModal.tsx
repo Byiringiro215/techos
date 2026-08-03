@@ -92,13 +92,13 @@ export function SprintModal({ isOpen, onClose, sprint, projectId }: SprintModalP
     <Modal isOpen={isOpen} onClose={onClose}>
       <form onSubmit={handleSubmit} className="w-full max-w-2xl bg-white p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-black">
+          <h2 className="text-2xl font-bold text-ink">
             {sprint ? 'Edit Sprint' : 'Create Sprint'}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-black"
+            className="text-ink-muted hover:text-ink"
           >
             <X className="h-6 w-6" />
           </button>
@@ -107,7 +107,7 @@ export function SprintModal({ isOpen, onClose, sprint, projectId }: SprintModalP
         <div className="space-y-4">
           {/* Sprint Name */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2">
+            <label className="block text-sm font-medium text-ink mb-2">
               Sprint Name *
             </label>
             <Input
@@ -120,7 +120,7 @@ export function SprintModal({ isOpen, onClose, sprint, projectId }: SprintModalP
 
           {/* Sprint Goal */}
           <div>
-            <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+            <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
               <Target className="h-4 w-4" />
               Sprint Goal
             </label>
@@ -128,7 +128,7 @@ export function SprintModal({ isOpen, onClose, sprint, projectId }: SprintModalP
               value={formData.goal}
               onChange={(e) => setFormData({ ...formData, goal: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
+              className="w-full px-4 py-2 border border-border focus:outline-none focus:ring-2 focus:ring-surface"
               placeholder="What do you want to achieve in this sprint?"
             />
           </div>
@@ -136,7 +136,7 @@ export function SprintModal({ isOpen, onClose, sprint, projectId }: SprintModalP
           {/* Date Range */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 Start Date *
               </label>
@@ -149,7 +149,7 @@ export function SprintModal({ isOpen, onClose, sprint, projectId }: SprintModalP
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-black mb-2 flex items-center gap-2">
+              <label className="block text-sm font-medium text-ink mb-2 flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 End Date *
               </label>
@@ -173,13 +173,13 @@ export function SprintModal({ isOpen, onClose, sprint, projectId }: SprintModalP
           {/* Status (only for editing) */}
           {sprint && (
             <div>
-              <label className="block text-sm font-medium text-black mb-2">
+              <label className="block text-sm font-medium text-ink mb-2">
                 Status
               </label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as Sprint['status'] })}
-                className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-2 border border-border focus:outline-none focus:ring-2 focus:ring-surface"
               >
                 <option value="planned">Planned</option>
                 <option value="active">Active</option>

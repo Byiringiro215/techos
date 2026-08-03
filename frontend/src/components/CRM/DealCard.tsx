@@ -13,7 +13,7 @@ export function DealCard({ deal, onClick }: DealCardProps) {
   const getStageColor = (stage: Deal['stage']) => {
     switch (stage) {
       case 'lead':
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return 'bg-bg-muted text-gray-800 border-border';
       case 'qualified':
         return 'bg-blue-100 text-blue-800 border-blue-300';
       case 'proposal':
@@ -52,14 +52,14 @@ export function DealCard({ deal, onClick }: DealCardProps) {
       <div className="space-y-3">
         {/* Title & Stage */}
         <div className="flex items-start justify-between gap-2">
-          <h4 className="font-semibold text-black flex-1">{deal.title}</h4>
+          <h4 className="font-semibold text-ink flex-1">{deal.title}</h4>
           <Badge className={getStageColor(deal.stage)}>
             {deal.stage.replace('_', ' ')}
           </Badge>
         </div>
 
         {/* Amount */}
-        <div className="flex items-center gap-2 text-lg font-bold text-black">
+        <div className="flex items-center gap-2 text-lg font-bold text-ink">
           <DollarSign className="h-5 w-5" />
           <span>{formatCurrency(deal.value, deal.currency)}</span>
         </div>

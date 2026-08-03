@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Toaster } from "react-hot-toast";
 
-const inter = Inter({ subsets: ["latin"] });
+const sans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
   title: "TechOS - The Operating System for Software Companies",
@@ -18,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${sans.className} antialiased`}>
         <Providers>
           {children}
           <Toaster
@@ -26,9 +29,13 @@ export default function RootLayout({
             toastOptions={{
               duration: 4000,
               style: {
-                background: '#000',
-                color: '#fff',
-                border: '1px solid #333',
+                background: "#ffffff",
+                color: "#1f2937",
+                border: "1px solid #e5e7eb",
+                boxShadow: "0 10px 30px rgba(91, 141, 239, 0.12)",
+              },
+              success: {
+                iconTheme: { primary: "#6A9CFD", secondary: "#fff" },
               },
             }}
           />

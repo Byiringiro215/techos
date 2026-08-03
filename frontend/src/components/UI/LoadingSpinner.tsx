@@ -14,11 +14,13 @@ export function LoadingSpinner({ size = 'md', className }: LoadingSpinnerProps) 
 
   return (
     <div className="flex items-center justify-center">
-      <div className={cn(
-        'animate-spin rounded-full border-t-2 border-b-2 border-white',
-        sizes[size],
-        className
-      )} />
+      <div
+        className={cn(
+          'animate-spin rounded-full border-2 border-border-strong border-t-brand',
+          sizes[size],
+          className,
+        )}
+      />
     </div>
   );
 }

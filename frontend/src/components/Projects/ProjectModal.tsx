@@ -61,27 +61,27 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
         />
 
         <div>
-          <label className="block text-sm font-medium text-black mb-1">
+          <label className="block text-sm font-medium text-ink mb-1">
             Description
           </label>
           <textarea
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             rows={4}
-            className="block w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+            className="block w-full px-3 py-2 border border-border focus:outline-none focus:ring-2 focus:ring-surface focus:border-black"
             placeholder="Project description..."
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-black mb-1">
+            <label className="block text-sm font-medium text-ink mb-1">
               Status
             </label>
             <select
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className="block w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+              className="block w-full px-3 py-2 border border-border focus:outline-none focus:ring-2 focus:ring-surface focus:border-black"
             >
               <option value="planning">Planning</option>
               <option value="active">Active</option>
@@ -92,13 +92,13 @@ export function ProjectModal({ isOpen, onClose, project }: ProjectModalProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-black mb-1">
+            <label className="block text-sm font-medium text-ink mb-1">
               Priority
             </label>
             <select
               value={formData.priority}
               onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-              className="block w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+              className="block w-full px-3 py-2 border border-border focus:outline-none focus:ring-2 focus:ring-surface focus:border-black"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>

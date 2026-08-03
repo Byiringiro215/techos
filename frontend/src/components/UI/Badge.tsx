@@ -10,11 +10,11 @@ interface BadgeProps {
 
 export function Badge({ children, variant = 'default', size = 'md', className }: BadgeProps) {
   const variants = {
-    default: 'bg-gray-800 text-gray-300 border-gray-700',
-    success: 'bg-green-900/30 text-green-400 border-green-800',
-    error: 'bg-red-900/30 text-red-400 border-red-800',
-    warning: 'bg-yellow-900/30 text-yellow-400 border-yellow-800',
-    info: 'bg-blue-900/30 text-blue-400 border-blue-800',
+    default: 'bg-bg-muted text-ink-secondary border-border',
+    success: 'bg-success-soft text-success-text border-success/20',
+    error: 'bg-danger-soft text-danger-text border-danger/20',
+    warning: 'bg-warning-soft text-warning-text border-warning/20',
+    info: 'bg-info-soft text-info-text border-brand/20',
   };
 
   const sizes = {
@@ -23,12 +23,14 @@ export function Badge({ children, variant = 'default', size = 'md', className }:
   };
 
   return (
-    <span className={cn(
-      'inline-flex items-center font-medium border rounded',
-      variants[variant],
-      sizes[size],
-      className
-    )}>
+    <span
+      className={cn(
+        'inline-flex items-center font-medium border rounded-lg',
+        variants[variant],
+        sizes[size],
+        className,
+      )}
+    >
       {children}
     </span>
   );

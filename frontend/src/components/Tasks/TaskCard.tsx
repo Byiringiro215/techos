@@ -19,7 +19,7 @@ export function TaskCard({ task }: TaskCardProps) {
     <Card hover padding="sm" className="cursor-pointer">
       <div className="space-y-2">
         <div className="flex items-start justify-between">
-          <h4 className="text-sm font-medium text-black line-clamp-2">
+          <h4 className="text-sm font-medium text-ink line-clamp-2">
             {task.title}
           </h4>
           <Badge variant={priorityColors[task.priority]} size="sm">
@@ -33,7 +33,7 @@ export function TaskCard({ task }: TaskCardProps) {
           </p>
         )}
 
-        <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center justify-between text-xs text-ink-muted">
           <div className="flex items-center gap-2">
             {task.story_points && (
               <span className="flex items-center gap-1">
@@ -60,7 +60,7 @@ export function TaskCard({ task }: TaskCardProps) {
             {task.tags.slice(0, 3).map((tag, index) => (
               <span
                 key={index}
-                className="inline-block px-2 py-0.5 text-xs bg-gray-100 text-gray-700"
+                className="inline-block px-2 py-0.5 text-xs bg-bg-muted text-ink-secondary"
               >
                 {tag}
               </span>

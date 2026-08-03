@@ -1,24 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/UI/Card';
 import { Badge } from '@/components/UI/Badge';
 import { LoadingSpinner } from '@/components/UI/LoadingSpinner';
 import { EmptyState } from '@/components/UI/EmptyState';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/UI/Table';
+import { Pagination } from '@/components/UI/Pagination';
 import { useLeaveRequests, useApproveLeaveRequest, useRejectLeaveRequest } from '@/hooks/useHR';
-import Link from 'next/link';
+import { useClientPagination } from '@/hooks/useClientPagination';
 import {
   CalendarClock,
   Clock,
   CheckCircle,
   XCircle,
   AlertTriangle,
-  User
+  User,
+  ChevronRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function LeaveRequestsPage() {
+  const router = useRouter();
   const { data: leaveRequests, isLoading } = useLeaveRequests();
   const approveLeave = useApproveLeaveRequest();
   const rejectLeave = useRejectLeaveRequest();
@@ -26,9 +30,14 @@ export default function LeaveRequestsPage() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  const filteredRequests = leaveRequests?.filter(req =>
-    statusFilter === 'all' || req.status === statusFilter
-  ) || [];
+  const filteredRequests = useMemo(
+    () =>
+      leaveRequests?.filter((req) => statusFilter === 'all' || req.status === statusFilter) || [],
+    [leaveRequests, statusFilter],
+  );
+
+  const { page, pageSize, total, pageItems, setPage, setPageSize, resetPage } =
+    useClientPagination(filteredRequests, 10);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -96,58 +105,61 @@ export default function LeaveRequestsPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Leave Requests</h1>
-          <p className="text-gray-400 mt-2">Review and manage employee leave requests</p>
+          <h1 className="text-3xl font-bold text-ink">Leave Requests</h1>
+          <p className="text-ink-muted mt-2">Review and manage employee leave requests</p>
         </div>
         {pendingCount > 0 && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-yellow-900/30 border border-yellow-800 rounded-lg">
-            <AlertTriangle className="h-4 w-4 text-yellow-400" />
-            <span className="text-sm text-yellow-400 font-medium">{pendingCount} pending approval</span>
+          <div className="flex items-center gap-2 px-4 py-2 bg-warning-soft border border-yellow-800 rounded-lg">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            <span className="text-sm text-warning font-medium">{pendingCount} pending approval</span>
           </div>
         )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4 bg-[#0a0a0a] border border-gray-800">
+        <Card className="p-4 bg-surface border border-border">
           <div className="flex items-center gap-2 mb-2">
-            <Clock className="h-4 w-4 text-yellow-400" />
-            <span className="text-sm text-gray-400">Pending</span>
+            <Clock className="h-4 w-4 text-warning" />
+            <span className="text-sm text-ink-muted">Pending</span>
           </div>
-          <p className="text-2xl font-bold text-white">{pendingCount}</p>
+          <p className="text-2xl font-bold text-ink">{pendingCount}</p>
         </Card>
-        <Card className="p-4 bg-[#0a0a0a] border border-gray-800">
+        <Card className="p-4 bg-surface border border-border">
           <div className="flex items-center gap-2 mb-2">
-            <CheckCircle className="h-4 w-4 text-green-400" />
-            <span className="text-sm text-gray-400">Approved</span>
+            <CheckCircle className="h-4 w-4 text-success" />
+            <span className="text-sm text-ink-muted">Approved</span>
           </div>
-          <p className="text-2xl font-bold text-white">
+          <p className="text-2xl font-bold text-ink">
             {leaveRequests?.filter(l => l.status === 'approved').length || 0}
           </p>
         </Card>
-        <Card className="p-4 bg-[#0a0a0a] border border-gray-800">
+        <Card className="p-4 bg-surface border border-border">
           <div className="flex items-center gap-2 mb-2">
-            <XCircle className="h-4 w-4 text-red-400" />
-            <span className="text-sm text-gray-400">Rejected</span>
+            <XCircle className="h-4 w-4 text-danger" />
+            <span className="text-sm text-ink-muted">Rejected</span>
           </div>
-          <p className="text-2xl font-bold text-white">
+          <p className="text-2xl font-bold text-ink">
             {leaveRequests?.filter(l => l.status === 'rejected').length || 0}
           </p>
         </Card>
-        <Card className="p-4 bg-[#0a0a0a] border border-gray-800">
+        <Card className="p-4 bg-surface border border-border">
           <div className="flex items-center gap-2 mb-2">
-            <CalendarClock className="h-4 w-4 text-white" />
-            <span className="text-sm text-gray-400">Total</span>
+            <CalendarClock className="h-4 w-4 text-ink" />
+            <span className="text-sm text-ink-muted">Total</span>
           </div>
-          <p className="text-2xl font-bold text-white">{leaveRequests?.length || 0}</p>
+          <p className="text-2xl font-bold text-ink">{leaveRequests?.length || 0}</p>
         </Card>
       </div>
 
-      <Card className="p-6 bg-[#0a0a0a] border border-gray-800">
+      <Card className="p-6 bg-surface border border-border">
         <div className="mb-6">
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-[#1a1a1a] border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-white/20"
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              resetPage();
+            }}
+            className="bg-bg-muted border border-border rounded-lg px-3 py-2 text-sm text-ink-secondary focus:outline-none focus:ring-2 focus:ring-brand/40/20"
           >
             <option value="all">All Requests</option>
             <option value="pending">Pending</option>
@@ -163,6 +175,7 @@ export default function LeaveRequestsPage() {
             description="New leave requests will appear here"
           />
         ) : (
+          <div className="space-y-4">
           <Table>
             <TableHeader>
               <TableRow>
@@ -176,43 +189,59 @@ export default function LeaveRequestsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredRequests.map((req) => (
-                <TableRow key={req.id}>
+              {pageItems.map((req) => (
+                <TableRow
+                  key={req.id}
+                  className="cursor-pointer group/row"
+                  onClick={() => {
+                    if (rejectingId === req.id) return;
+                    router.push(`/ceo/hr/leave-requests/${req.id}`);
+                  }}
+                  tabIndex={0}
+                  role="link"
+                  aria-label="View leave request"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      router.push(`/ceo/hr/leave-requests/${req.id}`);
+                    }
+                  }}
+                >
                   <TableCell>
-                    <Link href={`/ceo/hr/leave-requests/${req.id}`} className="flex items-center gap-3 hover:opacity-80">
-                      <div className="h-9 w-9 rounded-full bg-white flex items-center justify-center text-black font-semibold text-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-full bg-brand-mist flex items-center justify-center text-brand font-semibold text-xs">
                         <User className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="font-medium text-white">
+                        <p className="font-medium text-ink group-hover/row:text-brand">
                           {req.employee?.user?.first_name} {req.employee?.user?.last_name}
                         </p>
-                        <p className="text-xs text-gray-500">{req.employee?.position}</p>
+                        <p className="text-xs text-ink-muted">{req.employee?.position}</p>
                       </div>
-                    </Link>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant="default">{getTypeLabel(req.type)}</Badge>
                   </TableCell>
                   <TableCell>
-                    <p className="text-gray-300 text-sm">
+                    <p className="text-ink-secondary text-sm">
                       {new Date(req.start_date).toLocaleDateString()}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-ink-muted">
                       to {new Date(req.end_date).toLocaleDateString()}
                     </p>
                   </TableCell>
                   <TableCell>
-                    <p className="text-white font-medium">{calculateDays(req.start_date, req.end_date)}</p>
-                    <p className="text-xs text-gray-500">days</p>
+                    <p className="text-ink font-medium">{calculateDays(req.start_date, req.end_date)}</p>
+                    <p className="text-xs text-ink-muted">days</p>
                   </TableCell>
                   <TableCell>
                     {getStatusBadge(req.status)}
                   </TableCell>
                   <TableCell className="max-w-xs truncate">
-                    <p className="text-sm text-gray-400 truncate">{req.reason || '-'}</p>
+                    <p className="text-sm text-ink-muted truncate">{req.reason || '-'}</p>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     {req.status === 'pending' ? (
                       rejectingId === req.id ? (
                         <div className="flex flex-col gap-2 items-end">
@@ -220,20 +249,20 @@ export default function LeaveRequestsPage() {
                             value={rejectReason}
                             onChange={(e) => setRejectReason(e.target.value)}
                             placeholder="Rejection reason..."
-                            className="bg-[#1a1a1a] border border-gray-700 rounded-lg px-2 py-1 text-xs text-gray-300 w-48"
+                            className="bg-bg-muted border border-border-strong rounded-lg px-2 py-1 text-xs text-ink-secondary w-48"
                             rows={2}
                           />
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleReject(req.id)}
-                              className="px-3 py-1 text-xs bg-red-900/50 text-red-400 border border-red-800 rounded-lg hover:bg-red-900/70"
+                              className="px-3 py-1 text-xs bg-red-900/50 text-danger border border-danger/20 rounded-lg hover:bg-red-900/70"
                               disabled={rejectLeave.isPending}
                             >
                               {rejectLeave.isPending ? '...' : 'Confirm'}
                             </button>
                             <button
                               onClick={() => { setRejectingId(null); setRejectReason(''); }}
-                              className="px-3 py-1 text-xs text-gray-400 border border-gray-700 rounded-lg hover:bg-[#1a1a1a]"
+                              className="px-3 py-1 text-xs text-ink-muted border border-border-strong rounded-lg hover:bg-bg-muted"
                             >
                               Cancel
                             </button>
@@ -243,7 +272,7 @@ export default function LeaveRequestsPage() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleApprove(req.id)}
-                            className="p-2 hover:bg-green-900/30 rounded-lg text-green-400 hover:text-green-300"
+                            className="p-2 hover:bg-success-soft rounded-lg text-success hover:text-green-300"
                             disabled={approveLeave.isPending}
                             title="Approve"
                           >
@@ -251,26 +280,40 @@ export default function LeaveRequestsPage() {
                           </button>
                           <button
                             onClick={() => setRejectingId(req.id)}
-                            className="p-2 hover:bg-red-900/30 rounded-lg text-red-400 hover:text-red-300"
+                            className="p-2 hover:bg-danger-soft rounded-lg text-danger hover:text-red-300"
                             title="Reject"
                           >
                             <XCircle className="h-4 w-4" />
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/ceo/hr/leave-requests/${req.id}`)}
+                            className="inline-flex items-center gap-1 text-sm font-medium text-brand px-2"
+                          >
+                            View
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
                         </div>
                       )
                     ) : (
-                      <Link
-                        href={`/ceo/hr/leave-requests/${req.id}`}
-                        className="text-xs text-gray-400 hover:text-white"
-                      >
-                        View Details
-                      </Link>
+                      <span className="inline-flex items-center gap-1 text-sm font-medium text-brand">
+                        View
+                        <ChevronRight className="h-4 w-4" />
+                      </span>
                     )}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+          </div>
         )}
       </Card>
     </div>
