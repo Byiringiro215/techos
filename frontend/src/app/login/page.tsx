@@ -6,10 +6,9 @@ import Link from 'next/link';
 import { Lock, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
-import api from '@/lib/api';
 import { getRoleRoute } from '@/lib/roleRoutes';
-import { DEMO_ACCOUNTS, buildDemoSession } from '@/lib/demoAuth';
-import { UserRole } from '@/types/roles';
+import { mapBackendUserToFrontend } from '@/lib/apiMappers/auth';
+import { useLoginMutation } from '@/hooks/useAuthMutations';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { AuthField } from '@/components/auth/AuthField';
 import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
@@ -17,18 +16,10 @@ import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [showDemo, setShowDemo] = useState(false);
   const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
-
-  const enterDemo = (role: UserRole) => {
-    const session = buildDemoSession(role);
-    setAuth(session.user, session.token);
-    toast.success(`Signed in as ${session.user.firstName} (demo)`);
-    router.push(session.redirectTo);
-  };
+  const loginMutation = useLoginMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,31 +34,18 @@ export default function LoginPage() {
       ? username.trim()
       : `${username.trim().toLowerCase().replace(/\s+/g, '.')}@techos.io`;
 
-    setLoading(true);
     try {
-      const response = await api.post('/auth/login', { email, password });
-      if (response.data.success) {
-        const user = response.data.data.user;
-        setAuth(user, response.data.data.token);
+      const data = await loginMutation.mutateAsync({ email, password });
+      if (data.success) {
+        const user = mapBackendUserToFrontend(data.data.user);
+        setAuth(user, data.data.token);
         toast.success('Welcome back!');
         router.push(getRoleRoute(user.role));
         return;
       }
       toast.error('Login failed');
-    } catch {
-      const demo = DEMO_ACCOUNTS.find(
-        (a) =>
-          a.email.toLowerCase() === email.toLowerCase() ||
-          a.email.toLowerCase().startsWith(username.trim().toLowerCase()),
-      );
-      if (demo) {
-        enterDemo(demo.role);
-        return;
-      }
-      toast.error('API unavailable — try a demo role below.');
-      setShowDemo(true);
-    } finally {
-      setLoading(false);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Invalid credentials');
     }
   };
 
@@ -93,7 +71,7 @@ export default function LoginPage() {
           <form className="mt-8 space-y-4" onSubmit={handleSubmit} noValidate>
             <AuthField
               icon={<User className="h-4 w-4" />}
-              placeholder="Username"
+              placeholder="Email"
               autoComplete="username"
               value={username}
               error={errors.username}
@@ -121,39 +99,14 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loginMutation.isPending}
               className="w-full rounded-xl bg-brand py-3.5 text-sm font-semibold text-white shadow-md shadow-brand/25 transition hover:bg-brand-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 disabled:opacity-60"
             >
-              {loading ? 'Signing in...' : 'Login'}
+              {loginMutation.isPending ? 'Signing in...' : 'Login'}
             </button>
           </form>
 
           <SocialAuthButtons mode="login" />
-
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setShowDemo((v) => !v)}
-              className="text-xs text-ink-muted hover:text-brand transition-colors"
-            >
-              {showDemo ? 'Hide demo roles' : 'Continue with demo role'}
-            </button>
-            {showDemo && (
-              <div className="mt-3 grid grid-cols-2 gap-2 text-left">
-                {DEMO_ACCOUNTS.map((account) => (
-                  <button
-                    key={account.role}
-                    type="button"
-                    onClick={() => enterDemo(account.role)}
-                    className="rounded-xl border border-border bg-bg-muted px-3 py-2 hover:border-brand/40 hover:bg-brand-mist transition-colors"
-                  >
-                    <p className="text-xs font-semibold text-ink">{account.label}</p>
-                    <p className="text-[10px] text-ink-muted line-clamp-1">{account.description}</p>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       }
     />

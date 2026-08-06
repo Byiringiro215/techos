@@ -25,7 +25,7 @@ let GoalsController = class GoalsController {
         this.goalsService = goalsService;
     }
     create(user, createDto) {
-        return this.goalsService.create(user.org_id, createDto);
+        return this.goalsService.create(user.org_id, createDto, user);
     }
     findAll(user, filters) {
         return this.goalsService.findAll(user.org_id, filters);
@@ -40,13 +40,25 @@ let GoalsController = class GoalsController {
         return this.goalsService.findOne(id, user.org_id);
     }
     update(user, id, updateDto) {
-        return this.goalsService.update(id, user.org_id, updateDto);
+        return this.goalsService.update(id, user.org_id, updateDto, user);
     }
     updateKeyResult(user, id, index, current) {
         return this.goalsService.updateKeyResult(id, user.org_id, parseInt(index), current);
     }
+    getKeyResults(user, id) {
+        return this.goalsService.getKeyResults(id, user.org_id);
+    }
+    createKeyResult(user, body) {
+        return this.goalsService.createKeyResult(user.org_id, body);
+    }
+    updateKeyResultById(user, id, body) {
+        return this.goalsService.updateKeyResultById(user.org_id, id, body);
+    }
+    deleteKeyResultById(user, id) {
+        return this.goalsService.deleteKeyResultById(user.org_id, id);
+    }
     remove(user, id) {
-        return this.goalsService.remove(id, user.org_id);
+        return this.goalsService.remove(id, user.org_id, user);
     }
 };
 exports.GoalsController = GoalsController;
@@ -108,6 +120,39 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, String, Number]),
     __metadata("design:returntype", void 0)
 ], GoalsController.prototype, "updateKeyResult", null);
+__decorate([
+    (0, common_1.Get)(':id/key-results'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], GoalsController.prototype, "getKeyResults", null);
+__decorate([
+    (0, common_1.Post)('key-results'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], GoalsController.prototype, "createKeyResult", null);
+__decorate([
+    (0, common_1.Put)('key-results/:id'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", void 0)
+], GoalsController.prototype, "updateKeyResultById", null);
+__decorate([
+    (0, common_1.Delete)('key-results/:id'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], GoalsController.prototype, "deleteKeyResultById", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

@@ -31,8 +31,26 @@ let SprintsController = class SprintsController {
     findOne(user, id) {
         return this.sprintsService.findOne(id, user.org_id);
     }
+    getStats(user, id) {
+        return this.sprintsService.getStats(id, user.org_id);
+    }
+    getActive(user, projectId) {
+        return this.sprintsService.findActiveSprint(projectId, user.org_id);
+    }
     update(user, id, updateSprintDto) {
         return this.sprintsService.update(id, user.org_id, updateSprintDto);
+    }
+    start(user, id) {
+        return this.sprintsService.startSprint(id, user.org_id);
+    }
+    complete(user, id) {
+        return this.sprintsService.completeSprint(id, user.org_id);
+    }
+    addTask(user, sprintId, taskId) {
+        return this.sprintsService.addTaskToSprint(sprintId, taskId, user.org_id);
+    }
+    removeTask(user, sprintId, taskId) {
+        return this.sprintsService.removeTaskFromSprint(sprintId, taskId, user.org_id);
     }
     remove(user, id) {
         return this.sprintsService.remove(id, user.org_id);
@@ -64,6 +82,22 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], SprintsController.prototype, "findOne", null);
 __decorate([
+    (0, common_1.Get)(':id/stats'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], SprintsController.prototype, "getStats", null);
+__decorate([
+    (0, common_1.Get)('active/:projectId'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('projectId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], SprintsController.prototype, "getActive", null);
+__decorate([
     (0, common_1.Put)(':id'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)('id')),
@@ -72,6 +106,40 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, Object]),
     __metadata("design:returntype", void 0)
 ], SprintsController.prototype, "update", null);
+__decorate([
+    (0, common_1.Post)(':id/start'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], SprintsController.prototype, "start", null);
+__decorate([
+    (0, common_1.Post)(':id/complete'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], SprintsController.prototype, "complete", null);
+__decorate([
+    (0, common_1.Post)(':sprintId/tasks/:taskId'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('sprintId')),
+    __param(2, (0, common_1.Param)('taskId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], SprintsController.prototype, "addTask", null);
+__decorate([
+    (0, common_1.Delete)(':sprintId/tasks/:taskId'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('sprintId')),
+    __param(2, (0, common_1.Param)('taskId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], SprintsController.prototype, "removeTask", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

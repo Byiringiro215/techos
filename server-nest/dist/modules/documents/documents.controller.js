@@ -39,6 +39,9 @@ let DocumentsController = class DocumentsController {
     getFolders(user) {
         return this.documentsService.getFolders(user.org_id);
     }
+    createFolder(user, body) {
+        return this.documentsService.createFolder(user.org_id, user.id, body);
+    }
     findOne(user, id) {
         return this.documentsService.findOne(id, user.org_id);
     }
@@ -53,6 +56,9 @@ let DocumentsController = class DocumentsController {
     }
     createVersion(user, id, body) {
         return this.documentsService.createVersion(id, user.org_id, user.id, body.content);
+    }
+    getVersions(user, id) {
+        return this.documentsService.getVersions(id, user.org_id);
     }
 };
 exports.DocumentsController = DocumentsController;
@@ -98,6 +104,14 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], DocumentsController.prototype, "getFolders", null);
 __decorate([
+    (0, common_1.Post)('folders'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], DocumentsController.prototype, "createFolder", null);
+__decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)('id')),
@@ -139,6 +153,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, Object]),
     __metadata("design:returntype", void 0)
 ], DocumentsController.prototype, "createVersion", null);
+__decorate([
+    (0, common_1.Get)(':id/versions'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], DocumentsController.prototype, "getVersions", null);
 exports.DocumentsController = DocumentsController = __decorate([
     (0, common_1.Controller)('documents'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

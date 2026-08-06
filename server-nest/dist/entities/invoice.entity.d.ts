@@ -3,6 +3,7 @@ export declare class Invoice {
     org_id: string;
     contact_id: string;
     invoice_number: string;
+    client_name: string;
     amount: number;
     tax: number;
     total: number;

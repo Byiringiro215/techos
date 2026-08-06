@@ -44,6 +44,18 @@ export class IntegrationsController {
     return this.integrationsService.remove(id, user.org_id);
   }
 
+  @Post(':id/connect')
+  async connect(@CurrentUser() user: any, @Param('id') id: string) {
+    await this.integrationsService.update(id, user.org_id, { enabled: true });
+    return this.integrationsService.findOne(id, user.org_id);
+  }
+
+  @Post(':id/disconnect')
+  async disconnect(@CurrentUser() user: any, @Param('id') id: string) {
+    await this.integrationsService.update(id, user.org_id, { enabled: false });
+    return this.integrationsService.findOne(id, user.org_id);
+  }
+
   // OAuth endpoints
   @Post('oauth/:type/tokens')
   saveOAuthTokens(

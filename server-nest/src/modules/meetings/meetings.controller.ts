@@ -88,6 +88,11 @@ export class MeetingsController {
     return this.meetingsService.createActionItem(id, user.org_id, createActionItemDto);
   }
 
+  @Get(':id/action-items')
+  getActionItems(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.meetingsService.getActionItems(id, user.org_id);
+  }
+
   @Put(':id/action-items/:actionItemId')
   updateActionItem(
     @Param('id') id: string,
@@ -95,6 +100,15 @@ export class MeetingsController {
     @Body() updateData: any,
   ) {
     return this.meetingsService.updateActionItem(actionItemId, id, updateData);
+  }
+
+  @Put('action-items/:id')
+  updateActionItemById(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() updateData: any,
+  ) {
+    return this.meetingsService.updateActionItemById(id, user.org_id, updateData);
   }
 
   @Delete(':id/action-items/:actionItemId')

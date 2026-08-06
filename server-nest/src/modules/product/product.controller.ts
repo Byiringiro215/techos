@@ -34,6 +34,11 @@ export class ProductController {
     return this.productService.voteFeature(id, user.org_id);
   }
 
+  @Post('features/:id/vote')
+  voteFeaturePost(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.productService.voteFeature(id, user.org_id);
+  }
+
   @Delete('features/:id')
   removeFeature(@CurrentUser() user: any, @Param('id') id: string) {
     return this.productService.removeFeature(id, user.org_id);

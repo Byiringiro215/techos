@@ -8,10 +8,21 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { User } from '../../entities/user.entity';
 import { Organization } from '../../entities/organization.entity';
+import { Employee } from '../../entities/employee.entity';
+import { Notification } from '../../entities/notification.entity';
+import { ChannelMember } from '../../entities/channel-member.entity';
+import { MeetingParticipant } from '../../entities/meeting-participant.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Organization]),
+    TypeOrmModule.forFeature([
+      User,
+      Organization,
+      Employee,
+      Notification,
+      ChannelMember,
+      MeetingParticipant,
+    ]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

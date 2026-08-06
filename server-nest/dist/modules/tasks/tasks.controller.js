@@ -23,7 +23,7 @@ let TasksController = class TasksController {
         this.tasksService = tasksService;
     }
     create(user, createTaskDto) {
-        return this.tasksService.create(user.org_id, user.id, createTaskDto);
+        return this.tasksService.create(user.org_id, user, createTaskDto);
     }
     findAll(user, filters) {
         return this.tasksService.findAll(user.org_id, filters);
@@ -31,11 +31,14 @@ let TasksController = class TasksController {
     findOne(user, id) {
         return this.tasksService.findOne(id, user.org_id);
     }
+    getSubtasks(user, id) {
+        return this.tasksService.getSubtasks(id, user.org_id);
+    }
     update(user, id, updateTaskDto) {
-        return this.tasksService.update(id, user.org_id, updateTaskDto);
+        return this.tasksService.update(id, user.org_id, updateTaskDto, user);
     }
     remove(user, id) {
-        return this.tasksService.remove(id, user.org_id);
+        return this.tasksService.remove(id, user.org_id, user);
     }
 };
 exports.TasksController = TasksController;
@@ -63,6 +66,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], TasksController.prototype, "findOne", null);
+__decorate([
+    (0, common_1.Get)(':id/subtasks'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], TasksController.prototype, "getSubtasks", null);
 __decorate([
     (0, common_1.Put)(':id'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

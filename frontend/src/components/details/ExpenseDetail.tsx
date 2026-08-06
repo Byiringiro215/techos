@@ -3,7 +3,7 @@
 import { Receipt } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { useMockMutation } from '@/hooks/useMockQuery';
+import { useApproveExpense, useRejectExpense } from '@/hooks/useFinance';
 import { Badge } from '@/components/UI/Badge';
 import { Button } from '@/components/UI/Button';
 import { Card } from '@/components/UI/Card';
@@ -21,8 +21,8 @@ import { ActivityFeed, MetaGrid, RelatedList } from './shared';
 export function ExpenseDetail(props: DetailViewProps) {
   const { entityKey, detailId, title, breadcrumbs, basePath } = props;
   const { data, extras, isLoading } = useDetailRecord(entityKey, detailId);
-  const approve = useMockMutation({ successMessage: 'Approved (mock)' });
-  const reject = useMockMutation({ successMessage: 'Rejected (mock)' });
+  const approve = useApproveExpense();
+  const reject = useRejectExpense();
 
   if (isLoading) return <DetailLoading />;
   if (!data || !extras) return <DetailNotFound entityKey={entityKey} detailId={detailId} />;
@@ -43,15 +43,20 @@ export function ExpenseDetail(props: DetailViewProps) {
         actions={
           showApproval ? (
             <>
-              <Button size="sm" variant="outline" loading={reject.isLoading} onClick={() => reject.mutate()}>
+              <Button
+                size="sm"
+                variant="outline"
+                loading={reject.isPending}
+                onClick={() => reject.mutate({ id: data.id, reason: 'Rejected from expense detail' })}
+              >
                 Reject
               </Button>
-              <Button size="sm" loading={approve.isLoading} onClick={() => approve.mutate()}>
+              <Button size="sm" loading={approve.isPending} onClick={() => approve.mutate(data.id)}>
                 Approve
               </Button>
             </>
           ) : (
-            <Button size="sm" variant="secondary" onClick={() => toast.success('Receipt opened (mock)')}>
+            <Button size="sm" variant="secondary" onClick={() => toast.error('Receipt is not available yet.')}>
               View receipt
             </Button>
           )

@@ -40,6 +40,16 @@ export class AnnouncementsController {
     return this.announcementsService.togglePin(id, user.org_id);
   }
 
+  @Post(':id/pin')
+  pin(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.announcementsService.setPinStatus(id, user.org_id, true);
+  }
+
+  @Post(':id/unpin')
+  unpin(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.announcementsService.setPinStatus(id, user.org_id, false);
+  }
+
   @Delete(':id')
   remove(@CurrentUser() user: any, @Param('id') id: string) {
     return this.announcementsService.remove(id, user.org_id);

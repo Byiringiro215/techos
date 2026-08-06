@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Report = exports.KPI = exports.Roadmap = exports.AuditLog = exports.Integration = exports.CustomerFeedback = exports.Bug = exports.Release = exports.Epic = exports.Feature = exports.Announcement = exports.Goal = exports.Notification = exports.CalendarEvent = exports.Document = exports.LeaveRequest = exports.Employee = exports.Budget = exports.Expense = exports.Invoice = exports.Deal = exports.Contact = exports.Message = exports.ChannelMember = exports.Channel = exports.MeetingActionItem = exports.MeetingParticipant = exports.Meeting = exports.Task = exports.Sprint = exports.Project = exports.User = exports.Organization = exports.entities = void 0;
+exports.ActivityEvent = exports.WorkspaceRecord = exports.Report = exports.KPI = exports.Roadmap = exports.AuditLog = exports.Integration = exports.CustomerFeedback = exports.Bug = exports.Release = exports.Epic = exports.Feature = exports.Announcement = exports.Goal = exports.Notification = exports.CalendarEvent = exports.Document = exports.LeaveRequest = exports.Employee = exports.Budget = exports.Expense = exports.Invoice = exports.Deal = exports.Contact = exports.Message = exports.ChannelMember = exports.Channel = exports.MeetingActionItem = exports.MeetingParticipant = exports.Meeting = exports.Task = exports.Sprint = exports.Project = exports.User = exports.Organization = exports.entities = void 0;
 const organization_entity_1 = require("./organization.entity");
 Object.defineProperty(exports, "Organization", { enumerable: true, get: function () { return organization_entity_1.Organization; } });
 const user_entity_1 = require("./user.entity");
@@ -67,6 +67,10 @@ const kpi_entity_1 = require("./kpi.entity");
 Object.defineProperty(exports, "KPI", { enumerable: true, get: function () { return kpi_entity_1.KPI; } });
 const report_entity_1 = require("./report.entity");
 Object.defineProperty(exports, "Report", { enumerable: true, get: function () { return report_entity_1.Report; } });
+const workspace_record_entity_1 = require("./workspace-record.entity");
+Object.defineProperty(exports, "WorkspaceRecord", { enumerable: true, get: function () { return workspace_record_entity_1.WorkspaceRecord; } });
+const activity_event_entity_1 = require("./activity-event.entity");
+Object.defineProperty(exports, "ActivityEvent", { enumerable: true, get: function () { return activity_event_entity_1.ActivityEvent; } });
 exports.entities = [
     organization_entity_1.Organization,
     user_entity_1.User,
@@ -101,5 +105,7 @@ exports.entities = [
     roadmap_entity_1.Roadmap,
     kpi_entity_1.KPI,
     report_entity_1.Report,
+    workspace_record_entity_1.WorkspaceRecord,
+    activity_event_entity_1.ActivityEvent,
 ];
 //# sourceMappingURL=index.js.map

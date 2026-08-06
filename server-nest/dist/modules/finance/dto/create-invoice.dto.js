@@ -14,6 +14,7 @@ const class_validator_1 = require("class-validator");
 class CreateInvoiceDto {
     contact_id;
     invoice_number;
+    client_name;
     amount;
     tax;
     total;
@@ -21,6 +22,8 @@ class CreateInvoiceDto {
     issued_date;
     items;
     notes;
+    description;
+    status;
 }
 exports.CreateInvoiceDto = CreateInvoiceDto;
 __decorate([
@@ -29,10 +32,15 @@ __decorate([
     __metadata("design:type", String)
 ], CreateInvoiceDto.prototype, "contact_id", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateInvoiceDto.prototype, "invoice_number", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateInvoiceDto.prototype, "client_name", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsNumber)(),
@@ -44,22 +52,22 @@ __decorate([
     __metadata("design:type", Number)
 ], CreateInvoiceDto.prototype, "tax", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], CreateInvoiceDto.prototype, "total", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateInvoiceDto.prototype, "due_date", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateInvoiceDto.prototype, "issued_date", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsArray)(),
     __metadata("design:type", Array)
 ], CreateInvoiceDto.prototype, "items", void 0);
@@ -68,4 +76,14 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateInvoiceDto.prototype, "notes", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateInvoiceDto.prototype, "description", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateInvoiceDto.prototype, "status", void 0);
 //# sourceMappingURL=create-invoice.dto.js.map

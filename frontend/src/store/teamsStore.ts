@@ -1,11 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { seedTeams, type Team, type TeamStatus } from '@/mocks/teams';
+import { type Team, type TeamStatus } from '@/mocks/teams';
 
 export interface CreateTeamInput {
   name: string;
   description: string;
-  department: string;
   leadId: string;
   memberIds: string[];
   projectIds: string[];
@@ -24,7 +23,7 @@ interface TeamsState {
 export const useTeamsStore = create<TeamsState>()(
   persist(
     (set, get) => ({
-      teams: seedTeams,
+      teams: [],
 
       createTeam: (input) => {
         const now = new Date().toISOString();
@@ -33,7 +32,6 @@ export const useTeamsStore = create<TeamsState>()(
           id: `team-${Date.now()}`,
           name: input.name.trim(),
           description: input.description.trim(),
-          department: input.department.trim() || 'General',
           status: input.status || 'forming',
           leadId: input.leadId,
           memberIds,
@@ -59,7 +57,6 @@ export const useTeamsStore = create<TeamsState>()(
               ...team,
               name: patch.name?.trim() ?? team.name,
               description: patch.description?.trim() ?? team.description,
-              department: patch.department?.trim() ?? team.department,
               status: patch.status ?? team.status,
               leadId,
               memberIds,
@@ -86,6 +83,6 @@ export const useTeamsStore = create<TeamsState>()(
 
       getTeam: (id) => get().teams.find((t) => t.id === id),
     }),
-    { name: 'techos-teams' },
+    { name: 'techos-teams-v2' },
   ),
 );

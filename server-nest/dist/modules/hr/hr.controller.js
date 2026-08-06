@@ -30,20 +30,20 @@ let HrController = class HrController {
     findAllEmployees(user, filters) {
         return this.hrService.findAllEmployees(user.org_id, filters);
     }
+    getEmployeeActivity(user, id) {
+        return this.hrService.getEmployeeActivity(id, user.org_id);
+    }
     findOneEmployee(user, id) {
         return this.hrService.findOneEmployee(id, user.org_id);
     }
     updateEmployee(user, id, updateData) {
-        return this.hrService.updateEmployee(id, user.org_id, updateData);
+        return this.hrService.updateEmployee(id, user.org_id, updateData, user);
     }
     deleteEmployee(user, id) {
-        return this.hrService.deleteEmployee(id, user.org_id);
-    }
-    getDepartments(user) {
-        return this.hrService.getDepartments(user.org_id);
+        return this.hrService.deleteEmployee(id, user.org_id, user);
     }
     createLeaveRequest(user, createLeaveRequestDto) {
-        return this.hrService.createLeaveRequest(user.org_id, user.id, createLeaveRequestDto);
+        return this.hrService.createLeaveRequest(user.org_id, user, createLeaveRequestDto);
     }
     findAllLeaveRequests(user, filters) {
         return this.hrService.findAllLeaveRequests(user.org_id, filters);
@@ -82,6 +82,14 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], HrController.prototype, "findAllEmployees", null);
 __decorate([
+    (0, common_1.Get)('employee-activity/:id'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], HrController.prototype, "getEmployeeActivity", null);
+__decorate([
     (0, common_1.Get)('employees/:id'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)('id')),
@@ -106,13 +114,6 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], HrController.prototype, "deleteEmployee", null);
-__decorate([
-    (0, common_1.Get)('departments'),
-    __param(0, (0, current_user_decorator_1.CurrentUser)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
-], HrController.prototype, "getDepartments", null);
 __decorate([
     (0, common_1.Post)('leaves'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

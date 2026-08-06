@@ -22,6 +22,10 @@ export declare class ProductController {
         success: boolean;
         data: import("../../entities").Feature;
     }>;
+    voteFeaturePost(user: any, id: string): Promise<{
+        success: boolean;
+        data: import("../../entities").Feature;
+    }>;
     removeFeature(user: any, id: string): Promise<{
         success: boolean;
         message: string;

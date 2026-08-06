@@ -20,27 +20,68 @@ const crypto_1 = require("crypto");
 const project_entity_1 = require("../../entities/project.entity");
 const sprint_entity_1 = require("../../entities/sprint.entity");
 const task_entity_1 = require("../../entities/task.entity");
+const activity_log_service_1 = require("../../common/services/activity-log.service");
 let ProjectsService = class ProjectsService {
     projectsRepository;
     sprintsRepository;
     tasksRepository;
-    constructor(projectsRepository, sprintsRepository, tasksRepository) {
+    activityLogService;
+    constructor(projectsRepository, sprintsRepository, tasksRepository, activityLogService) {
         this.projectsRepository = projectsRepository;
         this.sprintsRepository = sprintsRepository;
         this.tasksRepository = tasksRepository;
+        this.activityLogService = activityLogService;
     }
-    async create(org_id, user_id, createProjectDto) {
+    async create(org_id, actor, createProjectDto) {
+        const { client_name, ...rest } = createProjectDto;
         const project = this.projectsRepository.create({
             id: (0, crypto_1.randomUUID)(),
             org_id,
-            ...createProjectDto,
-            created_by: user_id,
-            status: 'active',
+            name: rest.name,
+            description: rest.description,
+            priority: rest.priority || 'medium',
+            start_date: rest.start_date,
+            end_date: rest.end_date,
+            budget: rest.budget,
+            created_by: actor?.id,
+            status: (rest.status || 'active').toLowerCase().replace(/\s+/g, '_'),
+            metadata: client_name ? { client_name } : {},
         });
         await this.projectsRepository.save(project);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'created',
+            resource_type: 'projects',
+            resource_id: project.id,
+            summary: `created project "${project.name || 'Untitled'}"`,
+        });
         return {
             success: true,
-            data: project,
+            data: this.withProjectExtras(project),
+        };
+    }
+    timelineProgress(start_date, end_date) {
+        if (!start_date || !end_date)
+            return 0;
+        const start = new Date(start_date).getTime();
+        const end = new Date(end_date).getTime();
+        if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start)
+            return 0;
+        const now = Date.now();
+        if (now <= start)
+            return 0;
+        if (now >= end)
+            return 100;
+        return Math.round(((now - start) / (end - start)) * 100);
+    }
+    withProjectExtras(project) {
+        const client_name = project.metadata?.client_name || null;
+        return {
+            ...project,
+            client_name,
+            owner_name: client_name,
+            progress: this.timelineProgress(project.start_date, project.end_date),
         };
     }
     async findAll(org_id, status) {
@@ -57,7 +98,7 @@ let ProjectsService = class ProjectsService {
                 where: { project_id: project.id },
             });
             return {
-                ...project,
+                ...this.withProjectExtras(project),
                 task_count: taskCount,
                 sprint_count: sprintCount,
             };
@@ -83,34 +124,56 @@ let ProjectsService = class ProjectsService {
         return {
             success: true,
             data: {
-                ...project,
+                ...this.withProjectExtras(project),
                 sprints,
                 tasks,
             },
         };
     }
-    async update(id, org_id, updateProjectDto) {
+    async update(id, org_id, updateProjectDto, actor) {
         const project = await this.projectsRepository.findOne({
             where: { id, org_id },
         });
         if (!project) {
             throw new common_1.NotFoundException('Project not found');
         }
-        Object.assign(project, updateProjectDto);
+        const { client_name, ...rest } = updateProjectDto;
+        Object.assign(project, rest);
+        if (client_name !== undefined) {
+            project.metadata = { ...(project.metadata || {}), client_name };
+        }
         await this.projectsRepository.save(project);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'updated',
+            resource_type: 'projects',
+            resource_id: project.id,
+            summary: `updated project "${project.name || 'Untitled'}"`,
+            changes: updateProjectDto,
+        });
         return {
             success: true,
-            data: project,
+            data: this.withProjectExtras(project),
         };
     }
-    async remove(id, org_id) {
+    async remove(id, org_id, actor) {
         const project = await this.projectsRepository.findOne({
             where: { id, org_id },
         });
         if (!project) {
             throw new common_1.NotFoundException('Project not found');
         }
+        const name = project.name;
         await this.projectsRepository.remove(project);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'deleted',
+            resource_type: 'projects',
+            resource_id: id,
+            summary: `deleted project "${name || 'Untitled'}"`,
+        });
         return {
             success: true,
             message: 'Project deleted successfully',
@@ -148,6 +211,7 @@ exports.ProjectsService = ProjectsService = __decorate([
     __param(2, (0, typeorm_1.InjectRepository)(task_entity_1.Task)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        activity_log_service_1.ActivityLogService])
 ], ProjectsService);
 //# sourceMappingURL=projects.service.js.map

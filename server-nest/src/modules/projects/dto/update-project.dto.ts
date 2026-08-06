@@ -28,4 +28,8 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsNumber()
   budget?: number;
+
+  @IsOptional()
+  @IsString()
+  client_name?: string;
 }

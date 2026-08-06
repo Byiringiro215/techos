@@ -28,6 +28,14 @@ export declare class AnnouncementsController {
         success: boolean;
         data: import("../../entities").Announcement;
     }>;
+    pin(user: any, id: string): Promise<{
+        success: boolean;
+        data: import("../../entities").Announcement;
+    }>;
+    unpin(user: any, id: string): Promise<{
+        success: boolean;
+        data: import("../../entities").Announcement;
+    }>;
     remove(user: any, id: string): Promise<{
         success: boolean;
         message: string;

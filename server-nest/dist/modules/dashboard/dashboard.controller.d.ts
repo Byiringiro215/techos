@@ -27,8 +27,11 @@ export declare class DashboardController {
             financials: {
                 total_revenue: number;
                 total_expenses: number;
+                outstanding: number;
                 net: number;
             };
+            teamSize: number;
+            employees: number;
             team_productivity: {
                 total_tasks: number;
                 completed: number;
@@ -86,6 +89,26 @@ export declare class DashboardController {
             };
             recent_leave_requests: import("../../entities").LeaveRequest[];
             announcements: import("../../entities").Announcement[];
+        };
+    }>;
+    getCisoDashboard(user: any): Promise<{
+        success: boolean;
+        data: {
+            tasks: {
+                total: number;
+                finished: number;
+                not_finished: number;
+            };
+            audits: {
+                total: number;
+                needed: number;
+                in_progress: number;
+                completed: number;
+            };
+            reports: {
+                total: number;
+                recent: import("../../entities").Report[];
+            };
         };
     }>;
 }

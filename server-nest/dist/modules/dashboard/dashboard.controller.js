@@ -37,6 +37,9 @@ let DashboardController = class DashboardController {
     getHRDashboard(user) {
         return this.dashboardService.getHRDashboard(user.org_id);
     }
+    getCisoDashboard(user) {
+        return this.dashboardService.getCisoDashboard(user.org_id);
+    }
 };
 exports.DashboardController = DashboardController;
 __decorate([
@@ -74,6 +77,13 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], DashboardController.prototype, "getHRDashboard", null);
+__decorate([
+    (0, common_1.Get)('ciso'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], DashboardController.prototype, "getCisoDashboard", null);
 exports.DashboardController = DashboardController = __decorate([
     (0, common_1.Controller)('dashboard'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

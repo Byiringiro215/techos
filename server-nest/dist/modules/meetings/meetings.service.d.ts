@@ -16,32 +16,7 @@ export declare class MeetingsService {
     constructor(meetingsRepository: Repository<Meeting>, participantsRepository: Repository<MeetingParticipant>, actionItemsRepository: Repository<MeetingActionItem>, usersRepository: Repository<User>, emailService: EmailService);
     create(org_id: string, user_id: string, createMeetingDto: CreateMeetingDto): Promise<{
         success: boolean;
-        data: {
-            success: boolean;
-            data: {
-                participants: any[];
-                action_items: any[];
-                id: string;
-                org_id: string;
-                title: string;
-                description: string;
-                date: string;
-                scheduled_at: string;
-                start_time: string;
-                end_time: string;
-                location: string;
-                meeting_link: string;
-                type: string;
-                status: string;
-                organizer_id: string;
-                agenda: string;
-                notes: string;
-                ai_summary: string;
-                decisions: string[];
-                recording_url: string;
-                created_at: Date;
-            };
-        };
+        data: Meeting;
     }>;
     findAll(org_id: string, filters?: any): Promise<{
         success: boolean;
@@ -148,6 +123,14 @@ export declare class MeetingsService {
     updateActionItem(id: string, meeting_id: string, updateData: Partial<MeetingActionItem>): Promise<{
         success: boolean;
         data: MeetingActionItem;
+    }>;
+    updateActionItemById(id: string, org_id: string, updateData: Partial<MeetingActionItem>): Promise<{
+        success: boolean;
+        data: MeetingActionItem | null;
+    }>;
+    getActionItems(meeting_id: string, org_id: string): Promise<{
+        success: boolean;
+        data: MeetingActionItem[];
     }>;
     deleteActionItem(id: string, meeting_id: string): Promise<{
         success: boolean;

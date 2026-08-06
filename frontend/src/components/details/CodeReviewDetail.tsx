@@ -3,7 +3,7 @@
 import { GitPullRequest, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatDate } from '@/lib/utils';
-import { useMockMutation } from '@/hooks/useMockQuery';
+import { useUpdateEntity } from '@/hooks/useEntityApi';
 import { Badge } from '@/components/UI/Badge';
 import { Button } from '@/components/UI/Button';
 import { Card } from '@/components/UI/Card';
@@ -21,8 +21,7 @@ import { ActivityFeed, CommentThread, MetaGrid, PeopleList, RelatedList } from '
 export function CodeReviewDetail(props: DetailViewProps) {
   const { entityKey, detailId, title, breadcrumbs, basePath } = props;
   const { data, extras, isLoading } = useDetailRecord(entityKey, detailId);
-  const approve = useMockMutation({ successMessage: 'Approved (mock)' });
-  const requestChanges = useMockMutation({ successMessage: 'Changes requested (mock)' });
+  const updateReview = useUpdateEntity('codeReviews');
 
   if (isLoading) return <DetailLoading />;
   if (!data || !extras) return <DetailNotFound entityKey={entityKey} detailId={detailId} />;
@@ -46,13 +45,17 @@ export function CodeReviewDetail(props: DetailViewProps) {
             <Button
               size="sm"
               variant="outline"
-              loading={requestChanges.isLoading}
-              onClick={() => requestChanges.mutate()}
+              loading={updateReview.isPending}
+              onClick={() => updateReview.mutate({ id: data.id, data: { ...data, status: 'changes_requested' } })}
             >
               <X className="h-4 w-4 mr-2" />
               Request changes
             </Button>
-            <Button size="sm" loading={approve.isLoading} onClick={() => approve.mutate()}>
+            <Button
+              size="sm"
+              loading={updateReview.isPending}
+              onClick={() => updateReview.mutate({ id: data.id, data: { ...data, status: 'approved' } })}
+            >
               <Check className="h-4 w-4 mr-2" />
               Approve
             </Button>
@@ -85,7 +88,7 @@ export function CodeReviewDetail(props: DetailViewProps) {
               <button
                 key={f.path}
                 type="button"
-                onClick={() => toast.success(`Diff: ${f.path} (mock)`)}
+                onClick={() => toast.error('Diff viewing is not available yet.')}
                 className="w-full flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm hover:bg-surface-hover"
               >
                 <span className="font-mono text-ink truncate">{f.path}</span>

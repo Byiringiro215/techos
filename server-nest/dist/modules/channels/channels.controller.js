@@ -18,10 +18,13 @@ const channels_service_1 = require("./channels.service");
 const create_channel_dto_1 = require("./dto/create-channel.dto");
 const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
 const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
+const messages_service_1 = require("../messages/messages.service");
 let ChannelsController = class ChannelsController {
     channelsService;
-    constructor(channelsService) {
+    messagesService;
+    constructor(channelsService, messagesService) {
         this.channelsService = channelsService;
+        this.messagesService = messagesService;
     }
     create(user, createChannelDto) {
         return this.channelsService.create(user.org_id, user.id, createChannelDto);
@@ -46,6 +49,12 @@ let ChannelsController = class ChannelsController {
     }
     markAsRead(user, id) {
         return this.channelsService.updateLastRead(id, user.id);
+    }
+    getChannelMessages(user, id, limit, before) {
+        return this.messagesService.findAll(id, user.id, limit, before);
+    }
+    postChannelMessage(user, id, content) {
+        return this.messagesService.create(user.id, { channel_id: id, content });
     }
 };
 exports.ChannelsController = ChannelsController;
@@ -115,9 +124,29 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], ChannelsController.prototype, "markAsRead", null);
+__decorate([
+    (0, common_1.Get)(':id/messages'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Query)('limit')),
+    __param(3, (0, common_1.Query)('before')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Number, String]),
+    __metadata("design:returntype", void 0)
+], ChannelsController.prototype, "getChannelMessages", null);
+__decorate([
+    (0, common_1.Post)(':id/messages'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)('content')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], ChannelsController.prototype, "postChannelMessage", null);
 exports.ChannelsController = ChannelsController = __decorate([
     (0, common_1.Controller)('channels'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __metadata("design:paramtypes", [channels_service_1.ChannelsService])
+    __metadata("design:paramtypes", [channels_service_1.ChannelsService,
+        messages_service_1.MessagesService])
 ], ChannelsController);
 //# sourceMappingURL=channels.controller.js.map

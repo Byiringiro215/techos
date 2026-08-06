@@ -18,7 +18,7 @@ export function useUnreadCount() {
     queryKey: ['notifications', 'unread-count'],
     queryFn: async () => {
       const response = await api.get('/notifications/unread/count');
-      return response.data.count as number;
+      return (response.data.data?.count ?? response.data.count ?? 0) as number;
     },
     refetchInterval: 30000, // Refetch every 30 seconds
   });
@@ -34,6 +34,7 @@ export function useMarkAsRead() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
   });
 }
@@ -48,6 +49,7 @@ export function useMarkAllAsRead() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
       toast.success('All notifications marked as read');
     },
   });
@@ -63,6 +65,7 @@ export function useDeleteNotification() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
   });
 }

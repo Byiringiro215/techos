@@ -22,7 +22,7 @@ export class ProjectsController {
 
   @Post()
   create(@CurrentUser() user: any, @Body() createProjectDto: CreateProjectDto) {
-    return this.projectsService.create(user.org_id, user.id, createProjectDto);
+    return this.projectsService.create(user.org_id, user, createProjectDto);
   }
 
   @Get()
@@ -41,16 +41,21 @@ export class ProjectsController {
     @Param('id') id: string,
     @Body() updateProjectDto: UpdateProjectDto,
   ) {
-    return this.projectsService.update(id, user.org_id, updateProjectDto);
+    return this.projectsService.update(id, user.org_id, updateProjectDto, user);
   }
 
   @Delete(':id')
   remove(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.projectsService.remove(id, user.org_id);
+    return this.projectsService.remove(id, user.org_id, user);
   }
 
   @Get(':id/stats')
   getStats(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.projectsService.getProjectStats(id, user.org_id);
+  }
+
+  @Get(':id/statistics')
+  getStatistics(@CurrentUser() user: any, @Param('id') id: string) {
     return this.projectsService.getProjectStats(id, user.org_id);
   }
 }

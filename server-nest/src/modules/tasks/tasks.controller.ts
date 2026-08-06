@@ -10,7 +10,7 @@ export class TasksController {
 
   @Post()
   create(@CurrentUser() user: any, @Body() createTaskDto: any) {
-    return this.tasksService.create(user.org_id, user.id, createTaskDto);
+    return this.tasksService.create(user.org_id, user, createTaskDto);
   }
 
   @Get()
@@ -23,13 +23,18 @@ export class TasksController {
     return this.tasksService.findOne(id, user.org_id);
   }
 
+  @Get(':id/subtasks')
+  getSubtasks(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.tasksService.getSubtasks(id, user.org_id);
+  }
+
   @Put(':id')
   update(@CurrentUser() user: any, @Param('id') id: string, @Body() updateTaskDto: any) {
-    return this.tasksService.update(id, user.org_id, updateTaskDto);
+    return this.tasksService.update(id, user.org_id, updateTaskDto, user);
   }
 
   @Delete(':id')
   remove(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.tasksService.remove(id, user.org_id);
+    return this.tasksService.remove(id, user.org_id, user);
   }
 }

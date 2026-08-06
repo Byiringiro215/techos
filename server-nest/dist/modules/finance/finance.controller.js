@@ -26,7 +26,7 @@ let FinanceController = class FinanceController {
         this.financeService = financeService;
     }
     createInvoice(user, createInvoiceDto) {
-        return this.financeService.createInvoice(user.org_id, createInvoiceDto);
+        return this.financeService.createInvoice(user.org_id, createInvoiceDto, user);
     }
     findAllInvoices(user, filters) {
         return this.financeService.findAllInvoices(user.org_id, filters);
@@ -35,7 +35,7 @@ let FinanceController = class FinanceController {
         return this.financeService.findOneInvoice(id, user.org_id);
     }
     updateInvoice(user, id, updateData) {
-        return this.financeService.updateInvoice(id, user.org_id, updateData);
+        return this.financeService.updateInvoice(id, user.org_id, updateData, user);
     }
     deleteInvoice(user, id) {
         return this.financeService.deleteInvoice(id, user.org_id);
@@ -44,7 +44,7 @@ let FinanceController = class FinanceController {
         return this.financeService.sendInvoice(id, user.org_id, body.recipient_email);
     }
     createExpense(user, createExpenseDto) {
-        return this.financeService.createExpense(user.org_id, user.id, createExpenseDto);
+        return this.financeService.createExpense(user.org_id, user, createExpenseDto);
     }
     findAllExpenses(user, filters) {
         return this.financeService.findAllExpenses(user.org_id, filters);

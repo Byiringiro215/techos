@@ -15,6 +15,7 @@ export declare class AuthController {
                 last_name: string;
                 role: import("../../entities/user.entity").UserRole;
                 org_id: string;
+                preferences: any;
             };
         };
     }>;
@@ -29,10 +30,25 @@ export declare class AuthController {
                 last_name: string;
                 role: import("../../entities/user.entity").UserRole;
                 org_id: string;
+                preferences: any;
             };
         };
     }>;
     getProfile(user: any): Promise<{
+        success: boolean;
+        data: {
+            id: string;
+            email: string;
+            first_name: string;
+            last_name: string;
+            role: import("../../entities/user.entity").UserRole;
+            avatar: string;
+            org_id: string;
+            organization: import("../../entities").Organization;
+            preferences: any;
+        };
+    }>;
+    getMe(user: any): Promise<{
         success: boolean;
         data: {
             id: string;

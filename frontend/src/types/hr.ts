@@ -3,11 +3,14 @@ export interface Employee {
   org_id: string;
   user_id: string;
   employee_number: string;
-  department: string;
   position: string;
+  employment_type?: string;
   hire_date: string;
+  start_date?: string;
   salary?: number;
   manager_id?: string;
+  emergency_contact?: string;
+  skills?: string[];
   status: 'active' | 'on_leave' | 'terminated';
   created_at: string;
   user?: {
@@ -15,7 +18,16 @@ export interface Employee {
     first_name: string;
     last_name: string;
     email: string;
-  };
+    role?: string;
+    avatar?: string;
+  } | null;
+  manager?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  } | null;
+  leave_requests?: LeaveRequest[];
 }
 
 export interface LeaveRequest {

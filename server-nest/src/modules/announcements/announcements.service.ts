@@ -100,6 +100,22 @@ export class AnnouncementsService {
     return { success: true, data: announcement };
   }
 
+  async setPinStatus(id: string, org_id: string, isPinned: boolean) {
+    const announcement = await this.announcementRepository.findOne({
+      where: { id, org_id },
+    });
+
+    if (!announcement) {
+      throw new NotFoundException('Announcement not found');
+    }
+
+    announcement.is_pinned = isPinned;
+    await this.announcementRepository.save(announcement);
+    this.eventsGateway.sendToOrganization(org_id, 'announcement:updated', announcement);
+
+    return { success: true, data: announcement };
+  }
+
   async remove(id: string, org_id: string) {
     const announcement = await this.announcementRepository.findOne({
       where: { id, org_id },

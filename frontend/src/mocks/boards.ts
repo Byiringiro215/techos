@@ -1,5 +1,4 @@
 import { MockRecord, StatusVariant } from './types';
-import { mockEntities } from './entities';
 
 export type BoardColumnId = 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'done' | 'blocked';
 
@@ -59,12 +58,10 @@ export function applyColumnMove(item: MockRecord, columnId: BoardColumnId): Mock
   };
 }
 
-export function getBoardTasks(sprintTag?: string): MockRecord[] {
-  const tasks = [...(mockEntities.tasks || [])];
-  if (!sprintTag) return tasks;
-  return tasks.filter((t) => t.tags?.some((tag) => tag.toLowerCase().includes(sprintTag.toLowerCase())));
+export function getBoardTasks(_sprintTag?: string): MockRecord[] {
+  return [];
 }
 
 export function getActiveSprint(): MockRecord | undefined {
-  return (mockEntities.sprints || []).find((s) => s.status === 'Active') || mockEntities.sprints?.[0];
+  return undefined;
 }

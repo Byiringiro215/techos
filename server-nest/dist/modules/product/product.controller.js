@@ -37,6 +37,9 @@ let ProductController = class ProductController {
     voteFeature(user, id) {
         return this.productService.voteFeature(id, user.org_id);
     }
+    voteFeaturePost(user, id) {
+        return this.productService.voteFeature(id, user.org_id);
+    }
     removeFeature(user, id) {
         return this.productService.removeFeature(id, user.org_id);
     }
@@ -158,6 +161,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "voteFeature", null);
+__decorate([
+    (0, common_1.Post)('features/:id/vote'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "voteFeaturePost", null);
 __decorate([
     (0, common_1.Delete)('features/:id'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

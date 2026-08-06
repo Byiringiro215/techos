@@ -12,7 +12,7 @@ export class GoalsController {
 
   @Post()
   create(@CurrentUser() user: any, @Body() createDto: CreateGoalDto) {
-    return this.goalsService.create(user.org_id, createDto);
+    return this.goalsService.create(user.org_id, createDto, user);
   }
 
   @Get()
@@ -37,7 +37,7 @@ export class GoalsController {
 
   @Put(':id')
   update(@CurrentUser() user: any, @Param('id') id: string, @Body() updateDto: UpdateGoalDto) {
-    return this.goalsService.update(id, user.org_id, updateDto);
+    return this.goalsService.update(id, user.org_id, updateDto, user);
   }
 
   @Patch(':id/key-results/:index')
@@ -50,8 +50,28 @@ export class GoalsController {
     return this.goalsService.updateKeyResult(id, user.org_id, parseInt(index), current);
   }
 
+  @Get(':id/key-results')
+  getKeyResults(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.goalsService.getKeyResults(id, user.org_id);
+  }
+
+  @Post('key-results')
+  createKeyResult(@CurrentUser() user: any, @Body() body: any) {
+    return this.goalsService.createKeyResult(user.org_id, body);
+  }
+
+  @Put('key-results/:id')
+  updateKeyResultById(@CurrentUser() user: any, @Param('id') id: string, @Body() body: any) {
+    return this.goalsService.updateKeyResultById(user.org_id, id, body);
+  }
+
+  @Delete('key-results/:id')
+  deleteKeyResultById(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.goalsService.deleteKeyResultById(user.org_id, id);
+  }
+
   @Delete(':id')
   remove(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.goalsService.remove(id, user.org_id);
+    return this.goalsService.remove(id, user.org_id, user);
   }
 }

@@ -8,7 +8,9 @@ export interface SendEmailOptions {
 }
 export declare class EmailService {
     private configService;
+    private readonly logger;
     private resend;
+    private smtp;
     private fromEmail;
     constructor(configService: ConfigService);
     sendEmail(options: SendEmailOptions): Promise<any>;

@@ -2,14 +2,16 @@
 
 import { useMemo, useState } from 'react';
 import { Flag, Target, Timer } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { mockEntities, type MockRecord } from '@/mocks';
-import { SPRINT_COLUMNS, getActiveSprint, getBoardTasks } from '@/mocks/boards';
+import { type MockRecord } from '@/mocks';
+import { SPRINT_COLUMNS } from '@/mocks/boards';
+import { useEntityList, useUpdateEntity } from '@/hooks/useEntityApi';
 import { Badge } from '@/components/UI/Badge';
 import { Button } from '@/components/UI/Button';
 import { Card } from '@/components/UI/Card';
 import { Progress } from '@/components/UI/Progress';
 import { PageHeader } from '@/components/UI/PageHeader';
+import { EmptyState } from '@/components/UI/EmptyState';
+import { LoadingSpinner } from '@/components/UI/LoadingSpinner';
 import { KanbanBoard } from '@/components/boards/KanbanBoard';
 import { formatDate } from '@/lib/utils';
 
@@ -18,40 +20,60 @@ interface SprintWorkspaceProps {
 }
 
 export function SprintWorkspace({ breadcrumbs }: SprintWorkspaceProps) {
-  const sprints = mockEntities.sprints || [];
-  const [selectedId, setSelectedId] = useState(getActiveSprint()?.id || sprints[0]?.id);
-  const selected = sprints.find((s) => s.id === selectedId) || sprints[0];
+  const { data: sprints = [], isLoading: sprintsLoading, isError: sprintsError } = useEntityList('sprints');
+  const { data: tasks = [], isLoading: tasksLoading, isError: tasksError } = useEntityList('tasks');
+  const updateSprint = useUpdateEntity('sprints');
 
-  const sprintTag = useMemo(() => {
-    if (!selected) return 'Sprint 24';
-    const match = selected.title.match(/Sprint\s+\d+/i);
-    return match?.[0] || selected.tags?.[0] || selected.title;
-  }, [selected]);
+  const activeSprint = sprints.find((s) => /active/i.test(String(s.status))) || sprints[0];
+  const [selectedId, setSelectedId] = useState<string>('');
+  const selected = sprints.find((s) => s.id === (selectedId || activeSprint?.id)) || activeSprint;
 
-  const sprintTasks = useMemo(() => getBoardTasks(sprintTag), [sprintTag]);
+  const sprintTasks = useMemo(() => {
+    if (!selected) return [] as MockRecord[];
+    const sprintId = selected.id;
+    const titleTag = selected.title;
+    return (tasks as MockRecord[]).filter((task) => {
+      const raw = task as MockRecord & { sprint_id?: string; sprintId?: string };
+      return (
+        raw.sprint_id === sprintId ||
+        raw.sprintId === sprintId ||
+        task.tags?.some((tag) => tag.toLowerCase().includes(String(titleTag).toLowerCase())) ||
+        String(task.description || '').toLowerCase().includes(String(titleTag).toLowerCase())
+      );
+    });
+  }, [selected, tasks]);
+
   const backlog = useMemo(() => {
     const tagged = new Set(sprintTasks.map((t) => t.id));
-    return (mockEntities.tasks || []).filter((t) => !tagged.has(t.id)).slice(0, 6);
-  }, [sprintTasks]);
+    return (tasks as MockRecord[]).filter((t) => !tagged.has(t.id)).slice(0, 8);
+  }, [sprintTasks, tasks]);
 
   const doneCount = sprintTasks.filter((t) => /done|completed/i.test(t.status)).length;
   const progress = sprintTasks.length
     ? Math.round((doneCount / sprintTasks.length) * 100)
-    : selected?.progress || 0;
+    : Number(selected?.progress) || 0;
+
+  if (sprintsLoading || tasksLoading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (sprintsError || tasksError) {
+    return <EmptyState title="Unable to load sprints" description="Refresh the page to try again." />;
+  }
 
   if (!selected) {
-    return (
-      <Card>
-        <p className="text-ink-muted">No sprints available.</p>
-      </Card>
-    );
+    return <EmptyState title="No sprints yet" description="Create a sprint to start planning work." />;
   }
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Sprints"
-        description="Jira-style sprint board with backlog and drag-and-drop workflow."
+        description="Sprint board with backlog and drag-and-drop workflow."
         breadcrumbs={breadcrumbs}
         actions={
           <div className="flex items-center gap-2">
@@ -69,9 +91,15 @@ export function SprintWorkspace({ breadcrumbs }: SprintWorkspaceProps) {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => toast.success(selected.status === 'Active' ? 'Sprint already active' : 'Sprint started (mock)')}
+              loading={updateSprint.isPending}
+              onClick={() =>
+                updateSprint.mutate({
+                  id: selected.id,
+                  data: { ...selected, status: 'Active', title: selected.title },
+                })
+              }
             >
-              {selected.status === 'Active' ? 'Active' : 'Start sprint'}
+              {/active/i.test(String(selected.status)) ? 'Active' : 'Start sprint'}
             </Button>
           </div>
         }
@@ -115,7 +143,7 @@ export function SprintWorkspace({ breadcrumbs }: SprintWorkspaceProps) {
 
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-ink">{sprintTag} board</h3>
+          <h3 className="text-sm font-semibold text-ink">{selected.title} board</h3>
           <p className="text-xs text-ink-muted">Drag cards between columns</p>
         </div>
         <KanbanBoard
@@ -123,15 +151,13 @@ export function SprintWorkspace({ breadcrumbs }: SprintWorkspaceProps) {
           embedded
           initialItems={sprintTasks}
           columns={SPRINT_COLUMNS}
+          entityKey="tasks"
         />
       </div>
 
       <Card>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-ink">Backlog</h3>
-          <Button size="sm" variant="ghost" onClick={() => toast.success('Opened backlog planner (mock)')}>
-            Plan sprint
-          </Button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {backlog.map((item: MockRecord) => (
@@ -149,7 +175,7 @@ export function SprintWorkspace({ breadcrumbs }: SprintWorkspaceProps) {
             </div>
           ))}
           {backlog.length === 0 && (
-            <p className="text-sm text-ink-muted col-span-full">Backlog is empty for this filter.</p>
+            <p className="text-sm text-ink-muted col-span-full">Backlog is empty.</p>
           )}
         </div>
       </Card>

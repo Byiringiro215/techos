@@ -29,7 +29,7 @@ export declare class DocumentsController {
     }>;
     findAll(user: any, filters: any): Promise<{
         success: boolean;
-        data: any[];
+        data: import("../../entities").Document[];
     }>;
     search(user: any, query: string): Promise<{
         success: boolean;
@@ -38,6 +38,15 @@ export declare class DocumentsController {
     getFolders(user: any): Promise<{
         success: boolean;
         data: any[];
+    }>;
+    createFolder(user: any, body: {
+        name: string;
+        parent_folder_id?: string;
+    }): Promise<{
+        success: boolean;
+        data: {
+            name: string;
+        };
     }>;
     findOne(user: any, id: string): Promise<{
         success: boolean;
@@ -60,5 +69,9 @@ export declare class DocumentsController {
     }): Promise<{
         success: boolean;
         data: import("../../entities").Document;
+    }>;
+    getVersions(user: any, id: string): Promise<{
+        success: boolean;
+        data: import("../../entities").Document[];
     }>;
 }

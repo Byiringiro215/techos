@@ -1,8 +1,10 @@
 import { ChannelsService } from './channels.service';
 import { CreateChannelDto } from './dto/create-channel.dto';
+import { MessagesService } from '../messages/messages.service';
 export declare class ChannelsController {
     private channelsService;
-    constructor(channelsService: ChannelsService);
+    private messagesService;
+    constructor(channelsService: ChannelsService, messagesService: MessagesService);
     create(user: any, createChannelDto: CreateChannelDto): Promise<{
         success: boolean;
         data: {
@@ -73,5 +75,13 @@ export declare class ChannelsController {
     markAsRead(user: any, id: string): Promise<{
         success: boolean;
         message: string;
+    }>;
+    getChannelMessages(user: any, id: string, limit?: number, before?: string): Promise<{
+        success: boolean;
+        data: any[];
+    }>;
+    postChannelMessage(user: any, id: string, content: string): Promise<{
+        success: boolean;
+        data: any;
     }>;
 }

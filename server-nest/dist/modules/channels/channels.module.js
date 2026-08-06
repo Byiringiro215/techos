@@ -14,12 +14,13 @@ const channels_service_1 = require("./channels.service");
 const channel_entity_1 = require("../../entities/channel.entity");
 const channel_member_entity_1 = require("../../entities/channel-member.entity");
 const user_entity_1 = require("../../entities/user.entity");
+const messages_module_1 = require("../messages/messages.module");
 let ChannelsModule = class ChannelsModule {
 };
 exports.ChannelsModule = ChannelsModule;
 exports.ChannelsModule = ChannelsModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([channel_entity_1.Channel, channel_member_entity_1.ChannelMember, user_entity_1.User])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([channel_entity_1.Channel, channel_member_entity_1.ChannelMember, user_entity_1.User]), messages_module_1.MessagesModule],
         controllers: [channels_controller_1.ChannelsController],
         providers: [channels_service_1.ChannelsService],
         exports: [channels_service_1.ChannelsService],

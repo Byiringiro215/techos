@@ -34,29 +34,29 @@ export default function HROverviewPage() {
   const stats = [
     {
       title: 'Total Employees',
-      value: hrStats?.totalEmployees || employees?.length || 0,
-      change: '+8 this month',
+      value: hrStats?.total_employees ?? hrStats?.totalEmployees ?? employees?.length ?? 0,
+      change: 'Live roster',
       trend: 'up',
       icon: Users,
     },
     {
       title: 'Active Staff',
-      value: hrStats?.activeEmployees || activeEmployees,
+      value: hrStats?.activeEmployees ?? activeEmployees,
       change: `${onLeaveEmployees} on leave`,
       trend: 'neutral',
       icon: UserCheck,
     },
     {
       title: 'Pending Requests',
-      value: hrStats?.pendingLeaves || pendingLeaves,
+      value: hrStats?.pending_leave_requests ?? hrStats?.pendingLeaves ?? pendingLeaves,
       change: 'Requires attention',
       trend: pendingLeaves > 0 ? 'warning' : 'up',
       icon: Clock,
     },
     {
-      title: 'Departments',
-      value: hrStats?.departmentCount || 6,
-      change: 'Across company',
+      title: 'Roles in use',
+      value: hrStats?.role_count ?? new Set((employees || []).map((e) => e.user?.role).filter(Boolean)).size,
+      change: 'Role-based access',
       trend: 'neutral',
       icon: Briefcase,
     },
@@ -145,7 +145,9 @@ export default function HROverviewPage() {
                       <p className="font-medium text-ink">
                         {emp.user?.first_name} {emp.user?.last_name}
                       </p>
-                      <p className="text-sm text-ink-muted">{emp.position} · {emp.department}</p>
+                      <p className="text-sm text-ink-muted capitalize">
+                        {(emp.user?.role || emp.position || '—').replace(/_/g, ' ')}
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">

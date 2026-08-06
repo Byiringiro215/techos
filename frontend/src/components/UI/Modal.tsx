@@ -25,19 +25,30 @@ export function Modal({
   showCloseButton = true,
 }: ModalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  // Lock body scroll + focus trap only while open. Initial focus runs once per open.
   useEffect(() => {
     if (!isOpen) return;
 
-    const previouslyFocused = document.activeElement as HTMLElement | null;
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
     const container = containerRef.current;
-    const focusable = container?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-    focusable?.[0]?.focus();
+
+    // Prefer first text field over the header close button
+    const firstField =
+      container?.querySelector<HTMLElement>('input:not([disabled]), textarea:not([disabled]), select:not([disabled])') ||
+      container?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)[0];
+    firstField?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -64,9 +75,9 @@ export function Modal({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
-      previouslyFocused?.focus?.();
+      previouslyFocusedRef.current?.focus?.();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -81,14 +92,12 @@ export function Modal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" role="presentation">
       <div className="flex min-h-screen items-center justify-center p-4">
-        {/* Backdrop */}
         <div
           className="fixed inset-0 bg-bg-inverse/40 backdrop-blur-[2px] transition-opacity"
-          onClick={onClose}
+          onClick={() => onCloseRef.current()}
           aria-hidden="true"
         />
 
-        {/* Modal */}
         <div
           ref={containerRef}
           role="dialog"
@@ -96,10 +105,9 @@ export function Modal({
           aria-labelledby={title ? 'modal-title' : undefined}
           className={cn(
             'relative bg-surface border border-border w-full shadow-lg rounded-2xl',
-            sizes[size]
+            sizes[size],
           )}
         >
-          {/* Header */}
           {(title || showCloseButton) && (
             <div className="flex items-center justify-between p-6 border-b border-border">
               {title && (
@@ -109,7 +117,8 @@ export function Modal({
               )}
               {showCloseButton && (
                 <button
-                  onClick={onClose}
+                  type="button"
+                  onClick={() => onCloseRef.current()}
                   aria-label="Close"
                   className="text-ink-muted hover:text-ink transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded-lg"
                 >
@@ -119,7 +128,6 @@ export function Modal({
             </div>
           )}
 
-          {/* Content */}
           <div className="p-6 text-ink-secondary">{children}</div>
         </div>
       </div>

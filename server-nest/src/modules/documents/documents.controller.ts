@@ -52,6 +52,14 @@ export class DocumentsController {
     return this.documentsService.getFolders(user.org_id);
   }
 
+  @Post('folders')
+  createFolder(
+    @CurrentUser() user: any,
+    @Body() body: { name: string; parent_folder_id?: string },
+  ) {
+    return this.documentsService.createFolder(user.org_id, user.id, body);
+  }
+
   @Get(':id')
   findOne(@CurrentUser() user: any, @Param('id') id: string) {
     return this.documentsService.findOne(id, user.org_id);
@@ -79,5 +87,10 @@ export class DocumentsController {
     @Body() body: { content: string },
   ) {
     return this.documentsService.createVersion(id, user.org_id, user.id, body.content);
+  }
+
+  @Get(':id/versions')
+  getVersions(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.documentsService.getVersions(id, user.org_id);
   }
 }

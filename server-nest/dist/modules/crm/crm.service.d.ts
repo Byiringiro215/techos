@@ -4,11 +4,13 @@ import { Deal } from '../../entities/deal.entity';
 import { User } from '../../entities/user.entity';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { CreateDealDto } from './dto/create-deal.dto';
+import { ActivityLogService } from '../../common/services/activity-log.service';
 export declare class CrmService {
     private contactsRepository;
     private dealsRepository;
     private usersRepository;
-    constructor(contactsRepository: Repository<Contact>, dealsRepository: Repository<Deal>, usersRepository: Repository<User>);
+    private activityLogService;
+    constructor(contactsRepository: Repository<Contact>, dealsRepository: Repository<Deal>, usersRepository: Repository<User>, activityLogService: ActivityLogService);
     createContact(org_id: string, createContactDto: CreateContactDto): Promise<{
         success: boolean;
         data: Contact;
@@ -62,23 +64,39 @@ export declare class CrmService {
         success: boolean;
         message: string;
     }>;
-    createDeal(org_id: string, createDealDto: CreateDealDto): Promise<{
+    createDeal(org_id: string, createDealDto: CreateDealDto, actor?: any): Promise<{
         success: boolean;
         data: Deal;
     }>;
     findAllDeals(org_id: string, filters?: any): Promise<{
         success: boolean;
-        data: any[];
+        data: {
+            owner_name: string;
+            assigned_to: string;
+            company_name: string | null;
+            updated_at: Date;
+            id: string;
+            org_id: string;
+            contact_id: string;
+            title: string;
+            value: number;
+            currency: string;
+            stage: string;
+            probability: number;
+            expected_close_date: string;
+            notes: string;
+            created_at: Date;
+        }[];
     }>;
     findOneDeal(id: string, org_id: string): Promise<{
         success: boolean;
         data: any;
     }>;
-    updateDeal(id: string, org_id: string, updateData: Partial<Deal>): Promise<{
+    updateDeal(id: string, org_id: string, updateData: Partial<Deal>, actor?: any): Promise<{
         success: boolean;
         data: Deal;
     }>;
-    deleteDeal(id: string, org_id: string): Promise<{
+    deleteDeal(id: string, org_id: string, actor?: any): Promise<{
         success: boolean;
         message: string;
     }>;

@@ -23,9 +23,47 @@ export class SprintsController {
     return this.sprintsService.findOne(id, user.org_id);
   }
 
+  @Get(':id/stats')
+  getStats(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.sprintsService.getStats(id, user.org_id);
+  }
+
+  @Get('active/:projectId')
+  getActive(@CurrentUser() user: any, @Param('projectId') projectId: string) {
+    return this.sprintsService.findActiveSprint(projectId, user.org_id);
+  }
+
   @Put(':id')
   update(@CurrentUser() user: any, @Param('id') id: string, @Body() updateSprintDto: any) {
     return this.sprintsService.update(id, user.org_id, updateSprintDto);
+  }
+
+  @Post(':id/start')
+  start(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.sprintsService.startSprint(id, user.org_id);
+  }
+
+  @Post(':id/complete')
+  complete(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.sprintsService.completeSprint(id, user.org_id);
+  }
+
+  @Post(':sprintId/tasks/:taskId')
+  addTask(
+    @CurrentUser() user: any,
+    @Param('sprintId') sprintId: string,
+    @Param('taskId') taskId: string,
+  ) {
+    return this.sprintsService.addTaskToSprint(sprintId, taskId, user.org_id);
+  }
+
+  @Delete(':sprintId/tasks/:taskId')
+  removeTask(
+    @CurrentUser() user: any,
+    @Param('sprintId') sprintId: string,
+    @Param('taskId') taskId: string,
+  ) {
+    return this.sprintsService.removeTaskFromSprint(sprintId, taskId, user.org_id);
   }
 
   @Delete(':id')

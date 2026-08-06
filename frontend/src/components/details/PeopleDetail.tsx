@@ -49,7 +49,9 @@ export function PeopleDetail(props: DetailViewProps) {
             <Avatar name={name} size="lg" />
             <div>
               <p className="text-lg font-semibold text-ink">{name}</p>
-              <p className="text-sm text-ink-muted">{data.department || data.category || '—'}</p>
+              <p className="text-sm text-ink-muted capitalize">
+                {(data.role || data.category || data.position || '—').toString().replace(/_/g, ' ')}
+              </p>
             </div>
             <Badge variant={data.statusVariant}>{data.status}</Badge>
           </div>
@@ -74,8 +76,8 @@ export function PeopleDetail(props: DetailViewProps) {
             <p className="text-sm text-ink-secondary leading-relaxed">{data.description}</p>
             <MetaGrid
               items={[
-                { label: isCandidate ? 'Role applied' : 'Position', value: data.category || data.tags?.[0] || '—' },
-                { label: 'Department', value: data.department || '—' },
+                { label: isCandidate ? 'Role applied' : 'Role', value: (data.role || data.category || data.tags?.[0] || '—').toString().replace(/_/g, ' ') },
+                { label: 'Position', value: data.position || data.title || '—' },
                 { label: 'Location', value: data.location || 'Remote' },
                 {
                   label: isCandidate ? 'Applied' : 'Hire date',

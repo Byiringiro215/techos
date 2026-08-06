@@ -33,6 +33,7 @@ export class MeetingsService {
       id: randomUUID(),
       org_id,
       ...meetingData,
+      scheduled_at: `${meetingData.date}T${meetingData.start_time}:00.000Z`,
       organizer_id: user_id,
       status: 'scheduled',
     });
@@ -40,23 +41,31 @@ export class MeetingsService {
     await this.meetingsRepository.save(meeting);
 
     // Add organizer as participant
-    await this.addParticipant(meeting.id, user_id, true);
+    try {
+      await this.addParticipant(meeting.id, user_id, true);
+    } catch {
+      // Non-fatal: meeting still created
+    }
 
     // Add other participants
     if (participant_ids && participant_ids.length > 0) {
       await Promise.all(
-        participant_ids.map((participantId) => 
-          this.addParticipant(meeting.id, participantId, false)
+        participant_ids.map((participantId) =>
+          this.addParticipant(meeting.id, participantId, false).catch(() => null),
         ),
       );
 
       // Send email invitations
-      await this.sendMeetingInvites(meeting, participant_ids);
+      try {
+        await this.sendMeetingInvites(meeting, participant_ids);
+      } catch {
+        // Non-fatal
+      }
     }
 
     return {
       success: true,
-      data: await this.findOne(meeting.id, org_id),
+      data: meeting,
     };
   }
 
@@ -306,6 +315,41 @@ export class MeetingsService {
       success: true,
       data: actionItem,
     };
+  }
+
+  async updateActionItemById(id: string, org_id: string, updateData: Partial<MeetingActionItem>) {
+    const actionItem = await this.actionItemsRepository
+      .createQueryBuilder('action_item')
+      .leftJoin(Meeting, 'meeting', 'action_item.meeting_id = meeting.id')
+      .where('action_item.id = :id', { id })
+      .andWhere('meeting.org_id = :org_id', { org_id })
+      .select('action_item.*')
+      .getRawOne();
+
+    if (!actionItem) {
+      throw new NotFoundException('Action item not found');
+    }
+
+    await this.actionItemsRepository.update(id, updateData);
+    const updated = await this.actionItemsRepository.findOne({ where: { id } });
+    return { success: true, data: updated };
+  }
+
+  async getActionItems(meeting_id: string, org_id: string) {
+    const meeting = await this.meetingsRepository.findOne({
+      where: { id: meeting_id, org_id },
+    });
+
+    if (!meeting) {
+      throw new NotFoundException('Meeting not found');
+    }
+
+    const actionItems = await this.actionItemsRepository.find({
+      where: { meeting_id },
+      order: { created_at: 'DESC' },
+    });
+
+    return { success: true, data: actionItems };
   }
 
   async deleteActionItem(id: string, meeting_id: string) {

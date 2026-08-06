@@ -2,6 +2,7 @@ import { Organization } from './organization.entity';
 export declare enum UserRole {
     CEO = "ceo",
     CTO = "cto",
+    CISO = "ciso",
     FINANCE = "finance",
     SOFTWARE_ENGINEER = "software_engineer",
     UI_UX_DESIGNER = "ui_ux_designer",

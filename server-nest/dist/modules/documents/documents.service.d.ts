@@ -34,7 +34,7 @@ export declare class DocumentsService {
     }>;
     findAll(org_id: string, filters?: any): Promise<{
         success: boolean;
-        data: any[];
+        data: Document[];
     }>;
     findOne(id: string, org_id: string): Promise<{
         success: boolean;
@@ -63,5 +63,18 @@ export declare class DocumentsService {
     createVersion(id: string, org_id: string, user_id: string, content: string): Promise<{
         success: boolean;
         data: Document;
+    }>;
+    getVersions(id: string, org_id: string): Promise<{
+        success: boolean;
+        data: Document[];
+    }>;
+    createFolder(org_id: string, user_id: string, folderData: {
+        name: string;
+        parent_folder_id?: string;
+    }): Promise<{
+        success: boolean;
+        data: {
+            name: string;
+        };
     }>;
 }

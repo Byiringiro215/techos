@@ -32,6 +32,7 @@ import {
   Ticket,
   BookOpen,
   MessageCircle,
+  ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
 import { UserRole } from '@/types/roles';
@@ -102,8 +103,7 @@ export const ROLE_NAV: Record<string, RoleNavConfig> = {
         id: 'delivery',
         label: 'Delivery',
         items: [
-          { name: 'Projects', href: '/ceo/projects', icon: FolderKanban },
-          { name: 'Product', href: '/ceo/product', icon: Package },
+          { name: 'Product', href: '/ceo/product', icon: FolderKanban },
         ],
       },
       {
@@ -169,6 +169,36 @@ export const ROLE_NAV: Record<string, RoleNavConfig> = {
           { name: 'Messages', href: '/cto/messages', icon: MessageSquare },
           { name: 'AI Assistant', href: '/cto/ai', icon: Bot },
           { name: 'Settings', href: '/cto/settings', icon: Settings },
+        ],
+      },
+    ],
+  },
+  [UserRole.CISO]: {
+    role: UserRole.CISO,
+    title: 'CISO Dashboard',
+    basePath: '/ciso',
+    groups: [
+      {
+        id: 'overview',
+        label: 'Overview',
+        items: [{ name: 'Dashboard', href: '/ciso', icon: LayoutDashboard }],
+      },
+      {
+        id: 'security-ops',
+        label: 'Security Ops',
+        items: [
+          { name: 'Audit Tasks', href: '/ciso/tasks', icon: CheckSquare },
+          { name: 'Project Audits', href: '/ciso/projects', icon: ShieldCheck },
+          { name: 'Security Reports', href: '/ciso/reports', icon: FileBarChart },
+        ],
+      },
+      {
+        id: 'workspace',
+        label: 'Workspace',
+        items: [
+          { name: 'Calendar', href: '/ciso/calendar', icon: Calendar },
+          { name: 'Meetings', href: '/ciso/meetings', icon: Users },
+          { name: 'Messages', href: '/ciso/messages', icon: MessageSquare },
         ],
       },
     ],

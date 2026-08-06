@@ -63,7 +63,7 @@ const SEGMENT_TO_ENTITY_KEY: Record<string, string> = {
   roadmap: 'features',
   releases: 'releases',
   'user-feedback': 'research',
-  product: 'features',
+  // `product` is role-aware in resolveEntityKey (CEO → projects, others → features)
   architecture: 'architecture',
   design: 'architecture',
   decisions: 'architecture',
@@ -84,14 +84,14 @@ const SEGMENT_TO_ENTITY_KEY: Record<string, string> = {
   team: 'employees',
   members: 'employees',
   workload: 'employees',
-  performance: 'employees',
-  onboarding: 'employees',
-  benefits: 'employees',
-  payroll: 'employees',
+  performance: 'performanceReviews',
+  onboarding: 'onboardingTasks',
+  benefits: 'benefits',
+  payroll: 'payroll',
   users: 'employees',
   hr: 'employees',
   candidates: 'candidates',
-  recruitment: 'candidates',
+  recruitment: 'jobs',
   hiring: 'candidates',
   'leave-requests': 'leaveRequests',
 
@@ -133,8 +133,10 @@ const SEGMENT_TO_ENTITY_KEY: Record<string, string> = {
  * apart a dynamic `[id]` segment (not in this set) from a known static one. */
 const KNOWN_STATIC_SEGMENTS = new Set<string>([
   ...Object.keys(SEGMENT_TO_ENTITY_KEY),
+  'product',
   'ceo',
   'cto',
+  'ciso',
   'finance',
   'software-engineer',
   'ui-ux-designer',
@@ -167,9 +169,14 @@ const KNOWN_STATIC_SEGMENTS = new Set<string>([
  */
 export function resolveEntityKey(pathname: string): string {
   const segments = pathname.split('/').filter(Boolean);
+  const root = segments[0]?.toLowerCase();
 
   for (let i = segments.length - 1; i >= 0; i--) {
     const segment = segments[i].toLowerCase();
+    if (segment === 'product') {
+      // CEO Delivery "Product" is the former Projects hub; other roles keep features.
+      return root === 'ceo' ? 'projects' : 'features';
+    }
     if (SEGMENT_TO_ENTITY_KEY[segment]) {
       return SEGMENT_TO_ENTITY_KEY[segment];
     }
@@ -181,6 +188,7 @@ export function resolveEntityKey(pathname: string): string {
 const ROLE_ROOTS = new Set([
   'ceo',
   'cto',
+  'ciso',
   'finance',
   'software-engineer',
   'ui-ux-designer',
@@ -276,7 +284,7 @@ export function resolvePageKind(pathname: string): PageKind {
 
   // A trailing segment that isn't a known static route name, sitting right
   // after a known list-type segment, is treated as a dynamic `[id]` detail
-  // page (e.g. `/ceo/projects/prj-001`).
+  // page (e.g. `/ceo/product/prj-001`).
   const isDynamicLike = !KNOWN_STATIC_SEGMENTS.has(last);
   const parent = segments.length > 1 ? segments[segments.length - 2].toLowerCase() : undefined;
 

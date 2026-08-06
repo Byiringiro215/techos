@@ -27,6 +27,8 @@ const announcement_entity_1 = require("../../entities/announcement.entity");
 const invoice_entity_1 = require("../../entities/invoice.entity");
 const expense_entity_1 = require("../../entities/expense.entity");
 const leave_request_entity_1 = require("../../entities/leave-request.entity");
+const report_entity_1 = require("../../entities/report.entity");
+const user_entity_1 = require("../../entities/user.entity");
 let DashboardService = class DashboardService {
     projectRepository;
     taskRepository;
@@ -39,7 +41,9 @@ let DashboardService = class DashboardService {
     invoiceRepository;
     expenseRepository;
     leaveRequestRepository;
-    constructor(projectRepository, taskRepository, sprintRepository, bugRepository, goalRepository, meetingRepository, notificationRepository, announcementRepository, invoiceRepository, expenseRepository, leaveRequestRepository) {
+    reportRepository;
+    usersRepository;
+    constructor(projectRepository, taskRepository, sprintRepository, bugRepository, goalRepository, meetingRepository, notificationRepository, announcementRepository, invoiceRepository, expenseRepository, leaveRequestRepository, reportRepository, usersRepository) {
         this.projectRepository = projectRepository;
         this.taskRepository = taskRepository;
         this.sprintRepository = sprintRepository;
@@ -51,6 +55,8 @@ let DashboardService = class DashboardService {
         this.invoiceRepository = invoiceRepository;
         this.expenseRepository = expenseRepository;
         this.leaveRequestRepository = leaveRequestRepository;
+        this.reportRepository = reportRepository;
+        this.usersRepository = usersRepository;
     }
     async getDeveloperDashboard(user_id, org_id) {
         const [myTasks, myBugs, upcomingMeetings, notifications, announcements] = await Promise.all([
@@ -97,8 +103,9 @@ let DashboardService = class DashboardService {
         };
     }
     async getExecutiveDashboard(org_id) {
-        const [projects, goals, announcements, recentMeetings, financials] = await Promise.all([
-            this.projectRepository.find({ where: { org_id }, order: { created_at: 'DESC' }, take: 5 }),
+        const [projectCount, activeProjectCount, goals, announcements, recentMeetings, financials, teamSize] = await Promise.all([
+            this.projectRepository.count({ where: { org_id } }),
+            this.projectRepository.count({ where: { org_id, status: 'active' } }),
             this.goalRepository.find({ where: { org_id, type: 'company', status: 'active' } }),
             this.announcementRepository.find({ where: { org_id }, order: { created_at: 'DESC' }, take: 5 }),
             this.meetingRepository.find({ where: { org_id }, order: { scheduled_at: 'DESC' }, take: 5 }),
@@ -106,22 +113,35 @@ let DashboardService = class DashboardService {
                 this.invoiceRepository.find({ where: { org_id } }),
                 this.expenseRepository.find({ where: { org_id } }),
             ]),
+            this.usersRepository.count({ where: { org_id } }),
         ]);
         const [invoices, expenses] = financials;
-        const totalRevenue = invoices.reduce((sum, inv) => sum + inv.amount, 0);
-        const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+        const totalRevenue = invoices
+            .filter((inv) => inv.status === 'paid')
+            .reduce((sum, inv) => sum + Number(inv.amount || inv.total || 0), 0);
+        const totalExpenses = expenses
+            .filter((exp) => exp.status === 'approved')
+            .reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
+        const outstandingInvoices = invoices
+            .filter((inv) => inv.status === 'sent' || inv.status === 'overdue')
+            .reduce((sum, inv) => sum + Number(inv.amount || inv.total || 0), 0);
         const allTasks = await this.taskRepository.find({ where: { org_id } });
         const teamProductivity = {
             total_tasks: allTasks.length,
-            completed: allTasks.filter(t => t.status === 'done').length,
-            in_progress: allTasks.filter(t => t.status === 'in_progress').length,
+            completed: allTasks.filter((t) => t.status === 'done').length,
+            in_progress: allTasks.filter((t) => t.status === 'in_progress').length,
         };
+        const recentProjects = await this.projectRepository.find({
+            where: { org_id },
+            order: { created_at: 'DESC' },
+            take: 5,
+        });
         return {
             success: true,
             data: {
                 projects: {
-                    total: projects.length,
-                    active: projects.filter(p => p.status === 'active').length,
+                    total: projectCount,
+                    active: activeProjectCount,
                 },
                 goals: {
                     total: goals.length,
@@ -130,10 +150,13 @@ let DashboardService = class DashboardService {
                 financials: {
                     total_revenue: totalRevenue,
                     total_expenses: totalExpenses,
+                    outstanding: outstandingInvoices,
                     net: totalRevenue - totalExpenses,
                 },
+                teamSize,
+                employees: teamSize,
                 team_productivity: teamProductivity,
-                recent_projects: projects,
+                recent_projects: recentProjects,
                 company_goals: goals,
                 announcements: announcements,
                 recent_meetings: recentMeetings,
@@ -216,6 +239,42 @@ let DashboardService = class DashboardService {
             },
         };
     }
+    async getCisoDashboard(org_id) {
+        const [tasks, projects, reports] = await Promise.all([
+            this.taskRepository.find({ where: { org_id }, order: { created_at: 'DESC' } }),
+            this.projectRepository.find({ where: { org_id }, order: { created_at: 'DESC' } }),
+            this.reportRepository.find({ where: { org_id }, order: { created_at: 'DESC' } }),
+        ]);
+        const auditProjects = projects
+            .map((project) => {
+            const metadata = project.metadata || {};
+            const auditStatus = metadata.audit_status || 'needed';
+            const auditRequired = Boolean(metadata.audit_required ?? ['high', 'critical'].includes(project.priority));
+            return { ...project, audit_status: auditStatus, audit_required: auditRequired };
+        })
+            .filter((project) => project.audit_required);
+        const securityReports = reports.filter((report) => ['security', 'audit', 'compliance', 'risk'].includes((report.type || '').toLowerCase()));
+        return {
+            success: true,
+            data: {
+                tasks: {
+                    total: tasks.length,
+                    finished: tasks.filter((task) => task.status === 'done').length,
+                    not_finished: tasks.filter((task) => task.status !== 'done').length,
+                },
+                audits: {
+                    total: auditProjects.length,
+                    needed: auditProjects.filter((project) => project.audit_status === 'needed').length,
+                    in_progress: auditProjects.filter((project) => project.audit_status === 'in_progress').length,
+                    completed: auditProjects.filter((project) => project.audit_status === 'completed').length,
+                },
+                reports: {
+                    total: securityReports.length,
+                    recent: securityReports.slice(0, 5),
+                },
+            },
+        };
+    }
 };
 exports.DashboardService = DashboardService;
 exports.DashboardService = DashboardService = __decorate([
@@ -231,7 +290,11 @@ exports.DashboardService = DashboardService = __decorate([
     __param(8, (0, typeorm_1.InjectRepository)(invoice_entity_1.Invoice)),
     __param(9, (0, typeorm_1.InjectRepository)(expense_entity_1.Expense)),
     __param(10, (0, typeorm_1.InjectRepository)(leave_request_entity_1.LeaveRequest)),
+    __param(11, (0, typeorm_1.InjectRepository)(report_entity_1.Report)),
+    __param(12, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

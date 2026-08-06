@@ -1,14 +1,28 @@
+import { OnModuleInit } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
 import { User, UserRole } from '../../entities/user.entity';
 import { Organization } from '../../entities/organization.entity';
+import { Employee } from '../../entities/employee.entity';
+import { Notification } from '../../entities/notification.entity';
+import { ChannelMember } from '../../entities/channel-member.entity';
+import { MeetingParticipant } from '../../entities/meeting-participant.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-export declare class AuthService {
+export declare class AuthService implements OnModuleInit {
     private usersRepository;
     private organizationsRepository;
+    private employeesRepository;
+    private notificationsRepository;
+    private channelMembersRepository;
+    private meetingParticipantsRepository;
     private jwtService;
-    constructor(usersRepository: Repository<User>, organizationsRepository: Repository<Organization>, jwtService: JwtService);
+    private readonly logger;
+    constructor(usersRepository: Repository<User>, organizationsRepository: Repository<Organization>, employeesRepository: Repository<Employee>, notificationsRepository: Repository<Notification>, channelMembersRepository: Repository<ChannelMember>, meetingParticipantsRepository: Repository<MeetingParticipant>, jwtService: JwtService);
+    onModuleInit(): Promise<void>;
+    private shouldKeepCeoOnly;
+    private purgeNonCeoUsers;
+    private seedCeoAccount;
     register(registerDto: RegisterDto): Promise<{
         success: boolean;
         data: {
@@ -20,6 +34,7 @@ export declare class AuthService {
                 last_name: string;
                 role: UserRole;
                 org_id: string;
+                preferences: any;
             };
         };
     }>;
@@ -34,6 +49,7 @@ export declare class AuthService {
                 last_name: string;
                 role: UserRole;
                 org_id: string;
+                preferences: any;
             };
         };
     }>;

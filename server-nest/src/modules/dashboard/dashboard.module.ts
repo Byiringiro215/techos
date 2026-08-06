@@ -13,6 +13,8 @@ import { Announcement } from '../../entities/announcement.entity';
 import { Invoice } from '../../entities/invoice.entity';
 import { Expense } from '../../entities/expense.entity';
 import { LeaveRequest } from '../../entities/leave-request.entity';
+import { Report } from '../../entities/report.entity';
+import { User } from '../../entities/user.entity';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { LeaveRequest } from '../../entities/leave-request.entity';
       Invoice,
       Expense,
       LeaveRequest,
+      Report,
+      User,
     ]),
   ],
   controllers: [DashboardController],

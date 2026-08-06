@@ -32,4 +32,9 @@ export class DashboardController {
   getHRDashboard(@CurrentUser() user: any) {
     return this.dashboardService.getHRDashboard(user.org_id);
   }
+
+  @Get('ciso')
+  getCisoDashboard(@CurrentUser() user: any) {
+    return this.dashboardService.getCisoDashboard(user.org_id);
+  }
 }

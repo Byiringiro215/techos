@@ -3,13 +3,29 @@
 import { ReactNode, useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { getEntityById, mockEntities, type MockRecord } from '@/mocks';
-import { entitySingular, getDetailExtras } from '@/mocks/detailExtras';
-import { useMockQuery } from '@/hooks/useMockQuery';
+import type { MockRecord } from '@/mocks';
+import type {
+  DetailActivity,
+  DetailAttachment,
+  DetailChecklistItem,
+  DetailComment,
+  DetailRelated,
+} from '@/mocks/detailExtras';
+import { useEntityItem, useEntityActivity, useUpdateEntity, useDeleteEntity } from '@/hooks/useEntityApi';
 import { Button } from '@/components/UI/Button';
 import { EmptyState } from '@/components/UI/EmptyState';
 import { PageHeader } from '@/components/UI/PageHeader';
 import { Skeleton, SkeletonCard } from '@/components/UI/Skeleton';
+import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
+
+type ActivityRecord = {
+  id?: string;
+  actor_name?: string;
+  action?: string;
+  summary?: string;
+  created_at?: string;
+};
 
 export interface DetailViewProps {
   title: string;
@@ -20,25 +36,64 @@ export interface DetailViewProps {
 }
 
 export interface LoadedDetail {
-  record: MockRecord;
-  extras: ReturnType<typeof getDetailExtras>;
+  record: MockRecord & { position?: string };
+  extras: {
+    assignees: string[];
+    watchers: string[];
+    activities: DetailActivity[];
+    comments: DetailComment[];
+    attachments: DetailAttachment[];
+    checklist: DetailChecklistItem[];
+    related: DetailRelated[];
+    workflow: string[];
+  };
 }
 
 export function useDetailRecord(entityKey: string, detailId: string) {
-  const query = useMockQuery(() => {
-    return (
-      getEntityById(entityKey, detailId) ||
-      (mockEntities[entityKey] || [])[0] ||
-      null
-    );
-  }, [entityKey, detailId]);
+  const apiQuery = useEntityItem(entityKey, detailId);
+  const activityQuery = useEntityActivity(entityKey, detailId);
 
-  const extras = useMemo(
-    () => (query.data ? getDetailExtras(entityKey, query.data) : null),
-    [entityKey, query.data],
-  );
+  const extras = useMemo<LoadedDetail['extras']>(() => {
+    const apiActivities = ((activityQuery.data || []) as ActivityRecord[]).map((a, i) => ({
+      id: a.id || `act-${i}`,
+      actor: a.actor_name || 'System',
+      action: a.action || 'updated',
+      target: a.summary || '',
+      time: a.created_at ? new Date(a.created_at).toLocaleString() : '',
+    }));
+    return {
+      assignees: [apiQuery.data?.owner].filter(Boolean),
+      watchers: [],
+      activities: apiActivities,
+      comments: [],
+      attachments: [],
+      checklist: [],
+      related: [],
+      workflow: [],
+    };
+  }, [apiQuery.data, activityQuery.data]);
 
-  return { ...query, extras };
+  return {
+    data: apiQuery.data as LoadedDetail['record'] | undefined,
+    isLoading: apiQuery.isLoading || activityQuery.isLoading,
+    isError: apiQuery.isError,
+    extras,
+  };
+}
+
+export function useDetailMutations(entityKey: string) {
+  const router = useRouter();
+  const updateEntity = useUpdateEntity(entityKey);
+  const deleteEntity = useDeleteEntity(entityKey);
+  return {
+    updateEntity,
+    deleteEntity,
+    removeAndBack: async (id: string) => {
+      await deleteEntity.mutateAsync(id);
+      toast.success('Record deleted');
+      router.back();
+    },
+  };
 }
 
 export function DetailLoading() {
@@ -57,7 +112,7 @@ export function DetailNotFound({ entityKey, detailId }: { entityKey: string; det
   return (
     <EmptyState
       title="Record not found"
-      description={`No ${entitySingular(entityKey).toLowerCase()} matches “${detailId}”.`}
+      description={`No ${entityKey.slice(0, -1).toLowerCase()} matches “${detailId}”.`}
       action={{ label: 'Back to list', onClick: () => history.back() }}
     />
   );

@@ -21,10 +21,11 @@ class CreateDealDto {
     expected_close_date;
     assigned_to;
     notes;
+    description;
 }
 exports.CreateDealDto = CreateDealDto;
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateDealDto.prototype, "contact_id", void 0);
@@ -34,7 +35,7 @@ __decorate([
     __metadata("design:type", String)
 ], CreateDealDto.prototype, "title", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], CreateDealDto.prototype, "value", void 0);
@@ -59,7 +60,7 @@ __decorate([
     __metadata("design:type", String)
 ], CreateDealDto.prototype, "expected_close_date", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateDealDto.prototype, "assigned_to", void 0);
@@ -68,4 +69,9 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateDealDto.prototype, "notes", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateDealDto.prototype, "description", void 0);
 //# sourceMappingURL=create-deal.dto.js.map

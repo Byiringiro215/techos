@@ -6,4 +6,5 @@ export declare class UpdateProjectDto {
     start_date?: string;
     end_date?: string;
     budget?: number;
+    client_name?: string;
 }

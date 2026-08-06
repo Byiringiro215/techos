@@ -12,11 +12,21 @@ export declare class NotificationsController {
             count: number;
         };
     }>;
+    getUnreadCountAlias(user: any): Promise<{
+        success: boolean;
+        data: {
+            count: number;
+        };
+    }>;
     markAsRead(user: any, id: string): Promise<{
         success: boolean;
         message: string;
     }>;
     markAllAsRead(user: any): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    markAllAsReadAlias(user: any): Promise<{
         success: boolean;
         message: string;
     }>;

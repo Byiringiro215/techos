@@ -10,16 +10,8 @@ import {
   UserPlus,
   X,
 } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { getFullName, mockUsers } from '@/mocks/users';
-import {
-  getProjectOptions,
-  getSelectablePeople,
-  resolveMemberNames,
-  type Team,
-  type TeamStatus,
-} from '@/mocks/teams';
-import { useTeamsStore } from '@/store/teamsStore';
+import { useCreateEntity, useDeleteEntity, useEntityList, useUpdateEntity } from '@/hooks/useEntityApi';
+import { useUsers } from '@/hooks/useUsers';
 import { Avatar } from '@/components/UI/Avatar';
 import { Badge } from '@/components/UI/Badge';
 import { Button } from '@/components/UI/Button';
@@ -31,6 +23,31 @@ import { Select } from '@/components/UI/Select';
 import { TextArea } from '@/components/UI/TextArea';
 import { EmptyState } from '@/components/UI/EmptyState';
 import { cn } from '@/lib/utils';
+
+type TeamStatus = 'active' | 'forming' | 'archived';
+
+type Team = {
+  id: string;
+  name: string;
+  description: string;
+  leadId: string;
+  memberIds: string[];
+  projectIds: string[];
+  status: TeamStatus;
+};
+
+type Person = { id: string; name: string; title: string };
+type Project = { id: string; title: string; status: string; owner: string };
+type ApiUser = { id: string; first_name?: string; last_name?: string; email?: string; job_title?: string; role?: string };
+type ApiProject = { id: string; title?: string; name?: string; status?: string; owner?: string };
+type ApiTeam = {
+  id: string;
+  title?: string;
+  name?: string;
+  description?: string;
+  status?: string;
+  metadata?: { leadId?: string; memberIds?: string[]; projectIds?: string[] };
+};
 
 const STATUS_VARIANT: Record<TeamStatus, 'success' | 'warning' | 'default'> = {
   active: 'success',
@@ -45,39 +62,69 @@ interface TeamsWorkspaceProps {
 type FormState = {
   name: string;
   description: string;
-  department: string;
   leadId: string;
   memberIds: string[];
   projectIds: string[];
   status: TeamStatus;
 };
 
-const emptyForm = (): FormState => ({
+const emptyForm = (leadId = ''): FormState => ({
   name: '',
   description: '',
-  department: 'Engineering',
-  leadId: getSelectablePeople()[0]?.id || '',
+  leadId,
   memberIds: [],
   projectIds: [],
   status: 'forming',
 });
 
 export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
-  const teams = useTeamsStore((s) => s.teams);
-  const createTeam = useTeamsStore((s) => s.createTeam);
-  const updateTeam = useTeamsStore((s) => s.updateTeam);
-  const assignProjects = useTeamsStore((s) => s.assignProjects);
-  const removeTeam = useTeamsStore((s) => s.removeTeam);
+  const teamsQuery = useEntityList('teams');
+  const usersQuery = useUsers();
+  const projectsQuery = useEntityList('projects');
+  const createTeam = useCreateEntity('teams');
+  const updateTeam = useUpdateEntity('teams');
+  const removeTeam = useDeleteEntity('teams');
 
-  const people = useMemo(() => getSelectablePeople(), []);
-  const projects = useMemo(() => getProjectOptions(), []);
+  const people = useMemo<Person[]>(
+    () => ((usersQuery.data || []) as ApiUser[]).map((user) => ({
+      id: user.id,
+      name: [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email || 'Unnamed user',
+      title: user.job_title || user.role || 'Team member',
+    })),
+    [usersQuery.data],
+  );
+  const projects = useMemo<Project[]>(
+    () => ((projectsQuery.data || []) as ApiProject[]).map((project) => ({
+      id: project.id,
+      title: project.title || project.name || 'Untitled project',
+      status: project.status || 'active',
+      owner: project.owner || '—',
+    })),
+    [projectsQuery.data],
+  );
+  const teams = useMemo<Team[]>(
+    () => ((teamsQuery.data || []) as ApiTeam[]).map((team) => {
+      const metadata = team.metadata || {};
+      const leadId = metadata.leadId || '';
+      return {
+        id: team.id,
+        name: team.title || team.name || 'Untitled team',
+        description: team.description || '',
+        leadId,
+        memberIds: Array.from(new Set([leadId, ...(metadata.memberIds || [])].filter(Boolean))),
+        projectIds: metadata.projectIds || [],
+        status: ['active', 'forming', 'archived'].includes(team.status || '') ? team.status as TeamStatus : 'forming',
+      };
+    }),
+    [teamsQuery.data],
+  );
 
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(teams[0]?.id || null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
-  const [form, setForm] = useState<FormState>(emptyForm);
+  const [form, setForm] = useState<FormState>(() => emptyForm());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [assignProjectIds, setAssignProjectIds] = useState<string[]>([]);
 
@@ -89,13 +136,13 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
     return teams.filter(
       (t) =>
         t.name.toLowerCase().includes(q) ||
-        t.department.toLowerCase().includes(q) ||
-        resolveMemberNames(t.memberIds).some((n) => n.toLowerCase().includes(q)),
+        t.description.toLowerCase().includes(q) ||
+        t.memberIds.some((id) => people.find((person) => person.id === id)?.name.toLowerCase().includes(q)),
     );
-  }, [teams, query]);
+  }, [teams, query, people]);
 
   const openCreate = () => {
-    setForm(emptyForm());
+    setForm(emptyForm(people[0]?.id || ''));
     setErrors({});
     setCreateOpen(true);
   };
@@ -105,7 +152,6 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
     setForm({
       name: team.name,
       description: team.description,
-      department: team.department,
       leadId: team.leadId,
       memberIds: team.memberIds.filter((id) => id !== team.leadId),
       projectIds: team.projectIds,
@@ -146,30 +192,54 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
     );
   };
 
-  const handleCreate = () => {
+  const toApiData = (state: FormState) => ({
+    title: state.name,
+    description: state.description,
+    status: state.status,
+    leadId: state.leadId,
+    memberIds: state.memberIds,
+    projectIds: state.projectIds,
+  });
+
+  const handleCreate = async () => {
     if (!validate()) return;
-    const team = createTeam({
-      ...form,
-      memberIds: form.memberIds,
-    });
-    setSelectedId(team.id);
+    const team = await createTeam.mutateAsync(toApiData(form));
+    setSelectedId(team?.id || null);
     setCreateOpen(false);
-    toast.success(`Team “${team.name}” created`);
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!selected || !validate()) return;
-    updateTeam(selected.id, form);
+    await updateTeam.mutateAsync({ id: selected.id, data: toApiData(form) });
     setEditOpen(false);
-    toast.success('Team updated');
   };
 
-  const handleAssign = () => {
+  const handleAssign = async () => {
     if (!selected) return;
-    assignProjects(selected.id, assignProjectIds);
+    await updateTeam.mutateAsync({
+      id: selected.id,
+      data: toApiData({ ...selected, projectIds: assignProjectIds }),
+    });
     setAssignOpen(false);
-    toast.success('Projects assigned to team');
   };
+
+  if (teamsQuery.isLoading || usersQuery.isLoading || projectsQuery.isLoading) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Teams" description="Loading workspace teams..." breadcrumbs={breadcrumbs} />
+        <Card className="h-96 animate-pulse bg-bg-muted"><div /></Card>
+      </div>
+    );
+  }
+
+  if (teamsQuery.isError || usersQuery.isError || projectsQuery.isError) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Teams" description="Manage team memberships and project assignments." breadcrumbs={breadcrumbs} />
+        <EmptyState title="Unable to load teams" description="Refresh the page to try again." />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -215,7 +285,7 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="text-sm font-semibold text-ink">{team.name}</p>
-                        <p className="text-xs text-ink-muted mt-0.5">{team.department}</p>
+                        <p className="text-xs text-ink-muted mt-0.5 line-clamp-1">{team.description}</p>
                       </div>
                       <Badge variant={STATUS_VARIANT[team.status]} size="sm">
                         {team.status}
@@ -253,7 +323,6 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
                     <h2 className="text-xl font-semibold text-ink">{selected.name}</h2>
                     <Badge variant={STATUS_VARIANT[selected.status]}>{selected.status}</Badge>
                   </div>
-                  <p className="text-sm text-ink-muted mt-1">{selected.department}</p>
                   <p className="text-sm text-ink-secondary mt-3 max-w-2xl">{selected.description}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -281,7 +350,7 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
                 </div>
                 <ul className="space-y-2">
                   {selected.memberIds.map((id) => {
-                    const user = mockUsers.find((u) => u.id === id);
+                    const user = people.find((person) => person.id === id);
                     if (!user) return null;
                     const isLead = id === selected.leadId;
                     return (
@@ -290,9 +359,9 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
                         className="flex items-center justify-between gap-3 rounded-xl border border-border bg-bg-muted/40 px-3 py-2.5"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <Avatar size="sm" name={getFullName(user)} />
+                          <Avatar size="sm" name={user.name} />
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-ink truncate">{getFullName(user)}</p>
+                            <p className="text-sm font-medium text-ink truncate">{user.name}</p>
                             <p className="text-xs text-ink-muted truncate">{user.title}</p>
                           </div>
                         </div>
@@ -345,10 +414,10 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
               <Button
                 variant="danger"
                 size="sm"
-                onClick={() => {
-                  removeTeam(selected.id);
+                loading={removeTeam.isPending}
+                onClick={async () => {
+                  await removeTeam.mutateAsync(selected.id);
                   setSelectedId(teams.find((t) => t.id !== selected.id)?.id || null);
-                  toast.success('Team removed (mock)');
                 }}
               >
                 Delete team
@@ -386,12 +455,15 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="e.g. Mobile Platform"
             />
-            <Input
-              label="Department"
-              value={form.department}
-              onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
-              placeholder="Engineering"
-            />
+            <Select
+              label="Status"
+              value={form.status}
+              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as TeamStatus }))}
+            >
+              <option value="forming">Forming</option>
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+            </Select>
           </div>
           <TextArea
             label="Description"
@@ -417,18 +489,9 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
             >
               {people.map((user) => (
                 <option key={user.id} value={user.id}>
-                  {getFullName(user)} · {user.title}
+                  {user.name} · {user.title}
                 </option>
               ))}
-            </Select>
-            <Select
-              label="Status"
-              value={form.status}
-              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as TeamStatus }))}
-            >
-              <option value="forming">Forming</option>
-              <option value="active">Active</option>
-              <option value="archived">Archived</option>
             </Select>
           </div>
 
@@ -460,7 +523,7 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
             >
               Cancel
             </Button>
-            <Button onClick={createOpen ? handleCreate : handleUpdate}>
+            <Button loading={createTeam.isPending || updateTeam.isPending} onClick={createOpen ? handleCreate : handleUpdate}>
               {createOpen ? 'Create team' : 'Save changes'}
             </Button>
           </div>
@@ -487,7 +550,7 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
             <Button variant="ghost" onClick={() => setAssignOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAssign}>Save assignments</Button>
+            <Button loading={updateTeam.isPending} onClick={handleAssign}>Save assignments</Button>
           </div>
         </div>
       </Modal>
@@ -504,7 +567,7 @@ function PeoplePicker({
   error,
 }: {
   label?: string;
-  people: ReturnType<typeof getSelectablePeople>;
+  people: Person[];
   selectedIds: string[];
   lockedId?: string;
   onToggle: (id: string) => void;
@@ -512,7 +575,7 @@ function PeoplePicker({
 }) {
   const [q, setQ] = useState('');
   const filtered = people.filter((p) => {
-    const name = getFullName(p).toLowerCase();
+    const name = p.name.toLowerCase();
     const needle = q.trim().toLowerCase();
     return !needle || name.includes(needle) || p.title.toLowerCase().includes(needle);
   });
@@ -558,9 +621,9 @@ function PeoplePicker({
               >
                 {selected && <Check className="h-3.5 w-3.5" />}
               </span>
-              <Avatar size="sm" name={getFullName(user)} />
+              <Avatar size="sm" name={user.name} />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-ink truncate">{getFullName(user)}</p>
+                <p className="text-sm font-medium text-ink truncate">{user.name}</p>
                 <p className="text-xs text-ink-muted truncate">{user.title}</p>
               </div>
               {locked && <Badge size="sm" variant="info">Lead</Badge>}
@@ -580,7 +643,7 @@ function ProjectPicker({
   onToggle,
 }: {
   label?: string;
-  projects: ReturnType<typeof getProjectOptions>;
+  projects: Project[];
   selectedIds: string[];
   onToggle: (id: string) => void;
 }) {

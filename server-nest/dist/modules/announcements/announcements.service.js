@@ -85,6 +85,18 @@ let AnnouncementsService = class AnnouncementsService {
         this.eventsGateway.sendToOrganization(org_id, 'announcement:updated', announcement);
         return { success: true, data: announcement };
     }
+    async setPinStatus(id, org_id, isPinned) {
+        const announcement = await this.announcementRepository.findOne({
+            where: { id, org_id },
+        });
+        if (!announcement) {
+            throw new common_1.NotFoundException('Announcement not found');
+        }
+        announcement.is_pinned = isPinned;
+        await this.announcementRepository.save(announcement);
+        this.eventsGateway.sendToOrganization(org_id, 'announcement:updated', announcement);
+        return { success: true, data: announcement };
+    }
     async remove(id, org_id) {
         const announcement = await this.announcementRepository.findOne({
             where: { id, org_id },

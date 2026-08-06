@@ -12,6 +12,8 @@ import { Announcement } from '../../entities/announcement.entity';
 import { Invoice } from '../../entities/invoice.entity';
 import { Expense } from '../../entities/expense.entity';
 import { LeaveRequest } from '../../entities/leave-request.entity';
+import { Report } from '../../entities/report.entity';
+import { User } from '../../entities/user.entity';
 
 @Injectable()
 export class DashboardService {
@@ -38,6 +40,10 @@ export class DashboardService {
     private expenseRepository: Repository<Expense>,
     @InjectRepository(LeaveRequest)
     private leaveRequestRepository: Repository<LeaveRequest>,
+    @InjectRepository(Report)
+    private reportRepository: Repository<Report>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
   ) {}
 
   async getDeveloperDashboard(user_id: string, org_id: string) {
@@ -88,34 +94,51 @@ export class DashboardService {
   }
 
   async getExecutiveDashboard(org_id: string) {
-    const [projects, goals, announcements, recentMeetings, financials] = await Promise.all([
-      this.projectRepository.find({ where: { org_id }, order: { created_at: 'DESC' }, take: 5 }),
-      this.goalRepository.find({ where: { org_id, type: 'company', status: 'active' } }),
-      this.announcementRepository.find({ where: { org_id }, order: { created_at: 'DESC' }, take: 5 }),
-      this.meetingRepository.find({ where: { org_id }, order: { scheduled_at: 'DESC' }, take: 5 }),
-      Promise.all([
-        this.invoiceRepository.find({ where: { org_id } }),
-        this.expenseRepository.find({ where: { org_id } }),
-      ]),
-    ]);
+    const [projectCount, activeProjectCount, goals, announcements, recentMeetings, financials, teamSize] =
+      await Promise.all([
+        this.projectRepository.count({ where: { org_id } }),
+        this.projectRepository.count({ where: { org_id, status: 'active' } }),
+        this.goalRepository.find({ where: { org_id, type: 'company', status: 'active' } }),
+        this.announcementRepository.find({ where: { org_id }, order: { created_at: 'DESC' }, take: 5 }),
+        this.meetingRepository.find({ where: { org_id }, order: { scheduled_at: 'DESC' }, take: 5 }),
+        Promise.all([
+          this.invoiceRepository.find({ where: { org_id } }),
+          this.expenseRepository.find({ where: { org_id } }),
+        ]),
+        this.usersRepository.count({ where: { org_id } }),
+      ]);
 
     const [invoices, expenses] = financials;
-    const totalRevenue = invoices.reduce((sum, inv) => sum + inv.amount, 0);
-    const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    // Revenue = paid invoices only (drafts/sent are not recognized revenue)
+    const totalRevenue = invoices
+      .filter((inv) => inv.status === 'paid')
+      .reduce((sum, inv) => sum + Number(inv.amount || inv.total || 0), 0);
+    const totalExpenses = expenses
+      .filter((exp) => exp.status === 'approved')
+      .reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
+    const outstandingInvoices = invoices
+      .filter((inv) => inv.status === 'sent' || inv.status === 'overdue')
+      .reduce((sum, inv) => sum + Number(inv.amount || inv.total || 0), 0);
 
     const allTasks = await this.taskRepository.find({ where: { org_id } });
     const teamProductivity = {
       total_tasks: allTasks.length,
-      completed: allTasks.filter(t => t.status === 'done').length,
-      in_progress: allTasks.filter(t => t.status === 'in_progress').length,
+      completed: allTasks.filter((t) => t.status === 'done').length,
+      in_progress: allTasks.filter((t) => t.status === 'in_progress').length,
     };
+
+    const recentProjects = await this.projectRepository.find({
+      where: { org_id },
+      order: { created_at: 'DESC' },
+      take: 5,
+    });
 
     return {
       success: true,
       data: {
         projects: {
-          total: projects.length,
-          active: projects.filter(p => p.status === 'active').length,
+          total: projectCount,
+          active: activeProjectCount,
         },
         goals: {
           total: goals.length,
@@ -124,10 +147,13 @@ export class DashboardService {
         financials: {
           total_revenue: totalRevenue,
           total_expenses: totalExpenses,
+          outstanding: outstandingInvoices,
           net: totalRevenue - totalExpenses,
         },
+        teamSize,
+        employees: teamSize,
         team_productivity: teamProductivity,
-        recent_projects: projects,
+        recent_projects: recentProjects,
         company_goals: goals,
         announcements: announcements,
         recent_meetings: recentMeetings,
@@ -214,6 +240,48 @@ export class DashboardService {
         },
         recent_leave_requests: leaveRequests.slice(0, 10),
         announcements: announcements,
+      },
+    };
+  }
+
+  async getCisoDashboard(org_id: string) {
+    const [tasks, projects, reports] = await Promise.all([
+      this.taskRepository.find({ where: { org_id }, order: { created_at: 'DESC' } }),
+      this.projectRepository.find({ where: { org_id }, order: { created_at: 'DESC' } }),
+      this.reportRepository.find({ where: { org_id }, order: { created_at: 'DESC' } }),
+    ]);
+
+    const auditProjects = projects
+      .map((project) => {
+        const metadata = project.metadata || {};
+        const auditStatus = metadata.audit_status || 'needed';
+        const auditRequired = Boolean(metadata.audit_required ?? ['high', 'critical'].includes(project.priority));
+        return { ...project, audit_status: auditStatus, audit_required: auditRequired };
+      })
+      .filter((project) => project.audit_required);
+
+    const securityReports = reports.filter((report) =>
+      ['security', 'audit', 'compliance', 'risk'].includes((report.type || '').toLowerCase()),
+    );
+
+    return {
+      success: true,
+      data: {
+        tasks: {
+          total: tasks.length,
+          finished: tasks.filter((task) => task.status === 'done').length,
+          not_finished: tasks.filter((task) => task.status !== 'done').length,
+        },
+        audits: {
+          total: auditProjects.length,
+          needed: auditProjects.filter((project: any) => project.audit_status === 'needed').length,
+          in_progress: auditProjects.filter((project: any) => project.audit_status === 'in_progress').length,
+          completed: auditProjects.filter((project: any) => project.audit_status === 'completed').length,
+        },
+        reports: {
+          total: securityReports.length,
+          recent: securityReports.slice(0, 5),
+        },
       },
     };
   }
