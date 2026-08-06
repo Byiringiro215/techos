@@ -14,6 +14,9 @@ export class Invoice {
   @Column()
   invoice_number: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  client_name: string;
+
   @Column({ type: 'real' })
   amount: number;
 

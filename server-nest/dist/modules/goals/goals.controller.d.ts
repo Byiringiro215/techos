@@ -10,7 +10,22 @@ export declare class GoalsController {
     }>;
     findAll(user: any, filters: any): Promise<{
         success: boolean;
-        data: import("../../entities").Goal[];
+        data: {
+            owner_name: string;
+            id: string;
+            org_id: string;
+            title: string;
+            description: string;
+            type: string;
+            status: string;
+            progress: number;
+            owner_id: string;
+            parent_goal_id: string;
+            due_date: string;
+            key_results: any[];
+            quarter: string;
+            created_at: Date;
+        }[];
     }>;
     getAlignment(user: any): Promise<{
         success: boolean;
@@ -88,6 +103,28 @@ export declare class GoalsController {
     updateKeyResult(user: any, id: string, index: string, current: number): Promise<{
         success: boolean;
         data: import("../../entities").Goal;
+    }>;
+    getKeyResults(user: any, id: string): Promise<{
+        success: boolean;
+        data: any[];
+    }>;
+    createKeyResult(user: any, body: any): Promise<{
+        success: boolean;
+        data: {
+            id: `${string}-${string}-${string}-${string}-${string}`;
+            title: any;
+            target: number;
+            current: number;
+            unit: any;
+        };
+    }>;
+    updateKeyResultById(user: any, id: string, body: any): Promise<{
+        success: boolean;
+        data: any;
+    }>;
+    deleteKeyResultById(user: any, id: string): Promise<{
+        success: boolean;
+        message: string;
     }>;
     remove(user: any, id: string): Promise<{
         success: boolean;

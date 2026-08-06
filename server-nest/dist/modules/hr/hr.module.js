@@ -15,6 +15,7 @@ const employee_entity_1 = require("../../entities/employee.entity");
 const leave_request_entity_1 = require("../../entities/leave-request.entity");
 const user_entity_1 = require("../../entities/user.entity");
 const notifications_module_1 = require("../notifications/notifications.module");
+const workspace_module_1 = require("../workspace/workspace.module");
 let HrModule = class HrModule {
 };
 exports.HrModule = HrModule;
@@ -23,6 +24,7 @@ exports.HrModule = HrModule = __decorate([
         imports: [
             typeorm_1.TypeOrmModule.forFeature([employee_entity_1.Employee, leave_request_entity_1.LeaveRequest, user_entity_1.User]),
             notifications_module_1.NotificationsModule,
+            workspace_module_1.WorkspaceModule,
         ],
         controllers: [hr_controller_1.HrController],
         providers: [hr_service_1.HrService],

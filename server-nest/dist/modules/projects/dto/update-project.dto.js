@@ -19,6 +19,7 @@ class UpdateProjectDto {
     start_date;
     end_date;
     budget;
+    client_name;
 }
 exports.UpdateProjectDto = UpdateProjectDto;
 __decorate([
@@ -56,4 +57,9 @@ __decorate([
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], UpdateProjectDto.prototype, "budget", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateProjectDto.prototype, "client_name", void 0);
 //# sourceMappingURL=update-project.dto.js.map

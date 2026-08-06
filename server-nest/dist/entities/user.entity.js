@@ -16,6 +16,7 @@ var UserRole;
 (function (UserRole) {
     UserRole["CEO"] = "ceo";
     UserRole["CTO"] = "cto";
+    UserRole["CISO"] = "ciso";
     UserRole["FINANCE"] = "finance";
     UserRole["SOFTWARE_ENGINEER"] = "software_engineer";
     UserRole["UI_UX_DESIGNER"] = "ui_ux_designer";

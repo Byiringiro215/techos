@@ -20,14 +20,17 @@ const crypto_1 = require("crypto");
 const contact_entity_1 = require("../../entities/contact.entity");
 const deal_entity_1 = require("../../entities/deal.entity");
 const user_entity_1 = require("../../entities/user.entity");
+const activity_log_service_1 = require("../../common/services/activity-log.service");
 let CrmService = class CrmService {
     contactsRepository;
     dealsRepository;
     usersRepository;
-    constructor(contactsRepository, dealsRepository, usersRepository) {
+    activityLogService;
+    constructor(contactsRepository, dealsRepository, usersRepository, activityLogService) {
         this.contactsRepository = contactsRepository;
         this.dealsRepository = dealsRepository;
         this.usersRepository = usersRepository;
+        this.activityLogService = activityLogService;
     }
     async createContact(org_id, createContactDto) {
         const contact = this.contactsRepository.create({
@@ -128,22 +131,52 @@ let CrmService = class CrmService {
             message: 'Contact deleted successfully',
         };
     }
-    async createDeal(org_id, createDealDto) {
-        const contact = await this.contactsRepository.findOne({
-            where: { id: createDealDto.contact_id, org_id },
-        });
-        if (!contact) {
-            throw new common_1.NotFoundException('Contact not found');
+    async createDeal(org_id, createDealDto, actor) {
+        let contact_id = createDealDto.contact_id;
+        if (contact_id) {
+            const contact = await this.contactsRepository.findOne({
+                where: { id: contact_id, org_id },
+            });
+            if (!contact) {
+                throw new common_1.NotFoundException('Contact not found');
+            }
+        }
+        else {
+            const contact = this.contactsRepository.create({
+                id: (0, crypto_1.randomUUID)(),
+                org_id,
+                first_name: 'Deal',
+                last_name: 'Lead',
+                company_name: createDealDto.title,
+                type: 'lead',
+                status: 'qualified',
+                notes: createDealDto.notes || createDealDto.description,
+            });
+            await this.contactsRepository.save(contact);
+            contact_id = contact.id;
         }
         const deal = this.dealsRepository.create({
             id: (0, crypto_1.randomUUID)(),
             org_id,
-            ...createDealDto,
+            contact_id,
+            title: createDealDto.title,
+            value: Number(createDealDto.value || 0),
             stage: createDealDto.stage || 'qualification',
             currency: createDealDto.currency || 'USD',
             probability: createDealDto.probability || 0,
+            expected_close_date: createDealDto.expected_close_date,
+            assigned_to: createDealDto.assigned_to || actor?.id,
+            notes: createDealDto.notes || createDealDto.description,
         });
         await this.dealsRepository.save(deal);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'created',
+            resource_type: 'deals',
+            resource_id: deal.id,
+            summary: `created deal "${deal.title || 'Untitled'}"`,
+        });
         return {
             success: true,
             data: deal,
@@ -157,25 +190,37 @@ let CrmService = class CrmService {
         if (filters?.assigned_to) {
             where.assigned_to = filters.assigned_to;
         }
-        const deals = await this.dealsRepository
-            .createQueryBuilder('deal')
-            .leftJoinAndSelect(contact_entity_1.Contact, 'contact', 'deal.contact_id = contact.id')
-            .leftJoinAndSelect(user_entity_1.User, 'user', 'deal.assigned_to = user.id')
-            .where('deal.org_id = :org_id', { org_id })
-            .andWhere(filters?.stage ? 'deal.stage = :stage' : '1=1', filters?.stage ? { stage: filters.stage } : {})
-            .select([
-            'deal.*',
-            'contact.first_name as contact_first_name',
-            'contact.last_name as contact_last_name',
-            'contact.company_name as company_name',
-            'user.first_name as assigned_first_name',
-            'user.last_name as assigned_last_name',
-        ])
-            .orderBy('deal.created_at', 'DESC')
-            .getRawMany();
+        const deals = await this.dealsRepository.find({
+            where,
+            order: { created_at: 'DESC' },
+        });
+        const ownerIds = [...new Set(deals.map((d) => d.assigned_to).filter(Boolean))];
+        const owners = ownerIds.length
+            ? await this.usersRepository.find({ where: { id: (0, typeorm_2.In)(ownerIds) } })
+            : [];
+        const ownerMap = new Map(owners.map((u) => [u.id, u]));
+        const contactIds = [...new Set(deals.map((d) => d.contact_id).filter(Boolean))];
+        const contacts = contactIds.length
+            ? await this.contactsRepository.find({ where: { id: (0, typeorm_2.In)(contactIds) } })
+            : [];
+        const contactMap = new Map(contacts.map((c) => [c.id, c]));
+        const data = deals.map((deal) => {
+            const owner = ownerMap.get(deal.assigned_to);
+            const contact = contactMap.get(deal.contact_id);
+            const owner_name = owner
+                ? `${owner.first_name || ''} ${owner.last_name || ''}`.trim() || owner.email
+                : '—';
+            return {
+                ...deal,
+                owner_name,
+                assigned_to: deal.assigned_to,
+                company_name: contact?.company_name || null,
+                updated_at: deal.created_at,
+            };
+        });
         return {
             success: true,
-            data: deals,
+            data,
         };
     }
     async findOneDeal(id, org_id) {
@@ -200,7 +245,7 @@ let CrmService = class CrmService {
             data: deal,
         };
     }
-    async updateDeal(id, org_id, updateData) {
+    async updateDeal(id, org_id, updateData, actor) {
         const deal = await this.dealsRepository.findOne({
             where: { id, org_id },
         });
@@ -209,19 +254,37 @@ let CrmService = class CrmService {
         }
         Object.assign(deal, updateData);
         await this.dealsRepository.save(deal);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'updated',
+            resource_type: 'deals',
+            resource_id: deal.id,
+            summary: `updated deal "${deal.title || 'Untitled'}"`,
+            changes: updateData,
+        });
         return {
             success: true,
             data: deal,
         };
     }
-    async deleteDeal(id, org_id) {
+    async deleteDeal(id, org_id, actor) {
         const deal = await this.dealsRepository.findOne({
             where: { id, org_id },
         });
         if (!deal) {
             throw new common_1.NotFoundException('Deal not found');
         }
+        const title = deal.title;
         await this.dealsRepository.remove(deal);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'deleted',
+            resource_type: 'deals',
+            resource_id: id,
+            summary: `deleted deal "${title || 'Untitled'}"`,
+        });
         return {
             success: true,
             message: 'Deal deleted successfully',
@@ -302,6 +365,7 @@ exports.CrmService = CrmService = __decorate([
     __param(2, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        activity_log_service_1.ActivityLogService])
 ], CrmService);
 //# sourceMappingURL=crm.service.js.map

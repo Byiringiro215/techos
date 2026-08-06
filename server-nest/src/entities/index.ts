@@ -32,6 +32,8 @@ import { AuditLog } from './audit-log.entity';
 import { Roadmap } from './roadmap.entity';
 import { KPI } from './kpi.entity';
 import { Report } from './report.entity';
+import { WorkspaceRecord } from './workspace-record.entity';
+import { ActivityEvent } from './activity-event.entity';
 
 export const entities = [
   Organization,
@@ -67,6 +69,8 @@ export const entities = [
   Roadmap,
   KPI,
   Report,
+  WorkspaceRecord,
+  ActivityEvent,
 ];
 
 // Export individual entities
@@ -104,4 +108,6 @@ export {
   Roadmap,
   KPI,
   Report,
+  WorkspaceRecord,
+  ActivityEvent,
 };

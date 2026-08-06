@@ -23,6 +23,7 @@ const budget_entity_1 = require("../../entities/budget.entity");
 const user_entity_1 = require("../../entities/user.entity");
 const notifications_service_1 = require("../notifications/notifications.service");
 const email_service_1 = require("../../common/services/email.service");
+const activity_log_service_1 = require("../../common/services/activity-log.service");
 let FinanceService = class FinanceService {
     invoicesRepository;
     expensesRepository;
@@ -30,22 +31,52 @@ let FinanceService = class FinanceService {
     usersRepository;
     notificationsService;
     emailService;
-    constructor(invoicesRepository, expensesRepository, budgetsRepository, usersRepository, notificationsService, emailService) {
+    activityLogService;
+    constructor(invoicesRepository, expensesRepository, budgetsRepository, usersRepository, notificationsService, emailService, activityLogService) {
         this.invoicesRepository = invoicesRepository;
         this.expensesRepository = expensesRepository;
         this.budgetsRepository = budgetsRepository;
         this.usersRepository = usersRepository;
         this.notificationsService = notificationsService;
         this.emailService = emailService;
+        this.activityLogService = activityLogService;
     }
-    async createInvoice(org_id, createInvoiceDto) {
+    async createInvoice(org_id, createInvoiceDto, actor) {
+        const amount = Number(createInvoiceDto.amount || 0);
+        const tax = Number(createInvoiceDto.tax || 0);
+        const total = Number(createInvoiceDto.total ?? amount + tax);
+        const today = new Date().toISOString().slice(0, 10);
         const invoice = this.invoicesRepository.create({
             id: (0, crypto_1.randomUUID)(),
             org_id,
-            ...createInvoiceDto,
-            status: 'draft',
+            contact_id: createInvoiceDto.contact_id,
+            invoice_number: createInvoiceDto.invoice_number || `INV-${Date.now().toString().slice(-8)}`,
+            client_name: createInvoiceDto.client_name || undefined,
+            amount,
+            tax,
+            total,
+            due_date: createInvoiceDto.due_date || today,
+            issued_date: createInvoiceDto.issued_date || today,
+            items: createInvoiceDto.items || [
+                {
+                    description: createInvoiceDto.description || createInvoiceDto.notes || createInvoiceDto.client_name || 'Service',
+                    quantity: 1,
+                    unit_price: amount,
+                    total: amount,
+                },
+            ],
+            notes: createInvoiceDto.notes || createInvoiceDto.description,
+            status: createInvoiceDto.status || 'draft',
         });
         await this.invoicesRepository.save(invoice);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'created',
+            resource_type: 'invoices',
+            resource_id: invoice.id,
+            summary: `created invoice "${invoice.invoice_number}"`,
+        });
         return {
             success: true,
             data: invoice,
@@ -60,9 +91,17 @@ let FinanceService = class FinanceService {
             where,
             order: { created_at: 'DESC' },
         });
+        const data = invoices.map((invoice) => ({
+            ...invoice,
+            client_name: invoice.client_name ||
+                invoice.items?.[0]?.description ||
+                invoice.notes ||
+                null,
+            amount: invoice.amount ?? invoice.total ?? 0,
+        }));
         return {
             success: true,
-            data: invoices,
+            data,
         };
     }
     async findOneInvoice(id, org_id) {
@@ -77,7 +116,7 @@ let FinanceService = class FinanceService {
             data: invoice,
         };
     }
-    async updateInvoice(id, org_id, updateData) {
+    async updateInvoice(id, org_id, updateData, actor) {
         const invoice = await this.invoicesRepository.findOne({
             where: { id, org_id },
         });
@@ -86,6 +125,15 @@ let FinanceService = class FinanceService {
         }
         Object.assign(invoice, updateData);
         await this.invoicesRepository.save(invoice);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'updated',
+            resource_type: 'invoices',
+            resource_id: invoice.id,
+            summary: `updated invoice "${invoice.invoice_number}"`,
+            changes: updateData,
+        });
         return {
             success: true,
             data: invoice,
@@ -128,15 +176,23 @@ let FinanceService = class FinanceService {
             message: 'Invoice sent successfully',
         };
     }
-    async createExpense(org_id, user_id, createExpenseDto) {
+    async createExpense(org_id, actor, createExpenseDto) {
         const expense = this.expensesRepository.create({
             id: (0, crypto_1.randomUUID)(),
             org_id,
             ...createExpenseDto,
-            submitted_by: user_id,
+            submitted_by: actor?.id,
             status: 'pending',
         });
         await this.expensesRepository.save(expense);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'created',
+            resource_type: 'expenses',
+            resource_id: expense.id,
+            summary: `submitted expense $${expense.amount} (${expense.category || 'general'})`,
+        });
         await this.notifyFinanceTeam(org_id, 'New Expense Submitted', `Expense of $${expense.amount} submitted for ${expense.category}`);
         return {
             success: true,
@@ -402,6 +458,7 @@ exports.FinanceService = FinanceService = __decorate([
         typeorm_2.Repository,
         typeorm_2.Repository,
         notifications_service_1.NotificationsService,
-        email_service_1.EmailService])
+        email_service_1.EmailService,
+        activity_log_service_1.ActivityLogService])
 ], FinanceService);
 //# sourceMappingURL=finance.service.js.map

@@ -44,6 +44,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var AuthService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
 const common_1 = require("@nestjs/common");
@@ -54,14 +55,96 @@ const bcrypt = __importStar(require("bcryptjs"));
 const crypto_1 = require("crypto");
 const user_entity_1 = require("../../entities/user.entity");
 const organization_entity_1 = require("../../entities/organization.entity");
-let AuthService = class AuthService {
+const employee_entity_1 = require("../../entities/employee.entity");
+const notification_entity_1 = require("../../entities/notification.entity");
+const channel_member_entity_1 = require("../../entities/channel-member.entity");
+const meeting_participant_entity_1 = require("../../entities/meeting-participant.entity");
+const SEEDED_CEO_EMAIL = 'ceo@gmail.com';
+const SEEDED_CEO_PASSWORD = 'Ceo@2026';
+let AuthService = AuthService_1 = class AuthService {
     usersRepository;
     organizationsRepository;
+    employeesRepository;
+    notificationsRepository;
+    channelMembersRepository;
+    meetingParticipantsRepository;
     jwtService;
-    constructor(usersRepository, organizationsRepository, jwtService) {
+    logger = new common_1.Logger(AuthService_1.name);
+    constructor(usersRepository, organizationsRepository, employeesRepository, notificationsRepository, channelMembersRepository, meetingParticipantsRepository, jwtService) {
         this.usersRepository = usersRepository;
         this.organizationsRepository = organizationsRepository;
+        this.employeesRepository = employeesRepository;
+        this.notificationsRepository = notificationsRepository;
+        this.channelMembersRepository = channelMembersRepository;
+        this.meetingParticipantsRepository = meetingParticipantsRepository;
         this.jwtService = jwtService;
+    }
+    async onModuleInit() {
+        await this.seedCeoAccount();
+    }
+    shouldKeepCeoOnly() {
+        const flag = (process.env.SEED_CEO_ONLY || '').toLowerCase();
+        return flag === 'true' || flag === '1';
+    }
+    async purgeNonCeoUsers(orgId) {
+        if (!this.shouldKeepCeoOnly())
+            return;
+        const extras = await this.usersRepository.find({ where: { org_id: orgId } });
+        const toRemove = extras.filter((u) => (u.email || '').toLowerCase() !== SEEDED_CEO_EMAIL);
+        if (!toRemove.length)
+            return;
+        const ids = toRemove.map((u) => u.id);
+        await this.employeesRepository.delete({ user_id: (0, typeorm_2.In)(ids) });
+        await this.notificationsRepository.delete({ user_id: (0, typeorm_2.In)(ids) });
+        await this.channelMembersRepository.delete({ user_id: (0, typeorm_2.In)(ids) });
+        await this.meetingParticipantsRepository.delete({ user_id: (0, typeorm_2.In)(ids) });
+        await this.usersRepository.delete({ id: (0, typeorm_2.In)(ids) });
+        this.logger.warn(`Removed ${ids.length} non-CEO user(s) (SEED_CEO_ONLY bootstrap cleanup)`);
+    }
+    async seedCeoAccount() {
+        let organization = await this.organizationsRepository.findOne({
+            where: { slug: 'techos-company' },
+        });
+        if (!organization) {
+            organization = this.organizationsRepository.create({
+                id: (0, crypto_1.randomUUID)(),
+                name: 'TechOS Company',
+                slug: 'techos-company',
+            });
+            await this.organizationsRepository.save(organization);
+            this.logger.log('Seeded organization: TechOS Company');
+        }
+        const existingCeo = await this.usersRepository.findOne({
+            where: { email: SEEDED_CEO_EMAIL },
+        });
+        if (existingCeo) {
+            existingCeo.password_hash = await bcrypt.hash(SEEDED_CEO_PASSWORD, 10);
+            existingCeo.role = user_entity_1.UserRole.CEO;
+            existingCeo.status = 'active';
+            existingCeo.first_name = 'Alliance';
+            existingCeo.last_name = '';
+            existingCeo.name = 'Alliance';
+            existingCeo.org_id = organization.id;
+            await this.usersRepository.save(existingCeo);
+            this.logger.log(`CEO account ready: ${SEEDED_CEO_EMAIL}`);
+        }
+        else {
+            const password_hash = await bcrypt.hash(SEEDED_CEO_PASSWORD, 10);
+            const ceo = this.usersRepository.create({
+                id: (0, crypto_1.randomUUID)(),
+                org_id: organization.id,
+                email: SEEDED_CEO_EMAIL,
+                password_hash,
+                first_name: 'Alliance',
+                last_name: '',
+                name: 'Alliance',
+                role: user_entity_1.UserRole.CEO,
+                status: 'active',
+            });
+            await this.usersRepository.save(ceo);
+            this.logger.log(`Seeded CEO account: ${SEEDED_CEO_EMAIL} / ${SEEDED_CEO_PASSWORD}`);
+        }
+        await this.purgeNonCeoUsers(organization.id);
     }
     async register(registerDto) {
         const { email, password, firstName, lastName, role, organizationName } = registerDto;
@@ -109,6 +192,7 @@ let AuthService = class AuthService {
                     last_name: user.last_name,
                     role: user.role,
                     org_id: user.org_id,
+                    preferences: user.preferences,
                 },
             },
         };
@@ -143,6 +227,7 @@ let AuthService = class AuthService {
                     last_name: user.last_name,
                     role: user.role,
                     org_id: user.org_id,
+                    preferences: user.preferences,
                 },
             },
         };
@@ -172,11 +257,19 @@ let AuthService = class AuthService {
     }
 };
 exports.AuthService = AuthService;
-exports.AuthService = AuthService = __decorate([
+exports.AuthService = AuthService = AuthService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __param(1, (0, typeorm_1.InjectRepository)(organization_entity_1.Organization)),
+    __param(2, (0, typeorm_1.InjectRepository)(employee_entity_1.Employee)),
+    __param(3, (0, typeorm_1.InjectRepository)(notification_entity_1.Notification)),
+    __param(4, (0, typeorm_1.InjectRepository)(channel_member_entity_1.ChannelMember)),
+    __param(5, (0, typeorm_1.InjectRepository)(meeting_participant_entity_1.MeetingParticipant)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         jwt_1.JwtService])
 ], AuthService);

@@ -24,7 +24,7 @@ export class FinanceController {
   // Invoices
   @Post('invoices')
   createInvoice(@CurrentUser() user: any, @Body() createInvoiceDto: CreateInvoiceDto) {
-    return this.financeService.createInvoice(user.org_id, createInvoiceDto);
+    return this.financeService.createInvoice(user.org_id, createInvoiceDto, user);
   }
 
   @Get('invoices')
@@ -39,7 +39,7 @@ export class FinanceController {
 
   @Put('invoices/:id')
   updateInvoice(@CurrentUser() user: any, @Param('id') id: string, @Body() updateData: any) {
-    return this.financeService.updateInvoice(id, user.org_id, updateData);
+    return this.financeService.updateInvoice(id, user.org_id, updateData, user);
   }
 
   @Delete('invoices/:id')
@@ -59,7 +59,7 @@ export class FinanceController {
   // Expenses
   @Post('expenses')
   createExpense(@CurrentUser() user: any, @Body() createExpenseDto: CreateExpenseDto) {
-    return this.financeService.createExpense(user.org_id, user.id, createExpenseDto);
+    return this.financeService.createExpense(user.org_id, user, createExpenseDto);
   }
 
   @Get('expenses')

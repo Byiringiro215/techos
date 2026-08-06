@@ -11,7 +11,22 @@ export declare class FinanceController {
     }>;
     findAllInvoices(user: any, filters: any): Promise<{
         success: boolean;
-        data: import("../../entities").Invoice[];
+        data: {
+            client_name: any;
+            amount: number;
+            id: string;
+            org_id: string;
+            contact_id: string;
+            invoice_number: string;
+            tax: number;
+            total: number;
+            status: string;
+            due_date: string;
+            issued_date: string;
+            items: any[];
+            notes: string;
+            created_at: Date;
+        }[];
     }>;
     findOneInvoice(user: any, id: string): Promise<{
         success: boolean;

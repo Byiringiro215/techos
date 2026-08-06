@@ -31,6 +31,11 @@ export class HrController {
     return this.hrService.findAllEmployees(user.org_id, filters);
   }
 
+  @Get('employee-activity/:id')
+  getEmployeeActivity(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.hrService.getEmployeeActivity(id, user.org_id);
+  }
+
   @Get('employees/:id')
   findOneEmployee(@CurrentUser() user: any, @Param('id') id: string) {
     return this.hrService.findOneEmployee(id, user.org_id);
@@ -38,23 +43,18 @@ export class HrController {
 
   @Put('employees/:id')
   updateEmployee(@CurrentUser() user: any, @Param('id') id: string, @Body() updateData: any) {
-    return this.hrService.updateEmployee(id, user.org_id, updateData);
+    return this.hrService.updateEmployee(id, user.org_id, updateData, user);
   }
 
   @Delete('employees/:id')
   deleteEmployee(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.hrService.deleteEmployee(id, user.org_id);
-  }
-
-  @Get('departments')
-  getDepartments(@CurrentUser() user: any) {
-    return this.hrService.getDepartments(user.org_id);
+    return this.hrService.deleteEmployee(id, user.org_id, user);
   }
 
   // Leave Requests
   @Post('leaves')
   createLeaveRequest(@CurrentUser() user: any, @Body() createLeaveRequestDto: CreateLeaveRequestDto) {
-    return this.hrService.createLeaveRequest(user.org_id, user.id, createLeaveRequestDto);
+    return this.hrService.createLeaveRequest(user.org_id, user, createLeaveRequestDto);
   }
 
   @Get('leaves')

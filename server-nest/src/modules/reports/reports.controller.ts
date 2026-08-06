@@ -75,4 +75,30 @@ export class ReportsController {
   ) {
     return this.reportsService.generateBugReport(user.org_id, start_date, end_date);
   }
+
+  @Get('generate/:type')
+  generateByType(
+    @CurrentUser() user: any,
+    @Param('type') type: string,
+    @Query() params: any,
+  ) {
+    if (type === 'project') {
+      return this.reportsService.generateProjectReport(user.org_id, params.project_id);
+    }
+    if (type === 'financial') {
+      return this.reportsService.generateFinancialReport(user.org_id, params.start_date, params.end_date);
+    }
+    if (type === 'kpi') {
+      return this.reportsService.generateKPIReport(user.org_id);
+    }
+    if (type === 'tasks') {
+      return this.reportsService.generateTaskReport(
+        user.org_id,
+        params.user_id,
+        params.start_date,
+        params.end_date,
+      );
+    }
+    return this.reportsService.generateBugReport(user.org_id, params.start_date, params.end_date);
+  }
 }

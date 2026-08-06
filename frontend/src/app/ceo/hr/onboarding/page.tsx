@@ -8,43 +8,33 @@ import {
   Clock,
   Users,
   ClipboardList,
-  FileText,
-  Shield,
-  BookOpen,
-  ArrowRight
 } from 'lucide-react';
 import { useEmployees } from '@/hooks/useHR';
+import { useEntityList } from '@/hooks/useEntityApi';
 import { LoadingSpinner } from '@/components/UI/LoadingSpinner';
 
 export default function OnboardingPage() {
-  const { data: employees, isLoading } = useEmployees();
+  const { data: employees = [], isLoading: employeesLoading } = useEmployees();
+  const { data: onboardingTasks = [], isLoading: tasksLoading } = useEntityList('onboardingTasks');
 
-  const recentHires = employees
+  const recentHires = [...employees]
     ?.sort((a, b) => new Date(b.hire_date).getTime() - new Date(a.hire_date).getTime())
-    .slice(0, 6) || [];
+    .slice(0, 6);
+  const activeTasks = onboardingTasks.filter((task) => !['completed', 'done'].includes(task.status));
+  const completedTasks = onboardingTasks.filter((task) => ['completed', 'done'].includes(task.status));
+  const thisMonth = new Date();
+  const newThisMonth = employees.filter((employee) => {
+    const hireDate = new Date(employee.hire_date);
+    return hireDate.getMonth() === thisMonth.getMonth() && hireDate.getFullYear() === thisMonth.getFullYear();
+  }).length;
 
-  const onboardingSteps = [
-    { id: 1, title: 'Paperwork & Documentation', icon: FileText, description: 'Contracts, tax forms, NDAs', completed: true },
-    { id: 2, title: 'Accounts & Access', icon: Shield, description: 'Email, tools, permissions', completed: true },
-    { id: 3, title: 'Workplace Setup', icon: Users, description: 'Desk, equipment, team intro', completed: false },
-    { id: 4, title: 'Training', icon: BookOpen, description: 'Company policies, role training', completed: false },
-    { id: 5, title: '30-Day Review', icon: ClipboardList, description: 'First check-in meeting', completed: false },
-  ];
-
-  if (isLoading) {
+  if (employeesLoading || tasksLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <LoadingSpinner size="lg" />
       </div>
     );
   }
-
-  const getOnboardingStatus = (hireDate: string) => {
-    const daysSince = Math.floor((Date.now() - new Date(hireDate).getTime()) / (1000 * 60 * 60 * 24));
-    if (daysSince < 7) return { status: 'in_progress', pct: 40 };
-    if (daysSince < 30) return { status: 'in_progress', pct: 70 };
-    return { status: 'completed', pct: 100 };
-  };
 
   return (
     <div className="space-y-6">
@@ -57,22 +47,22 @@ export default function OnboardingPage() {
         <Card className="p-6 bg-surface border border-border">
           <UserPlus className="h-8 w-8 text-ink mb-3" />
           <p className="text-sm text-ink-muted">Active Onboarding</p>
-          <p className="text-3xl font-bold text-ink mt-1">5</p>
+          <p className="text-3xl font-bold text-ink mt-1">{activeTasks.length}</p>
         </Card>
         <Card className="p-6 bg-surface border border-border">
           <CheckCircle className="h-8 w-8 text-success mb-3" />
           <p className="text-sm text-ink-muted">Completed This Quarter</p>
-          <p className="text-3xl font-bold text-ink mt-1">12</p>
+          <p className="text-3xl font-bold text-ink mt-1">{completedTasks.length}</p>
         </Card>
         <Card className="p-6 bg-surface border border-border">
           <Clock className="h-8 w-8 text-warning mb-3" />
-          <p className="text-sm text-ink-muted">Avg Time to Complete</p>
-          <p className="text-3xl font-bold text-ink mt-1">28d</p>
+          <p className="text-sm text-ink-muted">Onboarding Tasks</p>
+          <p className="text-3xl font-bold text-ink mt-1">{onboardingTasks.length}</p>
         </Card>
         <Card className="p-6 bg-surface border border-border">
           <Users className="h-8 w-8 text-ink mb-3" />
           <p className="text-sm text-ink-muted">New This Month</p>
-          <p className="text-3xl font-bold text-ink mt-1">3</p>
+          <p className="text-3xl font-bold text-ink mt-1">{newThisMonth}</p>
         </Card>
       </div>
 
@@ -89,7 +79,10 @@ export default function OnboardingPage() {
           ) : (
             <div className="space-y-4">
               {recentHires.map(emp => {
-                const { status, pct } = getOnboardingStatus(emp.hire_date);
+                const employeeTasks = onboardingTasks.filter((task) => task.metadata?.employeeId === emp.id);
+                const completedEmployeeTasks = employeeTasks.filter((task) => ['completed', 'done'].includes(task.status)).length;
+                const pct = employeeTasks.length ? Math.round((completedEmployeeTasks / employeeTasks.length) * 100) : 0;
+                const status = employeeTasks.length === 0 ? 'not_started' : pct === 100 ? 'completed' : 'in_progress';
                 return (
                   <div key={emp.id} className="p-4 bg-bg-muted border border-border rounded-lg">
                     <div className="flex items-center justify-between mb-3">
@@ -101,17 +94,19 @@ export default function OnboardingPage() {
                           <p className="font-medium text-ink">
                             {emp.user?.first_name} {emp.user?.last_name}
                           </p>
-                          <p className="text-xs text-ink-muted">{emp.position} · {emp.department}</p>
+                          <p className="text-xs text-ink-muted capitalize">
+                            {(emp.user?.role || emp.position || '—').replace(/_/g, ' ')}
+                          </p>
                         </div>
                       </div>
-                      <Badge variant={status === 'completed' ? 'success' : 'info'}>
-                        {status === 'completed' ? 'Completed' : 'In Progress'}
+                      <Badge variant={status === 'completed' ? 'success' : status === 'in_progress' ? 'info' : 'default'}>
+                        {status === 'completed' ? 'Completed' : status === 'in_progress' ? 'In Progress' : 'No tasks'}
                       </Badge>
                     </div>
                     <div className="w-full bg-bg-muted rounded-full h-1.5 mb-2">
                       <div className="bg-brand-mist h-1.5 rounded-full" style={{ width: `${pct}%` }} />
                     </div>
-                    <p className="text-xs text-ink-muted">{pct}% · Hired {new Date(emp.hire_date).toLocaleDateString()}</p>
+                    <p className="text-xs text-ink-muted">{pct}% · {completedEmployeeTasks}/{employeeTasks.length} tasks · Hired {new Date(emp.hire_date).toLocaleDateString()}</p>
                   </div>
                 );
               })}
@@ -123,26 +118,32 @@ export default function OnboardingPage() {
           <h2 className="text-lg font-semibold text-ink mb-6 flex items-center gap-2">
             <ClipboardList className="h-5 w-5" /> Onboarding Checklist
           </h2>
-          <div className="space-y-3">
-            {onboardingSteps.map((step, i) => (
-              <div key={step.id} className="flex gap-3">
+          {onboardingTasks.length === 0 ? (
+            <div className="text-center py-8 text-ink-muted">
+              <ClipboardList className="h-12 w-12 mx-auto mb-2" />
+              <p>No onboarding tasks yet</p>
+            </div>
+          ) : <div className="space-y-3">
+            {onboardingTasks.map((task, i) => {
+              const completed = ['completed', 'done'].includes(task.status);
+              return <div key={task.id} className="flex gap-3">
                 <div className="flex flex-col items-center">
                   <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                    step.completed ? 'bg-brand text-ink-inverse' : 'bg-bg-muted text-ink-muted'
+                    completed ? 'bg-brand text-ink-inverse' : 'bg-bg-muted text-ink-muted'
                   }`}>
-                    {step.completed ? <CheckCircle className="h-4 w-4" /> : i + 1}
+                    {completed ? <CheckCircle className="h-4 w-4" /> : i + 1}
                   </div>
-                  {i < onboardingSteps.length - 1 && (
-                    <div className={`w-0.5 h-full mt-1 ${step.completed ? 'bg-brand-mist' : 'bg-bg-muted'}`} />
+                  {i < onboardingTasks.length - 1 && (
+                    <div className={`w-0.5 h-full mt-1 ${completed ? 'bg-brand-mist' : 'bg-bg-muted'}`} />
                   )}
                 </div>
                 <div className="flex-1 pb-4">
-                  <p className={`font-medium ${step.completed ? 'text-ink' : 'text-ink-muted'}`}>{step.title}</p>
-                  <p className="text-xs text-ink-muted">{step.description}</p>
+                  <p className={`font-medium ${completed ? 'text-ink' : 'text-ink-muted'}`}>{task.title}</p>
+                  <p className="text-xs text-ink-muted">{task.description || task.owner || 'No description'}</p>
                 </div>
-              </div>
-            ))}
-          </div>
+              </div>;
+            })}
+          </div>}
         </Card>
       </div>
     </div>

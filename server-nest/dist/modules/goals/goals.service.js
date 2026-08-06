@@ -18,12 +18,18 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const crypto_1 = require("crypto");
 const goal_entity_1 = require("../../entities/goal.entity");
+const user_entity_1 = require("../../entities/user.entity");
+const activity_log_service_1 = require("../../common/services/activity-log.service");
 let GoalsService = class GoalsService {
     goalRepository;
-    constructor(goalRepository) {
+    usersRepository;
+    activityLogService;
+    constructor(goalRepository, usersRepository, activityLogService) {
         this.goalRepository = goalRepository;
+        this.usersRepository = usersRepository;
+        this.activityLogService = activityLogService;
     }
-    async create(org_id, createDto) {
+    async create(org_id, createDto, actor) {
         const goal = this.goalRepository.create({
             id: (0, crypto_1.randomUUID)(),
             org_id,
@@ -32,7 +38,29 @@ let GoalsService = class GoalsService {
             progress: 0,
         });
         await this.goalRepository.save(goal);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'created',
+            resource_type: 'goals',
+            resource_id: goal.id,
+            summary: `created goal "${goal.title || 'Untitled'}"`,
+        });
         return { success: true, data: goal };
+    }
+    async withOwnerNames(goals) {
+        const ownerIds = [...new Set(goals.map((g) => g.owner_id).filter(Boolean))];
+        const owners = ownerIds.length
+            ? await this.usersRepository.find({ where: { id: (0, typeorm_2.In)(ownerIds) } })
+            : [];
+        const ownerMap = new Map(owners.map((u) => [u.id, u]));
+        return goals.map((goal) => {
+            const owner = ownerMap.get(goal.owner_id);
+            const owner_name = owner
+                ? `${owner.first_name || ''} ${owner.last_name || ''}`.trim() || owner.email
+                : '—';
+            return { ...goal, owner_name };
+        });
     }
     async findAll(org_id, filters) {
         const query = this.goalRepository.createQueryBuilder('goal')
@@ -54,7 +82,7 @@ let GoalsService = class GoalsService {
         }
         query.orderBy('goal.created_at', 'DESC');
         const goals = await query.getMany();
-        return { success: true, data: goals };
+        return { success: true, data: await this.withOwnerNames(goals) };
     }
     async findOne(id, org_id) {
         const goal = await this.goalRepository.findOne({
@@ -74,7 +102,7 @@ let GoalsService = class GoalsService {
             }
         };
     }
-    async update(id, org_id, updateDto) {
+    async update(id, org_id, updateDto, actor) {
         const goal = await this.goalRepository.findOne({
             where: { id, org_id },
         });
@@ -90,16 +118,34 @@ let GoalsService = class GoalsService {
         }
         Object.assign(goal, updateDto);
         await this.goalRepository.save(goal);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'updated',
+            resource_type: 'goals',
+            resource_id: goal.id,
+            summary: `updated goal "${goal.title || 'Untitled'}"`,
+            changes: updateDto,
+        });
         return { success: true, data: goal };
     }
-    async remove(id, org_id) {
+    async remove(id, org_id, actor) {
         const goal = await this.goalRepository.findOne({
             where: { id, org_id },
         });
         if (!goal) {
             throw new common_1.NotFoundException('Goal not found');
         }
+        const title = goal.title;
         await this.goalRepository.remove(goal);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'deleted',
+            resource_type: 'goals',
+            resource_id: id,
+            summary: `deleted goal "${title || 'Untitled'}"`,
+        });
         return { success: true, message: 'Goal deleted successfully' };
     }
     async updateKeyResult(id, org_id, keyResultIndex, current) {
@@ -165,11 +211,60 @@ let GoalsService = class GoalsService {
         };
         return { success: true, data: report };
     }
+    async getKeyResults(goal_id, org_id) {
+        const goal = await this.goalRepository.findOne({ where: { id: goal_id, org_id } });
+        if (!goal) {
+            throw new common_1.NotFoundException('Goal not found');
+        }
+        return { success: true, data: goal.key_results || [] };
+    }
+    async createKeyResult(org_id, createDto) {
+        const goal = await this.goalRepository.findOne({ where: { id: createDto.goal_id, org_id } });
+        if (!goal) {
+            throw new common_1.NotFoundException('Goal not found');
+        }
+        const keyResult = {
+            id: (0, crypto_1.randomUUID)(),
+            title: createDto.title,
+            target: Number(createDto.target || 0),
+            current: Number(createDto.current || 0),
+            unit: createDto.unit || '',
+        };
+        goal.key_results = [...(goal.key_results || []), keyResult];
+        await this.goalRepository.save(goal);
+        return { success: true, data: keyResult };
+    }
+    async updateKeyResultById(org_id, key_result_id, updateDto) {
+        const goals = await this.goalRepository.find({ where: { org_id } });
+        const goal = goals.find((entry) => (entry.key_results || []).some((kr) => kr.id === key_result_id));
+        if (!goal) {
+            throw new common_1.NotFoundException('Key result not found');
+        }
+        goal.key_results = (goal.key_results || []).map((kr) => kr.id === key_result_id ? { ...kr, ...updateDto } : kr);
+        await this.goalRepository.save(goal);
+        return {
+            success: true,
+            data: (goal.key_results || []).find((kr) => kr.id === key_result_id),
+        };
+    }
+    async deleteKeyResultById(org_id, key_result_id) {
+        const goals = await this.goalRepository.find({ where: { org_id } });
+        const goal = goals.find((entry) => (entry.key_results || []).some((kr) => kr.id === key_result_id));
+        if (!goal) {
+            throw new common_1.NotFoundException('Key result not found');
+        }
+        goal.key_results = (goal.key_results || []).filter((kr) => kr.id !== key_result_id);
+        await this.goalRepository.save(goal);
+        return { success: true, message: 'Key result deleted successfully' };
+    }
 };
 exports.GoalsService = GoalsService;
 exports.GoalsService = GoalsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(goal_entity_1.Goal)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __param(1, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        activity_log_service_1.ActivityLogService])
 ], GoalsService);
 //# sourceMappingURL=goals.service.js.map

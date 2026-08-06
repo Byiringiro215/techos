@@ -3,9 +3,14 @@
 import { Bell, Search, LogOut, User, Settings, Check } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { mockNotifications } from '@/mocks';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import {
+  useNotifications,
+  useUnreadCount,
+  useMarkAsRead,
+  useMarkAllAsRead,
+} from '@/hooks/useNotifications';
 
 interface TopBarProps {
   settingsHref?: string;
@@ -20,20 +25,13 @@ export function TopBar({ settingsHref = '/ceo/settings', profileHref = '/ceo/set
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [search, setSearch] = useState('');
-  const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  const notifications = useMemo(
-    () =>
-      mockNotifications.map((n) => ({
-        ...n,
-        read: n.read || readIds.has(n.id),
-      })),
-    [readIds],
-  );
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const { data: notifications = [] } = useNotifications();
+  const { data: unreadCount = 0 } = useUnreadCount();
+  const markAsRead = useMarkAsRead();
+  const markAllAsRead = useMarkAllAsRead();
 
   useEffect(() => {
     setShowUserMenu(false);
@@ -60,6 +58,7 @@ export function TopBar({ settingsHref = '/ceo/settings', profileHref = '/ceo/set
     const roleNames: Record<string, string> = {
       ceo: 'CEO',
       cto: 'CTO',
+      ciso: 'CISO',
       finance: 'Finance Manager',
       software_engineer: 'Software Engineer',
       ui_ux_designer: 'UI/UX Designer',
@@ -117,16 +116,21 @@ export function TopBar({ settingsHref = '/ceo/settings', profileHref = '/ceo/set
                 <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface rounded-xl shadow-lg border border-border z-20 overflow-hidden">
                   <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                     <p className="text-sm font-medium text-ink">Notifications</p>
-                    <button
-                      type="button"
-                      className="text-xs text-ink-muted hover:text-brand flex items-center gap-1"
-                      onClick={() => setReadIds(new Set(notifications.map((n) => n.id)))}
-                    >
-                      <Check className="h-3 w-3" />
-                      Mark all read
-                    </button>
+                    {notifications.length > 0 && (
+                      <button
+                        type="button"
+                        className="text-xs text-ink-muted hover:text-brand flex items-center gap-1"
+                        onClick={() => markAllAsRead.mutate()}
+                      >
+                        <Check className="h-3 w-3" />
+                        Mark all read
+                      </button>
+                    )}
                   </div>
                   <ul className="max-h-80 overflow-y-auto divide-y divide-border">
+                    {notifications.length === 0 && (
+                      <li className="px-4 py-8 text-center text-sm text-ink-muted">No notifications yet</li>
+                    )}
                     {notifications.map((n) => (
                       <li key={n.id}>
                         <button
@@ -135,14 +139,22 @@ export function TopBar({ settingsHref = '/ceo/settings', profileHref = '/ceo/set
                             'w-full text-left px-4 py-3 hover:bg-surface-hover transition-colors',
                             !n.read && 'bg-brand-mist/50',
                           )}
-                          onClick={() => setReadIds((prev) => new Set(prev).add(n.id))}
+                          onClick={() => {
+                            if (!n.read) markAsRead.mutate(n.id);
+                            if (n.link) {
+                              setShowNotifications(false);
+                              router.push(n.link);
+                            }
+                          }}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <p className="text-sm font-medium text-ink">{n.title}</p>
                             {!n.read && <span className="mt-1 h-1.5 w-1.5 rounded-full bg-brand shrink-0" />}
                           </div>
-                          <p className="text-xs text-ink-muted mt-1 line-clamp-2">{n.body}</p>
-                          <p className="text-[11px] text-ink-muted mt-1">{n.time}</p>
+                          <p className="text-xs text-ink-muted mt-1 line-clamp-2">{n.message}</p>
+                          <p className="text-[11px] text-ink-muted mt-1">
+                            {n.created_at ? new Date(n.created_at).toLocaleString() : ''}
+                          </p>
                         </button>
                       </li>
                     ))}

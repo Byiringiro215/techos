@@ -71,7 +71,23 @@ export declare class CrmController {
     }>;
     findAllDeals(user: any, filters: any): Promise<{
         success: boolean;
-        data: any[];
+        data: {
+            owner_name: string;
+            assigned_to: string;
+            company_name: string | null;
+            updated_at: Date;
+            id: string;
+            org_id: string;
+            contact_id: string;
+            title: string;
+            value: number;
+            currency: string;
+            stage: string;
+            probability: number;
+            expected_close_date: string;
+            notes: string;
+            created_at: Date;
+        }[];
     }>;
     findOneDeal(user: any, id: string): Promise<{
         success: boolean;
@@ -86,6 +102,36 @@ export declare class CrmController {
         message: string;
     }>;
     getPipelineStats(user: any): Promise<{
+        success: boolean;
+        data: {
+            pipeline: {
+                stage: string;
+                count: number;
+                total_value: number;
+            }[];
+            win_rate: string;
+            total_deals: number;
+            total_pipeline_value: number;
+            total_revenue: number;
+        };
+    }>;
+    getLeadScores(user: any): Promise<{
+        success: boolean;
+        data: {
+            contact_id: string;
+            score: number;
+            rating: string;
+        }[];
+    }>;
+    calculateLeadScore(user: any, contactId: string): Promise<{
+        success: boolean;
+        data: {
+            contact_id: string;
+            score: number;
+            rating: string;
+        };
+    }>;
+    getPipelines(user: any): Promise<{
         success: boolean;
         data: {
             pipeline: {

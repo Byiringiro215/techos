@@ -9,13 +9,10 @@ import { useFinancialSummary, useInvoices, useExpenses, useBudgets } from '@/hoo
 import Link from 'next/link';
 import {
   DollarSign,
-  TrendingUp,
   TrendingDown,
   Receipt,
   CreditCard,
   FileText,
-  ArrowUp,
-  ArrowDown,
   Wallet,
   PiggyBank,
   Clock,
@@ -40,20 +37,33 @@ export default function FinancialOverviewPage() {
     );
   }
 
-  const totalRevenue = invoices?.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0) || 1847500;
-  const totalExpenses = expenses?.reduce((sum, e) => sum + e.amount, 0) || 862300;
-  const pendingExpenses = expenses?.filter(e => e.status === 'pending').length || 0;
-  const pendingInvoices = invoices?.filter(i => i.status === 'sent' || i.status === 'overdue').length || 0;
-  const overdueInvoices = invoices?.filter(i => i.status === 'overdue').length || 0;
+  const totalRevenue =
+    Number(summary?.total_revenue ?? summary?.totalRevenue) ||
+    invoices?.filter((i) => i.status === 'paid').reduce((sum, i) => sum + Number(i.amount || 0), 0) ||
+    0;
+  const totalExpenses =
+    Number(summary?.total_expenses ?? summary?.totalExpenses) ||
+    expenses?.reduce((sum, e) => sum + Number(e.amount || 0), 0) ||
+    0;
+  const pendingExpenses = expenses?.filter((e) => e.status === 'pending').length || 0;
+  const pendingInvoices = invoices?.filter((i) => i.status === 'sent' || i.status === 'overdue').length || 0;
+  const overdueInvoices = invoices?.filter((i) => i.status === 'overdue').length || 0;
   const profit = totalRevenue - totalExpenses;
   const profitMargin = totalRevenue > 0 ? Math.round((profit / totalRevenue) * 100) : 0;
 
   const recentInvoices = invoices?.slice(0, 5) || [];
-  const pendingExpenseList = expenses?.filter(e => e.status === 'pending').slice(0, 5) || [];
-  const budgetUtilization = budgets?.map(b => ({
-    ...b,
-    pct: Math.min(Math.round((b.spent / b.amount) * 100), 100)
-  })) || [];
+  const pendingExpenseList = expenses?.filter((e) => e.status === 'pending').slice(0, 5) || [];
+  const budgetUtilization =
+    budgets?.map((b) => ({
+      ...b,
+      pct: b.amount > 0 ? Math.min(Math.round((Number(b.spent || 0) / Number(b.amount)) * 100), 100) : 0,
+    })) || [];
+
+  const formatMoney = (value: number) => {
+    if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
+    if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
+    return `$${value.toLocaleString()}`;
+  };
 
   const getInvoiceBadge = (status: string) => {
     switch (status) {
@@ -98,11 +108,7 @@ export default function FinancialOverviewPage() {
                 <DollarSign className="h-5 w-5" />
               </div>
               <p className="text-sm text-ink-muted">Total Revenue</p>
-              <p className="text-3xl font-bold text-ink mt-1">${(totalRevenue / 1000000).toFixed(2)}M</p>
-            </div>
-            <div className="flex items-center gap-1 text-success text-sm">
-              <ArrowUp className="h-3 w-3" />
-              <span>+12.5%</span>
+              <p className="text-3xl font-bold text-ink mt-1">{formatMoney(totalRevenue)}</p>
             </div>
           </div>
         </Card>
@@ -113,11 +119,7 @@ export default function FinancialOverviewPage() {
                 <TrendingDown className="h-5 w-5" />
               </div>
               <p className="text-sm text-ink-muted">Total Expenses</p>
-              <p className="text-3xl font-bold text-ink mt-1">${(totalExpenses / 1000).toFixed(0)}K</p>
-            </div>
-            <div className="flex items-center gap-1 text-danger text-sm">
-              <ArrowUp className="h-3 w-3" />
-              <span>+4.2%</span>
+              <p className="text-3xl font-bold text-ink mt-1">{formatMoney(totalExpenses)}</p>
             </div>
           </div>
         </Card>
@@ -128,7 +130,7 @@ export default function FinancialOverviewPage() {
                 <PiggyBank className="h-5 w-5" />
               </div>
               <p className="text-sm text-ink-muted">Net Profit</p>
-              <p className="text-3xl font-bold text-ink mt-1">${(profit / 1000).toFixed(0)}K</p>
+              <p className="text-3xl font-bold text-ink mt-1">{formatMoney(profit)}</p>
             </div>
             <Badge variant="success">{profitMargin}% margin</Badge>
           </div>
@@ -186,9 +188,15 @@ export default function FinancialOverviewPage() {
                         {inv.invoice_number}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-ink-secondary">{inv.client_name}</TableCell>
-                    <TableCell className="text-ink font-medium">${inv.amount?.toLocaleString()}</TableCell>
-                    <TableCell className="text-ink-muted">{new Date(inv.due_date).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-ink-secondary">
+                      {inv.client_name || (inv as any).company || '—'}
+                    </TableCell>
+                    <TableCell className="text-ink font-medium">
+                      ${Number(inv.amount || 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-ink-muted">
+                      {inv.due_date ? new Date(inv.due_date).toLocaleDateString() : '—'}
+                    </TableCell>
                     <TableCell>{getInvoiceBadge(inv.status)}</TableCell>
                   </TableRow>
                 ))}
@@ -240,14 +248,16 @@ export default function FinancialOverviewPage() {
           <Link href="/ceo/finance/budgets" className="text-sm text-ink-muted hover:text-ink">Manage Budgets</Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {(budgetUtilization.length === 0 ? [
-            { name: 'Engineering Budget', amount: 250000, spent: 187500, pct: 75, currency: 'USD', period: 'yearly' },
-            { name: 'Marketing Budget', amount: 120000, spent: 114000, pct: 95, currency: 'USD', period: 'yearly' },
-            { name: 'Operations Budget', amount: 80000, spent: 52000, pct: 65, currency: 'USD', period: 'yearly' },
-            { name: 'Sales Budget', amount: 150000, spent: 105000, pct: 70, currency: 'USD', period: 'yearly' },
-            { name: 'HR Budget', amount: 60000, spent: 33000, pct: 55, currency: 'USD', period: 'yearly' },
-            { name: 'R&D Budget', amount: 200000, spent: 140000, pct: 70, currency: 'USD', period: 'yearly' },
-          ] : budgetUtilization).map(budget => (
+          {budgetUtilization.length === 0 ? (
+            <div className="col-span-full text-center py-8 text-ink-muted">
+              <Wallet className="h-12 w-12 mx-auto mb-2" />
+              <p>No budgets yet</p>
+              <Link href="/ceo/finance/budgets" className="text-sm text-brand hover:underline mt-2 inline-block">
+                Create a budget
+              </Link>
+            </div>
+          ) : (
+            budgetUtilization.map((budget) => (
             <div key={budget.name || (budget as any).id} className="p-4 bg-bg-muted border border-border rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <p className="font-medium text-ink text-sm">{budget.name}</p>
@@ -273,7 +283,8 @@ export default function FinancialOverviewPage() {
                 <span>${(budget.amount / 1000).toFixed(0)}K total</span>
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
       </Card>
     </div>

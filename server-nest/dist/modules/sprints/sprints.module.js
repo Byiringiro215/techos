@@ -13,12 +13,13 @@ const sprints_controller_1 = require("./sprints.controller");
 const sprints_service_1 = require("./sprints.service");
 const sprint_entity_1 = require("../../entities/sprint.entity");
 const project_entity_1 = require("../../entities/project.entity");
+const task_entity_1 = require("../../entities/task.entity");
 let SprintsModule = class SprintsModule {
 };
 exports.SprintsModule = SprintsModule;
 exports.SprintsModule = SprintsModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([sprint_entity_1.Sprint, project_entity_1.Project])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([sprint_entity_1.Sprint, project_entity_1.Project, task_entity_1.Task])],
         controllers: [sprints_controller_1.SprintsController],
         providers: [sprints_service_1.SprintsService],
         exports: [sprints_service_1.SprintsService],

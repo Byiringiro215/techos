@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { Task } from '../../entities/task.entity';
 import { Project } from '../../entities/project.entity';
+import { ActivityLogService } from '../../common/services/activity-log.service';
 
 @Injectable()
 export class TasksService {
@@ -12,9 +13,10 @@ export class TasksService {
     private tasksRepository: Repository<Task>,
     @InjectRepository(Project)
     private projectsRepository: Repository<Project>,
+    private activityLogService: ActivityLogService,
   ) {}
 
-  async create(org_id: string, user_id: string, createTaskDto: any) {
+  async create(org_id: string, actor: any, createTaskDto: any) {
     // Verify project belongs to org
     const project = await this.projectsRepository.findOne({
       where: { id: createTaskDto.project_id, org_id },
@@ -26,12 +28,32 @@ export class TasksService {
 
     const task = this.tasksRepository.create({
       id: randomUUID(),
-      ...createTaskDto,
-      reporter_id: user_id,
+      org_id,
+      title: createTaskDto.title,
+      description: createTaskDto.description,
+      project_id: createTaskDto.project_id,
+      sprint_id: createTaskDto.sprint_id,
+      parent_task_id: createTaskDto.parent_task_id,
+      status: createTaskDto.status || 'todo',
+      priority: createTaskDto.priority || 'medium',
+      assignee_id: createTaskDto.assignee_id,
+      estimated_hours: createTaskDto.estimated_hours,
+      story_points: createTaskDto.story_points,
+      due_date: createTaskDto.due_date,
+      tags: createTaskDto.tags,
+      reporter_id: actor?.id,
     });
 
-    await this.tasksRepository.save(task);
-    return { success: true, data: task };
+    const saved = await this.tasksRepository.save(task);
+    await this.activityLogService.log({
+      org_id,
+      actor,
+      action: 'created',
+      resource_type: 'tasks',
+      resource_id: saved.id,
+      summary: `created task "${saved.title || 'Untitled'}"`,
+    });
+    return { success: true, data: saved };
   }
 
   async findAll(org_id: string, filters?: any) {
@@ -69,7 +91,7 @@ export class TasksService {
     return { success: true, data: task };
   }
 
-  async update(id: string, org_id: string, updateTaskDto: any) {
+  async update(id: string, org_id: string, updateTaskDto: any, actor?: any) {
     const task = await this.tasksRepository
       .createQueryBuilder('task')
       .leftJoin(Project, 'project', 'task.project_id = project.id')
@@ -84,10 +106,19 @@ export class TasksService {
 
     await this.tasksRepository.update(id, updateTaskDto);
     const updated = await this.tasksRepository.findOne({ where: { id } });
+    await this.activityLogService.log({
+      org_id,
+      actor,
+      action: 'updated',
+      resource_type: 'tasks',
+      resource_id: id,
+      summary: `updated task "${updated?.title || task.title || 'Untitled'}"`,
+      changes: updateTaskDto,
+    });
     return { success: true, data: updated };
   }
 
-  async remove(id: string, org_id: string) {
+  async remove(id: string, org_id: string, actor?: any) {
     const task = await this.tasksRepository
       .createQueryBuilder('task')
       .leftJoin(Project, 'project', 'task.project_id = project.id')
@@ -101,6 +132,23 @@ export class TasksService {
     }
 
     await this.tasksRepository.delete(id);
+    await this.activityLogService.log({
+      org_id,
+      actor,
+      action: 'deleted',
+      resource_type: 'tasks',
+      resource_id: id,
+      summary: `deleted task "${task.title || 'Untitled'}"`,
+    });
     return { success: true, message: 'Task deleted successfully' };
+  }
+
+  async getSubtasks(task_id: string, org_id: string) {
+    await this.findOne(task_id, org_id);
+    const subtasks = await this.tasksRepository.find({
+      where: { parent_task_id: task_id },
+      order: { created_at: 'ASC' },
+    });
+    return { success: true, data: subtasks };
   }
 }

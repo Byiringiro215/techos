@@ -34,6 +34,9 @@ let AuthController = class AuthController {
     async getProfile(user) {
         return this.authService.getProfile(user.id);
     }
+    async getMe(user) {
+        return this.authService.getProfile(user.id);
+    }
 };
 exports.AuthController = AuthController;
 __decorate([
@@ -60,6 +63,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "getProfile", null);
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('me'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "getMe", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService])

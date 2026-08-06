@@ -43,7 +43,7 @@ let CrmController = class CrmController {
         return this.crmService.scoreContact(id, user.org_id);
     }
     createDeal(user, createDealDto) {
-        return this.crmService.createDeal(user.org_id, createDealDto);
+        return this.crmService.createDeal(user.org_id, createDealDto, user);
     }
     findAllDeals(user, filters) {
         return this.crmService.findAllDeals(user.org_id, filters);
@@ -52,12 +52,23 @@ let CrmController = class CrmController {
         return this.crmService.findOneDeal(id, user.org_id);
     }
     updateDeal(user, id, updateData) {
-        return this.crmService.updateDeal(id, user.org_id, updateData);
+        return this.crmService.updateDeal(id, user.org_id, updateData, user);
     }
     deleteDeal(user, id) {
-        return this.crmService.deleteDeal(id, user.org_id);
+        return this.crmService.deleteDeal(id, user.org_id, user);
     }
     getPipelineStats(user) {
+        return this.crmService.getPipelineStats(user.org_id);
+    }
+    async getLeadScores(user) {
+        const contacts = await this.crmService.findAllContacts(user.org_id);
+        const scores = await Promise.all((contacts.data || []).map((contact) => this.crmService.scoreContact(contact.id, user.org_id)));
+        return { success: true, data: scores.map((entry) => entry.data) };
+    }
+    calculateLeadScore(user, contactId) {
+        return this.crmService.scoreContact(contactId, user.org_id);
+    }
+    getPipelines(user) {
         return this.crmService.getPipelineStats(user.org_id);
     }
 };
@@ -159,6 +170,28 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], CrmController.prototype, "getPipelineStats", null);
+__decorate([
+    (0, common_1.Get)('lead-scores'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], CrmController.prototype, "getLeadScores", null);
+__decorate([
+    (0, common_1.Post)('lead-scores/:contactId/calculate'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('contactId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], CrmController.prototype, "calculateLeadScore", null);
+__decorate([
+    (0, common_1.Get)('pipelines'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], CrmController.prototype, "getPipelines", null);
 exports.CrmController = CrmController = __decorate([
     (0, common_1.Controller)('crm'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

@@ -1,17 +1,13 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
-// Import all entities
 import { entities } from './entities';
-
-// Import common module
 import { CommonModule } from './common/common.module';
 
-// Import all modules
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
@@ -35,33 +31,60 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { AiModule } from './modules/ai/ai.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { CisoModule } from './modules/ciso/ciso.module';
+import { WorkspaceModule } from './modules/workspace/workspace.module';
+
+function buildTypeOrmOptions(config: ConfigService): TypeOrmModuleOptions {
+  const dbType = (config.get<string>('DATABASE_TYPE') || 'sqlite').toLowerCase();
+  const isDev = config.get<string>('NODE_ENV') !== 'production';
+  const synchronize =
+    (config.get<string>('DATABASE_SYNC') || (isDev ? 'true' : 'false')) === 'true';
+
+  if (dbType === 'postgres' || dbType === 'postgresql') {
+    return {
+      type: 'postgres',
+      host: config.get<string>('DATABASE_HOST', 'localhost'),
+      port: Number(config.get<string>('DATABASE_PORT') || 5432),
+      username: config.get<string>('DATABASE_USER', 'techos'),
+      password: config.get<string>('DATABASE_PASSWORD', 'techos'),
+      database: config.get<string>('DATABASE_NAME', 'techos'),
+      entities,
+      synchronize,
+      logging: isDev,
+      retryAttempts: 10,
+      retryDelay: 3000,
+    };
+  }
+
+  return {
+    type: 'sqlite',
+    database: config.get<string>('DATABASE_PATH', './techos.db'),
+    entities,
+    synchronize,
+    logging: isDev,
+  };
+}
 
 @Module({
   imports: [
-    // Config
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    
-    // Database
-    TypeOrmModule.forRoot({
-      type: 'sqlite',
-      database: process.env.DATABASE_PATH || './techos.db',
-      entities: entities,
-      synchronize: true, // Set to false in production
-      logging: process.env.NODE_ENV === 'development',
+
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => buildTypeOrmOptions(config),
     }),
-    
-    // Rate limiting
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
-    
-    // Common services
+
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
+
     CommonModule,
-    
-    // Feature modules
+
     AuthModule,
     UsersModule,
     OrganizationsModule,
@@ -85,6 +108,8 @@ import { ReportsModule } from './modules/reports/reports.module';
     IntegrationsModule,
     AiModule,
     ReportsModule,
+    CisoModule,
+    WorkspaceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -10,6 +10,8 @@ import { Announcement } from '../../entities/announcement.entity';
 import { Invoice } from '../../entities/invoice.entity';
 import { Expense } from '../../entities/expense.entity';
 import { LeaveRequest } from '../../entities/leave-request.entity';
+import { Report } from '../../entities/report.entity';
+import { User } from '../../entities/user.entity';
 export declare class DashboardService {
     private projectRepository;
     private taskRepository;
@@ -22,7 +24,9 @@ export declare class DashboardService {
     private invoiceRepository;
     private expenseRepository;
     private leaveRequestRepository;
-    constructor(projectRepository: Repository<Project>, taskRepository: Repository<Task>, sprintRepository: Repository<Sprint>, bugRepository: Repository<Bug>, goalRepository: Repository<Goal>, meetingRepository: Repository<Meeting>, notificationRepository: Repository<Notification>, announcementRepository: Repository<Announcement>, invoiceRepository: Repository<Invoice>, expenseRepository: Repository<Expense>, leaveRequestRepository: Repository<LeaveRequest>);
+    private reportRepository;
+    private usersRepository;
+    constructor(projectRepository: Repository<Project>, taskRepository: Repository<Task>, sprintRepository: Repository<Sprint>, bugRepository: Repository<Bug>, goalRepository: Repository<Goal>, meetingRepository: Repository<Meeting>, notificationRepository: Repository<Notification>, announcementRepository: Repository<Announcement>, invoiceRepository: Repository<Invoice>, expenseRepository: Repository<Expense>, leaveRequestRepository: Repository<LeaveRequest>, reportRepository: Repository<Report>, usersRepository: Repository<User>);
     getDeveloperDashboard(user_id: string, org_id: string): Promise<{
         success: boolean;
         data: {
@@ -48,8 +52,11 @@ export declare class DashboardService {
             financials: {
                 total_revenue: number;
                 total_expenses: number;
+                outstanding: number;
                 net: number;
             };
+            teamSize: number;
+            employees: number;
             team_productivity: {
                 total_tasks: number;
                 completed: number;
@@ -107,6 +114,26 @@ export declare class DashboardService {
             };
             recent_leave_requests: LeaveRequest[];
             announcements: Announcement[];
+        };
+    }>;
+    getCisoDashboard(org_id: string): Promise<{
+        success: boolean;
+        data: {
+            tasks: {
+                total: number;
+                finished: number;
+                not_finished: number;
+            };
+            audits: {
+                total: number;
+                needed: number;
+                in_progress: number;
+                completed: number;
+            };
+            reports: {
+                total: number;
+                recent: Report[];
+            };
         };
     }>;
 }

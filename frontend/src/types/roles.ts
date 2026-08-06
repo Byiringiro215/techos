@@ -2,6 +2,7 @@
 export enum UserRole {
   CEO = 'ceo',
   CTO = 'cto',
+  CISO = 'ciso',
   FINANCE = 'finance',
   SOFTWARE_ENGINEER = 'software_engineer',
   UI_UX_DESIGNER = 'ui_ux_designer',
@@ -73,6 +74,7 @@ export enum Permission {
   VIEW_GOALS = 'view_goals',
   MANAGE_GOALS = 'manage_goals',
   VIEW_REPORTS = 'view_reports',
+  VIEW_SECURITY_AUDITS = 'view_security_audits',
 }
 
 // Role to permissions mapping
@@ -105,6 +107,18 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.MANAGE_GOALS,
     Permission.VIEW_REPORTS,
     Permission.VIEW_ANNOUNCEMENTS,
+  ],
+
+  [UserRole.CISO]: [
+    Permission.VIEW_PROJECTS,
+    Permission.MANAGE_TASKS,
+    Permission.VIEW_REPORTS,
+    Permission.VIEW_SECURITY_AUDITS,
+    Permission.VIEW_ANALYTICS,
+    Permission.VIEW_DOCUMENTS,
+    Permission.VIEW_MESSAGES,
+    Permission.VIEW_MEETINGS,
+    Permission.VIEW_CALENDAR,
   ],
 
   [UserRole.SOFTWARE_ENGINEER]: [
@@ -187,6 +201,7 @@ export const ROUTE_PERMISSIONS: Record<string, Permission[]> = {
   '/dashboard/ai': [Permission.USE_AI],
   '/dashboard/goals': [Permission.VIEW_GOALS],
   '/dashboard/reports': [Permission.VIEW_REPORTS],
+  '/dashboard/ciso/audits': [Permission.VIEW_SECURITY_AUDITS],
   '/dashboard/announcements': [Permission.VIEW_ANNOUNCEMENTS],
   '/dashboard/integrations': [Permission.MANAGE_INTEGRATIONS],
   '/dashboard/settings': [Permission.VIEW_SETTINGS],
@@ -198,6 +213,7 @@ export const ROUTE_PERMISSIONS: Record<string, Permission[]> = {
 export const ROLE_DEFAULT_ROUTES: Record<UserRole, string> = {
   [UserRole.CEO]: '/ceo',
   [UserRole.CTO]: '/cto',
+  [UserRole.CISO]: '/ciso',
   [UserRole.FINANCE]: '/finance',
   [UserRole.SOFTWARE_ENGINEER]: '/software-engineer',
   [UserRole.UI_UX_DESIGNER]: '/ui-ux-designer',

@@ -73,23 +73,14 @@ let DocumentsService = class DocumentsService {
         if (filters?.type) {
             where.type = filters.type;
         }
-        if (filters?.folder) {
-            where.folder = filters.folder;
+        const folderFilter = filters?.folder || filters?.folder_id;
+        if (folderFilter) {
+            where.folder = folderFilter;
         }
-        const documents = await this.documentsRepository
-            .createQueryBuilder('document')
-            .leftJoinAndSelect(user_entity_1.User, 'user', 'document.created_by = user.id')
-            .where('document.org_id = :org_id', { org_id })
-            .andWhere('document.is_archived = :is_archived', { is_archived: false })
-            .andWhere(filters?.type ? 'document.type = :type' : '1=1', filters?.type ? { type: filters.type } : {})
-            .andWhere(filters?.folder ? 'document.folder = :folder' : '1=1', filters?.folder ? { folder: filters.folder } : {})
-            .select([
-            'document.*',
-            'user.first_name as created_by_first_name',
-            'user.last_name as created_by_last_name',
-        ])
-            .orderBy('document.created_at', 'DESC')
-            .getRawMany();
+        const documents = await this.documentsRepository.find({
+            where,
+            order: { created_at: 'DESC' },
+        });
         return {
             success: true,
             data: documents,
@@ -210,6 +201,40 @@ let DocumentsService = class DocumentsService {
             success: true,
             data: newVersion,
         };
+    }
+    async getVersions(id, org_id) {
+        const document = await this.documentsRepository.findOne({ where: { id, org_id } });
+        if (!document) {
+            throw new common_1.NotFoundException('Document not found');
+        }
+        const baseTitle = document.title.replace(/\s\(v\d+\)$/, '');
+        const versions = await this.documentsRepository
+            .createQueryBuilder('document')
+            .where('document.org_id = :org_id', { org_id })
+            .andWhere('(document.id = :id OR document.title LIKE :title)', {
+            id,
+            title: `${baseTitle} (v%)`,
+        })
+            .orderBy('document.version', 'DESC')
+            .getMany();
+        return { success: true, data: versions };
+    }
+    async createFolder(org_id, user_id, folderData) {
+        const folderName = folderData.parent_folder_id
+            ? `${folderData.parent_folder_id}/${folderData.name}`
+            : folderData.name;
+        const marker = this.documentsRepository.create({
+            id: (0, crypto_1.randomUUID)(),
+            org_id,
+            title: `${folderData.name} (folder)`,
+            content: '',
+            type: 'folder',
+            folder: folderName,
+            created_by: user_id,
+            version: 1,
+        });
+        await this.documentsRepository.save(marker);
+        return { success: true, data: { name: folderName } };
     }
 };
 exports.DocumentsService = DocumentsService;

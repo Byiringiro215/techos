@@ -14,14 +14,19 @@ import {
   startOfWeek,
   subMonths,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, Clock, MapPin, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, MapPin, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { mockCalendarEvents, type CalendarEvent } from '@/mocks';
+import {
+  useCalendarEvents,
+  useCreateCalendarEvent,
+  useDeleteCalendarEvent,
+} from '@/hooks/useCalendar';
 import { Badge } from '@/components/UI/Badge';
 import { Button } from '@/components/UI/Button';
 import { Card } from '@/components/UI/Card';
 import { Modal } from '@/components/UI/Modal';
 import { PageHeader } from '@/components/UI/PageHeader';
+import { Input } from '@/components/UI/Input';
 import { cn } from '@/lib/utils';
 
 const TYPE_STYLES: Record<string, string> = {
@@ -37,25 +42,62 @@ interface CalendarBoardProps {
   breadcrumbs?: { label: string; href?: string }[];
 }
 
+type BoardEvent = {
+  id: string;
+  title: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  type: string;
+  location?: string;
+  description?: string;
+};
+
+function toBoardEvent(row: any): BoardEvent {
+  const start = row.start_datetime || row.start_time || row.start;
+  const end = row.end_datetime || row.end_time || row.end;
+  const startDate = start ? new Date(start) : new Date();
+  const endDate = end ? new Date(end) : startDate;
+  return {
+    id: row.id,
+    title: row.title || 'Event',
+    date: format(startDate, 'yyyy-MM-dd'),
+    startTime: format(startDate, 'HH:mm'),
+    endTime: format(endDate, 'HH:mm'),
+    type: row.type || 'meeting',
+    location: row.location,
+    description: row.description,
+  };
+}
+
 export function CalendarBoard({ breadcrumbs }: CalendarBoardProps) {
   const [cursor, setCursor] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [events, setEvents] = useState<CalendarEvent[]>(mockCalendarEvents);
-  const [activeEvent, setActiveEvent] = useState<CalendarEvent | null>(null);
+  const [activeEvent, setActiveEvent] = useState<BoardEvent | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [title, setTitle] = useState('');
 
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
+  const { data: rawEvents = [], isLoading } = useCalendarEvents(
+    monthStart.toISOString(),
+    monthEnd.toISOString(),
+  );
+  const createEvent = useCreateCalendarEvent();
+  const deleteEvent = useDeleteCalendarEvent();
+
+  const events = useMemo(() => (rawEvents || []).map(toBoardEvent), [rawEvents]);
+
   const gridStart = startOfWeek(monthStart, { weekStartsOn: 0 });
   const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
   const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
 
   const eventsByDate = useMemo(() => {
-    const map = new Map<string, CalendarEvent[]>();
+    const map = new Map<string, BoardEvent[]>();
     for (const event of events) {
-      const key = event.date;
-      const list = map.get(key) || [];
+      const list = map.get(event.date) || [];
       list.push(event);
-      map.set(key, list);
+      map.set(event.date, list);
     }
     return map;
   }, [events]);
@@ -65,32 +107,28 @@ export function CalendarBoard({ breadcrumbs }: CalendarBoardProps) {
     a.startTime.localeCompare(b.startTime),
   );
 
-  const addQuickEvent = () => {
-    const id = `evt-${Date.now()}`;
-    const event: CalendarEvent = {
-      id,
-      title: 'New event',
-      date: selectedKey,
-      startTime: '09:00',
-      endTime: '10:00',
+  const addQuickEvent = async () => {
+    const start = `${selectedKey}T09:00:00.000Z`;
+    const end = `${selectedKey}T10:00:00.000Z`;
+    await createEvent.mutateAsync({
+      title: title.trim() || 'New event',
+      start_datetime: start,
+      end_datetime: end,
       type: 'meeting',
-      color: 'info',
-      location: 'Zoom',
-      description: 'Created from calendar (mock).',
-    };
-    setEvents((prev) => [...prev, event]);
-    setActiveEvent(event);
-    toast.success('Event added (mock)');
+      all_day: false,
+    } as any);
+    setTitle('');
+    setCreateOpen(false);
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Calendar"
-        description="Plan meetings, deadlines, and reviews across your workspace."
+        description="Schedule meetings, deadlines, and reminders."
         breadcrumbs={breadcrumbs}
         actions={
-          <Button size="sm" onClick={addQuickEvent}>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             New event
           </Button>
@@ -98,206 +136,140 @@ export function CalendarBoard({ breadcrumbs }: CalendarBoardProps) {
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
-        <Card padding="none" className="overflow-hidden">
-          <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border">
-            <div>
-              <h2 className="text-lg font-semibold text-ink">{format(cursor, 'MMMM yyyy')}</h2>
-              <p className="text-xs text-ink-muted mt-0.5">
-                {events.filter((e) => e.date.startsWith(format(cursor, 'yyyy-MM'))).length} events this month
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setCursor(new Date())}>
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-ink">{format(cursor, 'MMMM yyyy')}</h3>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={() => setCursor(subMonths(cursor, 1))}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setCursor(new Date())}>
                 Today
               </Button>
-              <button
-                type="button"
-                aria-label="Previous month"
-                onClick={() => setCursor((d) => subMonths(d, 1))}
-                className="p-2 rounded-xl border border-border text-ink-secondary hover:bg-surface-hover"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                aria-label="Next month"
-                onClick={() => setCursor((d) => addMonths(d, 1))}
-                className="p-2 rounded-xl border border-border text-ink-secondary hover:bg-surface-hover"
-              >
+              <Button variant="ghost" size="sm" onClick={() => setCursor(addMonths(cursor, 1))}>
                 <ChevronRight className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
           </div>
 
-          <div className="grid grid-cols-7 border-b border-border bg-bg-muted">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-              <div key={d} className="px-2 py-2.5 text-center text-xs font-semibold text-ink-muted uppercase tracking-wide">
-                {d}
+          {isLoading ? (
+            <p className="text-sm text-ink-muted py-8 text-center">Loading schedule...</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+                  <div key={d} className="text-center text-xs text-ink-muted py-1">
+                    {d}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 auto-rows-[minmax(96px,1fr)]">
-            {days.map((day) => {
-              const key = format(day, 'yyyy-MM-dd');
-              const dayItems = eventsByDate.get(key) || [];
-              const inMonth = isSameMonth(day, cursor);
-              const selected = isSameDay(day, selectedDate);
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setSelectedDate(day)}
-                  className={cn(
-                    'min-h-[96px] border-r border-b border-border p-2 text-left transition-colors align-top',
-                    !inMonth && 'bg-bg-muted/50 text-ink-muted',
-                    selected && 'bg-brand-mist/70 ring-2 ring-inset ring-brand/40',
-                    inMonth && !selected && 'hover:bg-surface-hover',
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span
+              <div className="grid grid-cols-7 gap-1">
+                {days.map((day) => {
+                  const key = format(day, 'yyyy-MM-dd');
+                  const dayList = eventsByDate.get(key) || [];
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setSelectedDate(day)}
                       className={cn(
-                        'inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium',
-                        isToday(day) && 'bg-brand text-ink-inverse',
-                        !isToday(day) && selected && 'text-brand font-semibold',
-                        !isToday(day) && !selected && (inMonth ? 'text-ink' : 'text-ink-muted'),
+                        'min-h-[84px] rounded-lg border p-1.5 text-left transition-colors',
+                        isSameMonth(day, cursor) ? 'bg-surface border-border' : 'bg-bg-muted/40 border-transparent text-ink-muted',
+                        isSameDay(day, selectedDate) && 'ring-2 ring-brand/40 border-brand/30',
+                        isToday(day) && 'bg-brand-mist/40',
                       )}
                     >
-                      {format(day, 'd')}
-                    </span>
-                    {dayItems.length > 2 && (
-                      <span className="text-[10px] text-ink-muted">+{dayItems.length - 2}</span>
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    {dayItems.slice(0, 2).map((event) => (
-                      <div
-                        key={event.id}
-                        className={cn(
-                          'truncate rounded-md px-1.5 py-0.5 text-[10px] font-medium',
-                          TYPE_STYLES[event.type] || TYPE_STYLES.event,
+                      <span className="text-xs font-medium">{format(day, 'd')}</span>
+                      <div className="mt-1 space-y-0.5">
+                        {dayList.slice(0, 2).map((ev) => (
+                          <div
+                            key={ev.id}
+                            className={cn('truncate rounded px-1 text-[10px]', TYPE_STYLES[ev.type] || TYPE_STYLES.event)}
+                          >
+                            {ev.title}
+                          </div>
+                        ))}
+                        {dayList.length > 2 && (
+                          <p className="text-[10px] text-ink-muted">+{dayList.length - 2} more</p>
                         )}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedDate(day);
-                          setActiveEvent(event);
-                        }}
-                      >
-                        {event.startTime !== '00:00' ? `${event.startTime} ` : ''}
-                        {event.title}
                       </div>
-                    ))}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </Card>
 
-        <div className="space-y-4">
-          <Card>
-            <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Selected day</p>
-            <h3 className="text-lg font-semibold text-ink mt-1">{format(selectedDate, 'EEEE, MMM d')}</h3>
-            <p className="text-sm text-ink-muted mt-1">{dayEvents.length} event{dayEvents.length === 1 ? '' : 's'}</p>
-            <Button className="w-full mt-4" variant="outline" size="sm" onClick={addQuickEvent}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add to this day
-            </Button>
-          </Card>
-
-          <Card padding="none" className="overflow-hidden">
-            <div className="px-4 py-3 border-b border-border">
-              <h3 className="text-sm font-semibold text-ink">Agenda</h3>
-            </div>
-            {dayEvents.length === 0 ? (
-              <div className="p-6 text-sm text-ink-muted text-center">No events scheduled.</div>
-            ) : (
-              <ul className="divide-y divide-border max-h-[480px] overflow-y-auto">
-                {dayEvents.map((event) => (
-                  <li key={event.id}>
-                    <button
-                      type="button"
-                      onClick={() => setActiveEvent(event)}
-                      className="w-full text-left px-4 py-3 hover:bg-surface-hover transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium text-ink">{event.title}</p>
-                        <Badge variant={event.color || 'info'} size="sm">
-                          {event.type}
-                        </Badge>
-                      </div>
-                      <p className="mt-1.5 flex items-center gap-1.5 text-xs text-ink-muted">
-                        <Clock className="h-3.5 w-3.5" />
-                        {event.startTime} – {event.endTime}
-                      </p>
-                      {event.location && (
-                        <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-muted">
-                          <MapPin className="h-3.5 w-3.5" />
-                          {event.location}
-                        </p>
-                      )}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+        <Card>
+          <h3 className="text-sm font-medium text-ink mb-3">{format(selectedDate, 'EEEE, MMM d')}</h3>
+          <div className="space-y-2">
+            {dayEvents.length === 0 && (
+              <p className="text-sm text-ink-muted">No events scheduled.</p>
             )}
-          </Card>
-        </div>
+            {dayEvents.map((ev) => (
+              <button
+                key={ev.id}
+                type="button"
+                onClick={() => setActiveEvent(ev)}
+                className="w-full text-left rounded-lg border border-border p-3 hover:bg-bg-muted transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-ink">{ev.title}</p>
+                  <Badge size="sm">{ev.type}</Badge>
+                </div>
+                <p className="text-xs text-ink-muted mt-1 flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {ev.startTime} – {ev.endTime}
+                </p>
+                {ev.location && (
+                  <p className="text-xs text-ink-muted mt-1 flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
+                    {ev.location}
+                  </p>
+                )}
+              </button>
+            ))}
+          </div>
+        </Card>
       </div>
 
-      <Modal
-        isOpen={!!activeEvent}
-        onClose={() => setActiveEvent(null)}
-        title={activeEvent?.title || 'Event'}
-        size="md"
-      >
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="New event">
+        <div className="space-y-4">
+          <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Team sync" />
+          <p className="text-xs text-ink-muted">Scheduled on {selectedKey} from 09:00–10:00 (UTC).</p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
+            <Button loading={createEvent.isPending} onClick={addQuickEvent}>
+              Create
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!activeEvent} onClose={() => setActiveEvent(null)} title={activeEvent?.title || 'Event'}>
         {activeEvent && (
-          <div className="space-y-4 text-sm">
-            <div className="flex flex-wrap gap-2">
-              <Badge variant={activeEvent.color || 'info'}>{activeEvent.type}</Badge>
-              <Badge variant="default">{activeEvent.date}</Badge>
-            </div>
-            <p className="text-ink-secondary">{activeEvent.description}</p>
-            <dl className="grid grid-cols-2 gap-3">
-              <div>
-                <dt className="text-ink-muted text-xs">Time</dt>
-                <dd className="text-ink mt-1">
-                  {activeEvent.startTime} – {activeEvent.endTime}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-ink-muted text-xs">Location</dt>
-                <dd className="text-ink mt-1">{activeEvent.location || '—'}</dd>
-              </div>
-            </dl>
-            {activeEvent.attendees && activeEvent.attendees.length > 0 && (
-              <div>
-                <p className="text-xs text-ink-muted mb-2">Attendees</p>
-                <div className="flex flex-wrap gap-2">
-                  {activeEvent.attendees.map((a) => (
-                    <span key={a} className="rounded-full bg-bg-muted px-2.5 py-1 text-xs text-ink-secondary">
-                      {a}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="flex justify-end gap-2 pt-2">
+          <div className="space-y-4">
+            <p className="text-sm text-ink-secondary">{activeEvent.description || 'No description'}</p>
+            <p className="text-xs text-ink-muted">
+              {activeEvent.date} · {activeEvent.startTime}–{activeEvent.endTime}
+            </p>
+            <div className="flex justify-end gap-2">
               <Button
                 variant="danger"
-                size="sm"
-                onClick={() => {
-                  setEvents((prev) => prev.filter((e) => e.id !== activeEvent.id));
+                loading={deleteEvent.isPending}
+                onClick={async () => {
+                  await deleteEvent.mutateAsync(activeEvent.id);
                   setActiveEvent(null);
-                  toast.success('Event removed (mock)');
+                  toast.success('Event deleted');
                 }}
               >
+                <Trash2 className="h-4 w-4 mr-2" />
                 Delete
               </Button>
-              <Button size="sm" onClick={() => setActiveEvent(null)}>
-                Close
-              </Button>
+              <Button onClick={() => setActiveEvent(null)}>Close</Button>
             </div>
           </div>
         )}

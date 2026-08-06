@@ -119,4 +119,97 @@ export declare class ReportsController {
             resolution_rate: number;
         };
     }>;
+    generateByType(user: any, type: string, params: any): Promise<{
+        success: boolean;
+        data: {
+            project: import("../../entities").Project;
+            tasks: {
+                total: number;
+                completed: number;
+                in_progress: number;
+                pending: number;
+            };
+            bugs: {
+                total: number;
+                open: number;
+                resolved: number;
+            };
+        }[];
+    }> | Promise<{
+        success: boolean;
+        data: {
+            period: {
+                start_date: string | undefined;
+                end_date: string | undefined;
+            };
+            revenue: {
+                total: number;
+                by_status: {
+                    paid: number;
+                    pending: number;
+                    overdue: number;
+                };
+            };
+            expenses: {
+                total: number;
+                by_category: {};
+                by_status: {
+                    approved: number;
+                    pending: number;
+                    rejected: number;
+                };
+            };
+            net_profit: number;
+        };
+    }> | Promise<{
+        success: boolean;
+        data: {
+            total_kpis: number;
+            by_category: {};
+            overall_achievement: number;
+        };
+    }> | Promise<{
+        success: boolean;
+        data: {
+            total_tasks: number;
+            by_status: {
+                todo: number;
+                in_progress: number;
+                done: number;
+            };
+            by_priority: {
+                high: number;
+                medium: number;
+                low: number;
+            };
+            time_tracking: {
+                total_estimated: number;
+                total_logged: number;
+            };
+            completion_rate: number;
+        };
+    }> | Promise<{
+        success: boolean;
+        data: {
+            total_bugs: number;
+            by_status: {
+                open: number;
+                in_progress: number;
+                resolved: number;
+                closed: number;
+            };
+            by_severity: {
+                critical: number;
+                high: number;
+                medium: number;
+                low: number;
+            };
+            by_priority: {
+                high: number;
+                medium: number;
+                low: number;
+            };
+            resolution_rate: number;
+        };
+    }>;
 }

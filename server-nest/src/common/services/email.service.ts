@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
+import * as nodemailer from 'nodemailer';
+import type { Transporter } from 'nodemailer';
 
 export interface SendEmailOptions {
   to: string | string[];
@@ -12,43 +14,81 @@ export interface SendEmailOptions {
 
 @Injectable()
 export class EmailService {
-  private resend: Resend;
+  private readonly logger = new Logger(EmailService.name);
+  private resend: Resend | null = null;
+  private smtp: Transporter | null = null;
   private fromEmail: string;
 
   constructor(private configService: ConfigService) {
+    this.fromEmail = this.configService.get<string>('FROM_EMAIL', 'noreply@techos.local');
+
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
-    this.fromEmail = this.configService.get<string>('FROM_EMAIL', 'noreply@techos.com');
-    
-    if (apiKey) {
+    if (apiKey && !apiKey.startsWith('your_')) {
       this.resend = new Resend(apiKey);
+      this.logger.log('Email provider: Resend');
+      return;
+    }
+
+    const smtpHost = this.configService.get<string>('SMTP_HOST');
+    if (smtpHost) {
+      this.smtp = nodemailer.createTransport({
+        host: smtpHost,
+        port: Number(this.configService.get<string>('SMTP_PORT') || 1025),
+        secure: this.configService.get<string>('SMTP_SECURE') === 'true',
+        auth: this.configService.get<string>('SMTP_USER')
+          ? {
+              user: this.configService.get<string>('SMTP_USER'),
+              pass: this.configService.get<string>('SMTP_PASS'),
+            }
+          : undefined,
+      });
+      this.logger.log(`Email provider: SMTP (${smtpHost})`);
+    } else {
+      this.logger.warn('No email provider configured');
     }
   }
 
   async sendEmail(options: SendEmailOptions): Promise<any> {
-    if (!this.resend) {
-      console.warn('Resend API key not configured. Email not sent.');
-      return null;
-    }
+    const to = Array.isArray(options.to) ? options.to : [options.to];
+    const from = options.from || this.fromEmail;
 
-    try {
-      const { data, error } = await this.resend.emails.send({
-        from: options.from || this.fromEmail,
-        to: Array.isArray(options.to) ? options.to : [options.to],
-        subject: options.subject,
-        html: options.html,
-        replyTo: options.replyTo,
-      });
-
-      if (error) {
-        console.error('Email send error:', error);
+    if (this.resend) {
+      try {
+        const { data, error } = await this.resend.emails.send({
+          from,
+          to,
+          subject: options.subject,
+          html: options.html,
+          replyTo: options.replyTo,
+        });
+        if (error) {
+          this.logger.error(`Resend error: ${JSON.stringify(error)}`);
+          return null;
+        }
+        return data;
+      } catch (error) {
+        this.logger.error('Failed to send email via Resend', error as Error);
         return null;
       }
-
-      return data;
-    } catch (error) {
-      console.error('Failed to send email:', error);
-      return null;
     }
+
+    if (this.smtp) {
+      try {
+        return await this.smtp.sendMail({
+          from,
+          to,
+          subject: options.subject,
+          html: options.html,
+          replyTo: options.replyTo,
+        });
+      } catch (error) {
+        this.logger.error('Failed to send email via SMTP', error as Error);
+        return null;
+      }
+    }
+
+    this.logger.warn('Email not sent — no provider configured');
+    return null;
   }
 
   async sendWelcomeEmail(to: string, firstName: string, organizationName: string): Promise<any> {
@@ -65,7 +105,7 @@ export class EmailService {
   }
 
   async sendPasswordResetEmail(to: string, resetToken: string): Promise<any> {
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:5173');
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
     return this.sendEmail({

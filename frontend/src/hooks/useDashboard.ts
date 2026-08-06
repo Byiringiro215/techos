@@ -19,6 +19,8 @@ export function useDashboard() {
         endpoint = 'finance';
       } else if (role.includes('hr')) {
         endpoint = 'hr';
+      } else if (role.includes('ciso') || role.includes('security')) {
+        endpoint = 'ciso';
       }
 
       const response = await api.get(`/dashboard/${endpoint}`);

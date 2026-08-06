@@ -28,10 +28,16 @@ let NotificationsController = class NotificationsController {
     getUnreadCount(user) {
         return this.notificationsService.getUnreadCount(user.id);
     }
+    getUnreadCountAlias(user) {
+        return this.notificationsService.getUnreadCount(user.id);
+    }
     markAsRead(user, id) {
         return this.notificationsService.markAsRead(id, user.id);
     }
     markAllAsRead(user) {
+        return this.notificationsService.markAllAsRead(user.id);
+    }
+    markAllAsReadAlias(user) {
         return this.notificationsService.markAllAsRead(user.id);
     }
     remove(user, id) {
@@ -55,6 +61,13 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], NotificationsController.prototype, "getUnreadCount", null);
 __decorate([
+    (0, common_1.Get)('unread/count'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], NotificationsController.prototype, "getUnreadCountAlias", null);
+__decorate([
     (0, common_1.Put)(':id/read'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)('id')),
@@ -69,6 +82,13 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], NotificationsController.prototype, "markAllAsRead", null);
+__decorate([
+    (0, common_1.Put)('read-all'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], NotificationsController.prototype, "markAllAsReadAlias", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

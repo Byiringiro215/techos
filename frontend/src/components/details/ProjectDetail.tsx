@@ -3,9 +3,8 @@
 import { useMemo, useState } from 'react';
 import { FolderKanban, Milestone, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useTeamsStore } from '@/store/teamsStore';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { useMockMutation } from '@/hooks/useMockQuery';
+import { useEntityList, useUpdateEntity } from '@/hooks/useEntityApi';
 import { Badge } from '@/components/UI/Badge';
 import { Button } from '@/components/UI/Button';
 import { Card } from '@/components/UI/Card';
@@ -22,15 +21,23 @@ import { ActivityFeed, CommentThread, MetaGrid, PeopleList, RelatedList } from '
 
 const PHASES = ['Planning', 'Active', 'On Hold', 'Completed'];
 
+type ApiTeam = {
+  id: string;
+  title?: string;
+  name?: string;
+  metadata?: { memberIds?: string[]; projectIds?: string[] };
+};
+
 export function ProjectDetail(props: DetailViewProps) {
   const { entityKey, detailId, title, breadcrumbs, basePath } = props;
   const { data, extras, isLoading } = useDetailRecord(entityKey, detailId);
-  const teams = useTeamsStore((s) => s.teams);
+  const teamsQuery = useEntityList('teams');
   const assignedTeams = useMemo(
-    () => teams.filter((t) => t.projectIds.includes(detailId)),
-    [teams, detailId],
+    () =>
+      ((teamsQuery.data || []) as ApiTeam[]).filter((team) => team.metadata?.projectIds?.includes(detailId)),
+    [teamsQuery.data, detailId],
   );
-  const statusMutation = useMockMutation({ successMessage: 'Project status updated (mock)' });
+  const statusMutation = useUpdateEntity('projects');
   const [status, setStatus] = useState<string | null>(null);
 
   if (isLoading) return <DetailLoading />;
@@ -58,7 +65,7 @@ export function ProjectDetail(props: DetailViewProps) {
           </>
         }
         actions={
-          <Button size="sm" onClick={() => toast.success('Project shared (mock)')}>
+          <Button size="sm" onClick={() => toast.error('Project sharing is not available yet.')}>
             Share
           </Button>
         }
@@ -74,7 +81,7 @@ export function ProjectDetail(props: DetailViewProps) {
               type="button"
               onClick={() => {
                 setStatus(phase);
-                statusMutation.mutate();
+                statusMutation.mutate({ id: data.id, data: { ...data, status: phase } });
               }}
               className={
                 phase.toLowerCase() === current.toLowerCase()
@@ -172,8 +179,8 @@ export function ProjectDetail(props: DetailViewProps) {
                     key={team.id}
                     className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
                   >
-                    <span className="font-medium text-ink">{team.name}</span>
-                    <Badge size="sm">{team.memberIds.length}</Badge>
+                    <span className="font-medium text-ink">{team.title || team.name || 'Untitled team'}</span>
+                    <Badge size="sm">{team.metadata?.memberIds?.length || 0}</Badge>
                   </li>
                 ))}
               </ul>

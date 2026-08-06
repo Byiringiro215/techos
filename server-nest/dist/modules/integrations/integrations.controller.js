@@ -44,6 +44,14 @@ let IntegrationsController = class IntegrationsController {
     remove(user, id) {
         return this.integrationsService.remove(id, user.org_id);
     }
+    async connect(user, id) {
+        await this.integrationsService.update(id, user.org_id, { enabled: true });
+        return this.integrationsService.findOne(id, user.org_id);
+    }
+    async disconnect(user, id) {
+        await this.integrationsService.update(id, user.org_id, { enabled: false });
+        return this.integrationsService.findOne(id, user.org_id);
+    }
     saveOAuthTokens(user, type, tokens) {
         return this.integrationsService.saveOAuthTokens(user.org_id, type, tokens);
     }
@@ -125,6 +133,22 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], IntegrationsController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Post)(':id/connect'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], IntegrationsController.prototype, "connect", null);
+__decorate([
+    (0, common_1.Post)(':id/disconnect'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], IntegrationsController.prototype, "disconnect", null);
 __decorate([
     (0, common_1.Post)('oauth/:type/tokens'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

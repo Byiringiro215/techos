@@ -41,18 +41,27 @@ let MeetingsService = class MeetingsService {
             id: (0, crypto_1.randomUUID)(),
             org_id,
             ...meetingData,
+            scheduled_at: `${meetingData.date}T${meetingData.start_time}:00.000Z`,
             organizer_id: user_id,
             status: 'scheduled',
         });
         await this.meetingsRepository.save(meeting);
-        await this.addParticipant(meeting.id, user_id, true);
+        try {
+            await this.addParticipant(meeting.id, user_id, true);
+        }
+        catch {
+        }
         if (participant_ids && participant_ids.length > 0) {
-            await Promise.all(participant_ids.map((participantId) => this.addParticipant(meeting.id, participantId, false)));
-            await this.sendMeetingInvites(meeting, participant_ids);
+            await Promise.all(participant_ids.map((participantId) => this.addParticipant(meeting.id, participantId, false).catch(() => null)));
+            try {
+                await this.sendMeetingInvites(meeting, participant_ids);
+            }
+            catch {
+            }
         }
         return {
             success: true,
-            data: await this.findOne(meeting.id, org_id),
+            data: meeting,
         };
     }
     async findAll(org_id, filters) {
@@ -233,6 +242,34 @@ let MeetingsService = class MeetingsService {
             success: true,
             data: actionItem,
         };
+    }
+    async updateActionItemById(id, org_id, updateData) {
+        const actionItem = await this.actionItemsRepository
+            .createQueryBuilder('action_item')
+            .leftJoin(meeting_entity_1.Meeting, 'meeting', 'action_item.meeting_id = meeting.id')
+            .where('action_item.id = :id', { id })
+            .andWhere('meeting.org_id = :org_id', { org_id })
+            .select('action_item.*')
+            .getRawOne();
+        if (!actionItem) {
+            throw new common_1.NotFoundException('Action item not found');
+        }
+        await this.actionItemsRepository.update(id, updateData);
+        const updated = await this.actionItemsRepository.findOne({ where: { id } });
+        return { success: true, data: updated };
+    }
+    async getActionItems(meeting_id, org_id) {
+        const meeting = await this.meetingsRepository.findOne({
+            where: { id: meeting_id, org_id },
+        });
+        if (!meeting) {
+            throw new common_1.NotFoundException('Meeting not found');
+        }
+        const actionItems = await this.actionItemsRepository.find({
+            where: { meeting_id },
+            order: { created_at: 'DESC' },
+        });
+        return { success: true, data: actionItems };
     }
     async deleteActionItem(id, meeting_id) {
         const actionItem = await this.actionItemsRepository.findOne({

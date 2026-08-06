@@ -54,7 +54,7 @@ export class CrmController {
   // Deals
   @Post('deals')
   createDeal(@CurrentUser() user: any, @Body() createDealDto: CreateDealDto) {
-    return this.crmService.createDeal(user.org_id, createDealDto);
+    return this.crmService.createDeal(user.org_id, createDealDto, user);
   }
 
   @Get('deals')
@@ -69,17 +69,36 @@ export class CrmController {
 
   @Put('deals/:id')
   updateDeal(@CurrentUser() user: any, @Param('id') id: string, @Body() updateData: any) {
-    return this.crmService.updateDeal(id, user.org_id, updateData);
+    return this.crmService.updateDeal(id, user.org_id, updateData, user);
   }
 
   @Delete('deals/:id')
   deleteDeal(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.crmService.deleteDeal(id, user.org_id);
+    return this.crmService.deleteDeal(id, user.org_id, user);
   }
 
   // Analytics
   @Get('pipeline/stats')
   getPipelineStats(@CurrentUser() user: any) {
+    return this.crmService.getPipelineStats(user.org_id);
+  }
+
+  @Get('lead-scores')
+  async getLeadScores(@CurrentUser() user: any) {
+    const contacts = await this.crmService.findAllContacts(user.org_id);
+    const scores = await Promise.all(
+      (contacts.data || []).map((contact: any) => this.crmService.scoreContact(contact.id, user.org_id)),
+    );
+    return { success: true, data: scores.map((entry) => entry.data) };
+  }
+
+  @Post('lead-scores/:contactId/calculate')
+  calculateLeadScore(@CurrentUser() user: any, @Param('contactId') contactId: string) {
+    return this.crmService.scoreContact(contactId, user.org_id);
+  }
+
+  @Get('pipelines')
+  getPipelines(@CurrentUser() user: any) {
     return this.crmService.getPipelineStats(user.org_id);
   }
 }

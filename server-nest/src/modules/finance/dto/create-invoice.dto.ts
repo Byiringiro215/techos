@@ -5,9 +5,13 @@ export class CreateInvoiceDto {
   @IsString()
   contact_id?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  invoice_number: string;
+  invoice_number?: string;
+
+  @IsOptional()
+  @IsString()
+  client_name?: string;
 
   @IsNotEmpty()
   @IsNumber()
@@ -17,23 +21,31 @@ export class CreateInvoiceDto {
   @IsNumber()
   tax?: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
-  total: number;
+  total?: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  due_date: string;
+  due_date?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  issued_date: string;
+  issued_date?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsArray()
-  items: any[];
+  items?: any[];
 
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
 }

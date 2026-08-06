@@ -1,0 +1,1 @@
+{"version":3,"file":"get-ciso-audit-projects-query.dto.js","sourceRoot":"","sources":["../../../../src/modules/ciso/dto/get-ciso-audit-projects-query.dto.ts"],"names":[],"mappings":";;;;;;;;;;;;AAAA,qDAAmD;AAEnD,MAAa,4BAA4B;IAGvC,MAAM,CAA0C;CACjD;AAJD,oEAIC;AADC;IAFC,IAAA,4BAAU,GAAE;IACZ,IAAA,sBAAI,EAAC,CAAC,QAAQ,EAAE,aAAa,EAAE,WAAW,CAAC,CAAC;;4DACG"}

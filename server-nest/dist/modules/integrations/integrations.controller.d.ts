@@ -34,6 +34,14 @@ export declare class IntegrationsController {
         success: boolean;
         message: string;
     }>;
+    connect(user: any, id: string): Promise<{
+        success: boolean;
+        data: import("../../entities").Integration;
+    }>;
+    disconnect(user: any, id: string): Promise<{
+        success: boolean;
+        data: import("../../entities").Integration;
+    }>;
     saveOAuthTokens(user: any, type: string, tokens: any): Promise<{
         success: boolean;
         data: import("../../entities").Integration;

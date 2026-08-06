@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { Contact } from '../../entities/contact.entity';
 import { Deal } from '../../entities/deal.entity';
 import { User } from '../../entities/user.entity';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { CreateDealDto } from './dto/create-deal.dto';
+import { ActivityLogService } from '../../common/services/activity-log.service';
 
 @Injectable()
 export class CrmService {
@@ -17,6 +18,7 @@ export class CrmService {
     private dealsRepository: Repository<Deal>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private activityLogService: ActivityLogService,
   ) {}
 
   // Contacts
@@ -147,26 +149,53 @@ export class CrmService {
   }
 
   // Deals
-  async createDeal(org_id: string, createDealDto: CreateDealDto) {
-    // Verify contact exists
-    const contact = await this.contactsRepository.findOne({
-      where: { id: createDealDto.contact_id, org_id },
-    });
-
-    if (!contact) {
-      throw new NotFoundException('Contact not found');
+  async createDeal(org_id: string, createDealDto: CreateDealDto, actor?: any) {
+    let contact_id = createDealDto.contact_id;
+    if (contact_id) {
+      const contact = await this.contactsRepository.findOne({
+        where: { id: contact_id, org_id },
+      });
+      if (!contact) {
+        throw new NotFoundException('Contact not found');
+      }
+    } else {
+      const contact = this.contactsRepository.create({
+        id: randomUUID(),
+        org_id,
+        first_name: 'Deal',
+        last_name: 'Lead',
+        company_name: createDealDto.title,
+        type: 'lead',
+        status: 'qualified',
+        notes: createDealDto.notes || createDealDto.description,
+      });
+      await this.contactsRepository.save(contact);
+      contact_id = contact.id;
     }
 
     const deal = this.dealsRepository.create({
       id: randomUUID(),
       org_id,
-      ...createDealDto,
+      contact_id,
+      title: createDealDto.title,
+      value: Number(createDealDto.value || 0),
       stage: createDealDto.stage || 'qualification',
       currency: createDealDto.currency || 'USD',
       probability: createDealDto.probability || 0,
+      expected_close_date: createDealDto.expected_close_date,
+      assigned_to: createDealDto.assigned_to || actor?.id,
+      notes: createDealDto.notes || createDealDto.description,
     });
 
     await this.dealsRepository.save(deal);
+    await this.activityLogService.log({
+      org_id,
+      actor,
+      action: 'created',
+      resource_type: 'deals',
+      resource_id: deal.id,
+      summary: `created deal "${deal.title || 'Untitled'}"`,
+    });
 
     return {
       success: true,
@@ -185,26 +214,41 @@ export class CrmService {
       where.assigned_to = filters.assigned_to;
     }
 
-    const deals = await this.dealsRepository
-      .createQueryBuilder('deal')
-      .leftJoinAndSelect(Contact, 'contact', 'deal.contact_id = contact.id')
-      .leftJoinAndSelect(User, 'user', 'deal.assigned_to = user.id')
-      .where('deal.org_id = :org_id', { org_id })
-      .andWhere(filters?.stage ? 'deal.stage = :stage' : '1=1', filters?.stage ? { stage: filters.stage } : {})
-      .select([
-        'deal.*',
-        'contact.first_name as contact_first_name',
-        'contact.last_name as contact_last_name',
-        'contact.company_name as company_name',
-        'user.first_name as assigned_first_name',
-        'user.last_name as assigned_last_name',
-      ])
-      .orderBy('deal.created_at', 'DESC')
-      .getRawMany();
+    const deals = await this.dealsRepository.find({
+      where,
+      order: { created_at: 'DESC' },
+    });
+
+    const ownerIds = [...new Set(deals.map((d) => d.assigned_to).filter(Boolean))];
+    const owners = ownerIds.length
+      ? await this.usersRepository.find({ where: { id: In(ownerIds) } })
+      : [];
+    const ownerMap = new Map(owners.map((u) => [u.id, u]));
+
+    const contactIds = [...new Set(deals.map((d) => d.contact_id).filter(Boolean))];
+    const contacts = contactIds.length
+      ? await this.contactsRepository.find({ where: { id: In(contactIds) } })
+      : [];
+    const contactMap = new Map(contacts.map((c) => [c.id, c]));
+
+    const data = deals.map((deal) => {
+      const owner = ownerMap.get(deal.assigned_to);
+      const contact = contactMap.get(deal.contact_id);
+      const owner_name = owner
+        ? `${owner.first_name || ''} ${owner.last_name || ''}`.trim() || owner.email
+        : '—';
+      return {
+        ...deal,
+        owner_name,
+        assigned_to: deal.assigned_to,
+        company_name: contact?.company_name || null,
+        updated_at: deal.created_at,
+      };
+    });
 
     return {
       success: true,
-      data: deals,
+      data,
     };
   }
 
@@ -233,7 +277,7 @@ export class CrmService {
     };
   }
 
-  async updateDeal(id: string, org_id: string, updateData: Partial<Deal>) {
+  async updateDeal(id: string, org_id: string, updateData: Partial<Deal>, actor?: any) {
     const deal = await this.dealsRepository.findOne({
       where: { id, org_id },
     });
@@ -244,6 +288,15 @@ export class CrmService {
 
     Object.assign(deal, updateData);
     await this.dealsRepository.save(deal);
+    await this.activityLogService.log({
+      org_id,
+      actor,
+      action: 'updated',
+      resource_type: 'deals',
+      resource_id: deal.id,
+      summary: `updated deal "${deal.title || 'Untitled'}"`,
+      changes: updateData as any,
+    });
 
     return {
       success: true,
@@ -251,7 +304,7 @@ export class CrmService {
     };
   }
 
-  async deleteDeal(id: string, org_id: string) {
+  async deleteDeal(id: string, org_id: string, actor?: any) {
     const deal = await this.dealsRepository.findOne({
       where: { id, org_id },
     });
@@ -260,7 +313,16 @@ export class CrmService {
       throw new NotFoundException('Deal not found');
     }
 
+    const title = deal.title;
     await this.dealsRepository.remove(deal);
+    await this.activityLogService.log({
+      org_id,
+      actor,
+      action: 'deleted',
+      resource_type: 'deals',
+      resource_id: id,
+      summary: `deleted deal "${title || 'Untitled'}"`,
+    });
 
     return {
       success: true,

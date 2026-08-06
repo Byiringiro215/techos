@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Headphones, Timer } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatDate } from '@/lib/utils';
-import { useMockMutation } from '@/hooks/useMockQuery';
+import { useUpdateEntity } from '@/hooks/useEntityApi';
 import { Badge } from '@/components/UI/Badge';
 import { Button } from '@/components/UI/Button';
 import { Card } from '@/components/UI/Card';
@@ -26,7 +26,7 @@ const QUEUE = ['New', 'Open', 'Pending', 'Waiting on Customer', 'Resolved', 'Clo
 export function TicketDetail(props: DetailViewProps) {
   const { entityKey, detailId, title, breadcrumbs, basePath } = props;
   const { data, extras, isLoading } = useDetailRecord(entityKey, detailId);
-  const statusMutation = useMockMutation({ successMessage: 'Ticket updated (mock)' });
+  const statusMutation = useUpdateEntity('tickets');
   const [status, setStatus] = useState<string | null>(null);
 
   if (isLoading) return <DetailLoading />;
@@ -49,7 +49,7 @@ export function TicketDetail(props: DetailViewProps) {
           </>
         }
         actions={
-          <Button size="sm" onClick={() => toast.success('Escalated to L2 (mock)')}>
+          <Button size="sm" onClick={() => toast.error('Ticket escalation is not available yet.')}>
             Escalate
           </Button>
         }
@@ -81,7 +81,7 @@ export function TicketDetail(props: DetailViewProps) {
               type="button"
               onClick={() => {
                 setStatus(step);
-                statusMutation.mutate();
+                statusMutation.mutate({ id: data.id, data: { ...data, status: step } });
               }}
               className={cn(
                 'px-2.5 py-1 rounded-lg text-xs font-medium border',
@@ -140,7 +140,13 @@ export function TicketDetail(props: DetailViewProps) {
                 { label: 'Updated', value: formatDate(data.updatedAt) },
               ]}
             />
-            <Select label="Priority" defaultValue={data.priority || 'medium'}>
+            <Select
+              label="Priority"
+              defaultValue={data.priority || 'medium'}
+              onChange={(event) =>
+                statusMutation.mutate({ id: data.id, data: { ...data, priority: event.target.value } })
+              }
+            >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>

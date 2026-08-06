@@ -11,14 +11,17 @@ import {
   DetailLoading,
   DetailNotFound,
   useDetailRecord,
+  useDetailMutations,
   type DetailViewProps,
 } from './DetailShell';
 import { ActivityFeed, CommentThread, MetaGrid, RelatedList } from './shared';
+import { Button } from '@/components/UI/Button';
 
 /** Fallback for goals, documents, campaigns, features, etc. */
 export function GenericRecordDetail(props: DetailViewProps) {
   const { entityKey, detailId, title, breadcrumbs, basePath } = props;
   const { data, extras, isLoading } = useDetailRecord(entityKey, detailId);
+  const { updateEntity, removeAndBack } = useDetailMutations(entityKey);
 
   if (isLoading) return <DetailLoading />;
   if (!data || !extras) return <DetailNotFound entityKey={entityKey} detailId={detailId} />;
@@ -34,6 +37,33 @@ export function GenericRecordDetail(props: DetailViewProps) {
           <>
             <Badge variant={data.statusVariant}>{data.status}</Badge>
             {data.priority && <Badge variant="warning">{data.priority}</Badge>}
+          </>
+        }
+        actions={
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              loading={updateEntity.isPending}
+              onClick={() =>
+                updateEntity.mutate({
+                  id: detailId,
+                  data: {
+                    title: data.title || data.name,
+                    description: data.description,
+                    status: data.status === 'active' ? 'completed' : 'active',
+                    priority: data.priority,
+                    owner: data.owner,
+                    amount: data.amount,
+                  },
+                })
+              }
+            >
+              Toggle status
+            </Button>
+            <Button size="sm" variant="danger" onClick={() => removeAndBack(detailId)}>
+              Delete
+            </Button>
           </>
         }
       />

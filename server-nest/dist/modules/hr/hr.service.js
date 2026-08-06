@@ -21,22 +21,34 @@ const employee_entity_1 = require("../../entities/employee.entity");
 const leave_request_entity_1 = require("../../entities/leave-request.entity");
 const user_entity_1 = require("../../entities/user.entity");
 const notifications_service_1 = require("../notifications/notifications.service");
+const workspace_service_1 = require("../workspace/workspace.service");
+const activity_log_service_1 = require("../../common/services/activity-log.service");
 let HrService = class HrService {
     employeesRepository;
     leaveRequestsRepository;
     usersRepository;
     notificationsService;
-    constructor(employeesRepository, leaveRequestsRepository, usersRepository, notificationsService) {
+    workspaceService;
+    activityLogService;
+    constructor(employeesRepository, leaveRequestsRepository, usersRepository, notificationsService, workspaceService, activityLogService) {
         this.employeesRepository = employeesRepository;
         this.leaveRequestsRepository = leaveRequestsRepository;
         this.usersRepository = usersRepository;
         this.notificationsService = notificationsService;
+        this.workspaceService = workspaceService;
+        this.activityLogService = activityLogService;
     }
     async createEmployee(org_id, createEmployeeDto) {
+        const user = await this.usersRepository.findOne({
+            where: { id: createEmployeeDto.user_id, org_id },
+        });
+        const roleLabel = (user?.role || 'team member').toString().replace(/_/g, ' ');
         const employee = this.employeesRepository.create({
             id: (0, crypto_1.randomUUID)(),
             org_id,
             ...createEmployeeDto,
+            department: createEmployeeDto.department || roleLabel,
+            position: createEmployeeDto.position || roleLabel,
             employment_type: createEmployeeDto.employment_type || 'full-time',
             status: 'active',
         });
@@ -48,109 +60,159 @@ let HrService = class HrService {
     }
     async findAllEmployees(org_id, filters) {
         const where = { org_id };
-        if (filters?.department) {
-            where.department = filters.department;
-        }
-        if (filters?.status) {
+        if (filters?.status)
             where.status = filters.status;
-        }
-        const employees = await this.employeesRepository
-            .createQueryBuilder('employee')
-            .leftJoinAndSelect(user_entity_1.User, 'user', 'employee.user_id = user.id')
-            .leftJoinAndSelect(user_entity_1.User, 'manager', 'employee.manager_id = manager.id')
-            .where('employee.org_id = :org_id', { org_id })
-            .andWhere(filters?.department ? 'employee.department = :department' : '1=1', filters?.department ? { department: filters.department } : {})
-            .select([
-            'employee.*',
-            'user.first_name as first_name',
-            'user.last_name as last_name',
-            'user.email as email',
-            'user.avatar as avatar',
-            'manager.first_name as manager_first_name',
-            'manager.last_name as manager_last_name',
-        ])
-            .getRawMany();
-        return {
-            success: true,
-            data: employees,
-        };
-    }
-    async findOneEmployee(id, org_id) {
-        const employee = await this.employeesRepository
-            .createQueryBuilder('employee')
-            .leftJoinAndSelect(user_entity_1.User, 'user', 'employee.user_id = user.id')
-            .leftJoinAndSelect(user_entity_1.User, 'manager', 'employee.manager_id = manager.id')
-            .where('employee.id = :id', { id })
-            .andWhere('employee.org_id = :org_id', { org_id })
-            .select([
-            'employee.*',
-            'user.first_name as first_name',
-            'user.last_name as last_name',
-            'user.email as email',
-            'user.avatar as avatar',
-            'user.role as role',
-            'manager.first_name as manager_first_name',
-            'manager.last_name as manager_last_name',
-        ])
-            .getRawOne();
-        if (!employee) {
-            throw new common_1.NotFoundException('Employee not found');
-        }
-        const leaveRequests = await this.leaveRequestsRepository.find({
-            where: { employee_id: id },
+        const employees = await this.employeesRepository.find({
+            where,
             order: { created_at: 'DESC' },
+        });
+        const userIds = [...new Set(employees.map((e) => e.user_id).filter(Boolean))];
+        const users = userIds.length
+            ? await this.usersRepository.find({ where: { id: (0, typeorm_2.In)(userIds) } })
+            : [];
+        const userMap = new Map(users.map((u) => [String(u.id), u]));
+        const data = employees.map((row) => {
+            const user = userMap.get(String(row.user_id));
+            return this.mapEmployeeRow(row, user);
         });
         return {
             success: true,
+            data,
+        };
+    }
+    mapEmployeeRow(row, user, manager) {
+        return {
+            id: row.id,
+            org_id: row.org_id,
+            user_id: row.user_id,
+            employee_number: `E-${String(row.id).slice(0, 4).toUpperCase()}`,
+            position: row.position,
+            employment_type: row.employment_type,
+            hire_date: row.start_date,
+            start_date: row.start_date,
+            salary: row.salary,
+            status: row.status,
+            manager_id: row.manager_id,
+            emergency_contact: row.emergency_contact,
+            skills: row.skills,
+            created_at: row.created_at,
+            user: user
+                ? {
+                    id: user.id,
+                    first_name: user.first_name,
+                    last_name: user.last_name,
+                    email: user.email,
+                    avatar: user.avatar,
+                    role: user.role,
+                }
+                : null,
+            manager: manager
+                ? {
+                    id: manager.id,
+                    first_name: manager.first_name,
+                    last_name: manager.last_name,
+                    email: manager.email,
+                }
+                : null,
+        };
+    }
+    async findOneEmployee(id, org_id) {
+        const employee = await this.employeesRepository.findOne({
+            where: { id, org_id },
+        });
+        if (!employee) {
+            throw new common_1.NotFoundException('Employee not found');
+        }
+        const [user, manager, leaveRequests] = await Promise.all([
+            this.usersRepository.findOne({ where: { id: employee.user_id } }),
+            employee.manager_id
+                ? this.usersRepository.findOne({ where: { id: employee.manager_id } })
+                : Promise.resolve(null),
+            this.leaveRequestsRepository.find({
+                where: { employee_id: id },
+                order: { created_at: 'DESC' },
+            }),
+        ]);
+        return {
+            success: true,
             data: {
-                ...employee,
+                ...this.mapEmployeeRow(employee, user, manager),
                 leave_requests: leaveRequests,
             },
         };
     }
-    async updateEmployee(id, org_id, updateData) {
+    async getEmployeeActivity(id, org_id) {
         const employee = await this.employeesRepository.findOne({
             where: { id, org_id },
         });
         if (!employee) {
             throw new common_1.NotFoundException('Employee not found');
         }
-        Object.assign(employee, updateData);
+        const data = await this.activityLogService.listForActor(org_id, employee.user_id);
+        return { success: true, data };
+    }
+    async updateEmployee(id, org_id, updateData, actor) {
+        const employee = await this.employeesRepository.findOne({
+            where: { id, org_id },
+        });
+        if (!employee) {
+            throw new common_1.NotFoundException('Employee not found');
+        }
+        const allowed = [
+            'position',
+            'employment_type',
+            'start_date',
+            'salary',
+            'status',
+            'manager_id',
+            'emergency_contact',
+            'skills',
+            'department',
+        ];
+        for (const key of allowed) {
+            if (updateData[key] !== undefined) {
+                employee[key] = updateData[key];
+            }
+        }
         await this.employeesRepository.save(employee);
+        const [user, manager] = await Promise.all([
+            this.usersRepository.findOne({ where: { id: employee.user_id } }),
+            employee.manager_id
+                ? this.usersRepository.findOne({ where: { id: employee.manager_id } })
+                : Promise.resolve(null),
+        ]);
+        const displayName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim() ||
+            user?.email ||
+            employee.position ||
+            'employee';
+        await this.workspaceService.recordActivity(org_id, 'employees', employee.id, 'updated', `updated employee "${displayName}"`, actor);
         return {
             success: true,
-            data: employee,
+            data: this.mapEmployeeRow(employee, user, manager),
         };
     }
-    async deleteEmployee(id, org_id) {
+    async deleteEmployee(id, org_id, actor) {
         const employee = await this.employeesRepository.findOne({
             where: { id, org_id },
         });
         if (!employee) {
             throw new common_1.NotFoundException('Employee not found');
         }
+        const user = await this.usersRepository.findOne({ where: { id: employee.user_id } });
+        const displayName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim() ||
+            user?.email ||
+            employee.position ||
+            'employee';
         await this.employeesRepository.remove(employee);
+        await this.workspaceService.recordActivity(org_id, 'employees', id, 'deleted', `removed employee "${displayName}"`, actor);
         return {
             success: true,
             message: 'Employee deleted successfully',
         };
     }
-    async getDepartments(org_id) {
-        const departments = await this.employeesRepository
-            .createQueryBuilder('employee')
-            .select('employee.department', 'department')
-            .addSelect('COUNT(*)', 'employee_count')
-            .where('employee.org_id = :org_id', { org_id })
-            .groupBy('employee.department')
-            .getRawMany();
-        return {
-            success: true,
-            data: departments,
-        };
-    }
-    async createLeaveRequest(org_id, user_id, createLeaveRequestDto) {
+    async createLeaveRequest(org_id, actor, createLeaveRequestDto) {
         const employee = await this.employeesRepository.findOne({
-            where: { user_id, org_id },
+            where: { user_id: actor?.id, org_id },
         });
         if (!employee) {
             throw new common_1.NotFoundException('Employee record not found');
@@ -163,6 +225,14 @@ let HrService = class HrService {
             status: 'pending',
         });
         await this.leaveRequestsRepository.save(leaveRequest);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'created',
+            resource_type: 'leaves',
+            resource_id: leaveRequest.id,
+            summary: `requested ${createLeaveRequestDto.type || 'leave'} leave`,
+        });
         await this.notifyLeaveRequestCreated(org_id, employee, leaveRequest);
         return {
             success: true,
@@ -180,23 +250,49 @@ let HrService = class HrService {
         if (filters?.employee_id) {
             where.employee_id = filters.employee_id;
         }
-        const leaveRequests = await this.leaveRequestsRepository
-            .createQueryBuilder('leave')
-            .leftJoin(employee_entity_1.Employee, 'employee', 'leave.employee_id = employee.id')
-            .leftJoin(user_entity_1.User, 'user', 'employee.user_id = user.id')
-            .where('leave.org_id = :org_id', { org_id })
-            .andWhere(filters?.status ? 'leave.status = :status' : '1=1', filters?.status ? { status: filters.status } : {})
-            .select([
-            'leave.*',
-            'user.first_name as employee_first_name',
-            'user.last_name as employee_last_name',
-            'employee.department as department',
-        ])
-            .orderBy('leave.created_at', 'DESC')
-            .getRawMany();
+        const leaveRequests = await this.leaveRequestsRepository.find({
+            where,
+            order: { created_at: 'DESC' },
+        });
+        const employeeIds = [...new Set(leaveRequests.map((l) => String(l.employee_id)).filter(Boolean))];
+        const employees = employeeIds.length
+            ? await this.employeesRepository.find({ where: { id: (0, typeorm_2.In)(employeeIds) } })
+            : [];
+        const employeeMap = new Map(employees.map((e) => [String(e.id), e]));
+        const userIds = [...new Set(employees.map((e) => String(e.user_id)).filter(Boolean))];
+        const users = userIds.length
+            ? await this.usersRepository.find({ where: { id: (0, typeorm_2.In)(userIds) } })
+            : [];
+        const userMap = new Map(users.map((u) => [String(u.id), u]));
+        const data = leaveRequests.map((leave) => {
+            const employee = employeeMap.get(String(leave.employee_id));
+            const user = employee ? userMap.get(String(employee.user_id)) : null;
+            return {
+                ...leave,
+                employee_first_name: user?.first_name || null,
+                employee_last_name: user?.last_name || null,
+                role: user?.role || null,
+                employee: employee
+                    ? {
+                        id: employee.id,
+                        user_id: employee.user_id,
+                        position: employee.position,
+                        user: user
+                            ? {
+                                id: user.id,
+                                first_name: user.first_name,
+                                last_name: user.last_name,
+                                email: user.email,
+                                role: user.role,
+                            }
+                            : null,
+                    }
+                    : null,
+            };
+        });
         return {
             success: true,
-            data: leaveRequests,
+            data,
         };
     }
     async findOneLeaveRequest(id, org_id) {
@@ -322,17 +418,14 @@ let HrService = class HrService {
         const pendingLeaves = await this.leaveRequestsRepository.count({
             where: { org_id, status: 'pending' },
         });
-        const departmentCount = await this.employeesRepository
-            .createQueryBuilder('employee')
-            .select('COUNT(DISTINCT employee.department)', 'count')
-            .where('employee.org_id = :org_id', { org_id })
-            .getRawOne();
+        const users = await this.usersRepository.find({ where: { org_id } });
+        const roleCount = new Set(users.map((u) => u.role).filter(Boolean)).size;
         return {
             success: true,
             data: {
                 total_employees: totalEmployees,
                 pending_leave_requests: pendingLeaves,
-                department_count: parseInt(departmentCount.count) || 0,
+                role_count: roleCount,
             },
         };
     }
@@ -346,6 +439,8 @@ exports.HrService = HrService = __decorate([
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        notifications_service_1.NotificationsService])
+        notifications_service_1.NotificationsService,
+        workspace_service_1.WorkspaceService,
+        activity_log_service_1.ActivityLogService])
 ], HrService);
 //# sourceMappingURL=hr.service.js.map

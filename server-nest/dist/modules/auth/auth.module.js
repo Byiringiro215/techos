@@ -17,13 +17,24 @@ const auth_service_1 = require("./auth.service");
 const jwt_strategy_1 = require("./jwt.strategy");
 const user_entity_1 = require("../../entities/user.entity");
 const organization_entity_1 = require("../../entities/organization.entity");
+const employee_entity_1 = require("../../entities/employee.entity");
+const notification_entity_1 = require("../../entities/notification.entity");
+const channel_member_entity_1 = require("../../entities/channel-member.entity");
+const meeting_participant_entity_1 = require("../../entities/meeting-participant.entity");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
 exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([user_entity_1.User, organization_entity_1.Organization]),
+            typeorm_1.TypeOrmModule.forFeature([
+                user_entity_1.User,
+                organization_entity_1.Organization,
+                employee_entity_1.Employee,
+                notification_entity_1.Notification,
+                channel_member_entity_1.ChannelMember,
+                meeting_participant_entity_1.MeetingParticipant,
+            ]),
             passport_1.PassportModule,
             jwt_1.JwtModule.registerAsync({
                 imports: [config_1.ConfigModule],

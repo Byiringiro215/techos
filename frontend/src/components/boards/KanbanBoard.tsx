@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Filter, GripVertical, Plus, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MockRecord } from '@/mocks';
@@ -11,6 +11,7 @@ import {
   applyColumnMove,
   resolveColumnId,
 } from '@/mocks/boards';
+import { useCreateEntity, useUpdateEntity } from '@/hooks/useEntityApi';
 import { Avatar } from '@/components/UI/Avatar';
 import { Badge } from '@/components/UI/Badge';
 import { Button } from '@/components/UI/Button';
@@ -18,8 +19,7 @@ import { Card } from '@/components/UI/Card';
 import { Input } from '@/components/UI/Input';
 import { Modal } from '@/components/UI/Modal';
 import { PageHeader } from '@/components/UI/PageHeader';
-import { cn } from '@/lib/utils';
-import { formatDate } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 
 const PRIORITY_VARIANT: Record<string, 'default' | 'success' | 'error' | 'warning' | 'info'> = {
   low: 'default',
@@ -36,15 +36,17 @@ interface KanbanBoardProps {
   columns?: BoardColumn[];
   /** Hide page header when nested inside another workspace (e.g. sprints) */
   embedded?: boolean;
+  entityKey?: string;
 }
 
 export function KanbanBoard({
   title = 'Tasks',
-  description = 'Drag cards between columns — Trello-style board (mock).',
+  description = 'Drag cards between columns.',
   breadcrumbs,
   initialItems,
   columns = TASK_COLUMNS,
   embedded = false,
+  entityKey = 'tasks',
 }: KanbanBoardProps) {
   const [items, setItems] = useState<MockRecord[]>(initialItems);
   const [query, setQuery] = useState('');
@@ -55,13 +57,20 @@ export function KanbanBoard({
   const [createCol, setCreateCol] = useState<BoardColumnId | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
 
+  const createEntity = useCreateEntity(entityKey);
+  const updateEntity = useUpdateEntity(entityKey);
+
+  useEffect(() => {
+    setItems(initialItems);
+  }, [initialItems]);
+
   const filtered = useMemo(() => {
     return items.filter((item) => {
       const q = query.trim().toLowerCase();
       const matchesQuery =
         !q ||
-        item.title.toLowerCase().includes(q) ||
-        item.owner.toLowerCase().includes(q) ||
+        item.title?.toLowerCase().includes(q) ||
+        item.owner?.toLowerCase().includes(q) ||
         item.tags?.some((t) => t.toLowerCase().includes(q));
       const matchesPriority = priorityFilter === 'all' || item.priority === priorityFilter;
       return matchesQuery && matchesPriority;
@@ -71,36 +80,56 @@ export function KanbanBoard({
   const byColumn = (columnId: BoardColumnId) =>
     filtered.filter((item) => resolveColumnId(item.status, columns) === columnId);
 
-  const moveItem = (itemId: string, columnId: BoardColumnId) => {
-    setItems((prev) =>
-      prev.map((item) => (item.id === itemId ? applyColumnMove(item, columnId) : item)),
-    );
-    toast.success(`Moved to ${columns.find((c) => c.id === columnId)?.title}`);
+  const moveItem = async (itemId: string, columnId: BoardColumnId) => {
+    const current = items.find((item) => item.id === itemId);
+    if (!current) return;
+    const next = applyColumnMove(current, columnId);
+    setItems((prev) => prev.map((item) => (item.id === itemId ? next : item)));
+    try {
+      await updateEntity.mutateAsync({
+        id: itemId,
+        data: {
+          title: next.title,
+          status: next.status,
+          description: next.description,
+          owner: next.owner,
+          priority: next.priority,
+        },
+      });
+      toast.success(`Moved to ${columns.find((c) => c.id === columnId)?.title}`);
+    } catch {
+      setItems((prev) => prev.map((item) => (item.id === itemId ? current : item)));
+    }
   };
 
-  const createCard = () => {
+  const createCard = async () => {
     if (!createCol || !draftTitle.trim()) return;
-    const base = applyColumnMove(
+    const status = applyColumnMove(
       {
-        id: `tsk-${Date.now()}`,
+        id: 'tmp',
         title: draftTitle.trim(),
         status: 'To Do',
         statusVariant: 'default',
         owner: 'You',
-        assignee: 'You',
-        priority: 'medium',
-        progress: 0,
-        tags: ['Sprint 24'],
-        description: 'Created from the board (mock).',
+        description: '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
       createCol,
-    );
-    setItems((prev) => [base, ...prev]);
-    setDraftTitle('');
-    setCreateCol(null);
-    toast.success('Card created (mock)');
+    ).status;
+
+    try {
+      await createEntity.mutateAsync({
+        title: draftTitle.trim(),
+        status,
+        description: '',
+        priority: 'medium',
+      });
+      setDraftTitle('');
+      setCreateCol(null);
+    } catch {
+      // toast handled by mutation
+    }
   };
 
   return (
@@ -170,7 +199,7 @@ export function KanbanBoard({
               onDrop={(e) => {
                 e.preventDefault();
                 const id = e.dataTransfer.getData('text/card-id') || draggingId;
-                if (id) moveItem(id, column.id);
+                if (id) void moveItem(id, column.id);
                 setDraggingId(null);
                 setDropCol(null);
               }}
@@ -295,7 +324,7 @@ export function KanbanBoard({
                   size="sm"
                   variant={resolveColumnId(active.status, columns) === col.id ? 'primary' : 'outline'}
                   onClick={() => {
-                    moveItem(active.id, col.id);
+                    void moveItem(active.id, col.id);
                     setActive((prev) => (prev ? applyColumnMove(prev, col.id) : prev));
                   }}
                 >
@@ -326,7 +355,7 @@ export function KanbanBoard({
             <Button variant="ghost" onClick={() => setCreateCol(null)}>
               Cancel
             </Button>
-            <Button onClick={createCard} disabled={!draftTitle.trim()}>
+            <Button onClick={() => void createCard()} loading={createEntity.isPending} disabled={!draftTitle.trim()}>
               Create
             </Button>
           </div>

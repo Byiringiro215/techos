@@ -3,7 +3,7 @@
 import { Download, Mail, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { useMockMutation } from '@/hooks/useMockQuery';
+import { useSendInvoice } from '@/hooks/useFinance';
 import { Badge } from '@/components/UI/Badge';
 import { Button } from '@/components/UI/Button';
 import { Card } from '@/components/UI/Card';
@@ -21,20 +21,13 @@ import { ActivityFeed, MetaGrid, RelatedList } from './shared';
 export function InvoiceDetail(props: DetailViewProps) {
   const { entityKey, detailId, title, breadcrumbs, basePath } = props;
   const { data, extras, isLoading } = useDetailRecord(entityKey, detailId);
-  const sendMutation = useMockMutation({ successMessage: 'Invoice sent (mock)' });
+  const sendMutation = useSendInvoice();
 
   if (isLoading) return <DetailLoading />;
   if (!data || !extras) return <DetailNotFound entityKey={entityKey} detailId={detailId} />;
 
   const amount = typeof data.amount === 'number' ? data.amount : 0;
-  const lines = [
-    { item: 'Platform subscription', qty: 1, unit: amount * 0.72 },
-    { item: 'Implementation & onboarding', qty: 1, unit: amount * 0.2 },
-    { item: 'Support retainer', qty: 1, unit: amount * 0.08 },
-  ];
-  const subtotal = lines.reduce((s, l) => s + l.unit * l.qty, 0);
-  const tax = subtotal * 0.08;
-  const total = subtotal + tax;
+  const description = data.description || 'Invoice';
 
   return (
     <div className="space-y-6">
@@ -46,15 +39,23 @@ export function InvoiceDetail(props: DetailViewProps) {
         badges={<Badge variant={data.statusVariant}>{data.status}</Badge>}
         actions={
           <>
-            <Button size="sm" variant="outline" onClick={() => toast.success('PDF downloaded (mock)')}>
+            <Button size="sm" variant="outline" onClick={() => toast.error('PDF export is not available yet.')}>
               <Download className="h-4 w-4 mr-2" />
               PDF
             </Button>
-            <Button size="sm" variant="secondary" onClick={() => toast.success('Print dialog (mock)')}>
+            <Button size="sm" variant="secondary" onClick={() => window.print()}>
               <Printer className="h-4 w-4 mr-2" />
               Print
             </Button>
-            <Button size="sm" loading={sendMutation.isLoading} onClick={() => sendMutation.mutate()}>
+            <Button
+              size="sm"
+              loading={sendMutation.isPending}
+              disabled={!data.email}
+              onClick={() => {
+                if (!data.email) return;
+                sendMutation.mutate({ id: data.id, recipient_email: data.email });
+              }}
+            >
               <Mail className="h-4 w-4 mr-2" />
               Send
             </Button>
@@ -87,7 +88,7 @@ export function InvoiceDetail(props: DetailViewProps) {
               </div>
             </div>
 
-            <p className="text-sm text-ink-secondary">{data.description}</p>
+            <p className="text-sm text-ink-secondary">{description}</p>
 
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -99,35 +100,21 @@ export function InvoiceDetail(props: DetailViewProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {lines.map((l) => (
-                    <tr key={l.item} className="border-b border-border/60">
-                      <td className="py-3 text-ink">{l.item}</td>
-                      <td className="py-3 text-ink-secondary">{l.qty}</td>
+                  <tr className="border-b border-border/60">
+                      <td className="py-3 text-ink">{description}</td>
+                      <td className="py-3 text-ink-secondary">1</td>
                       <td className="py-3 text-right tabular-nums text-ink">
-                        {formatCurrency(l.unit * l.qty)}
+                        {formatCurrency(amount)}
                       </td>
                     </tr>
-                  ))}
                 </tbody>
                 <tfoot className="text-sm">
                   <tr>
                     <td colSpan={2} className="pt-4 text-ink-muted">
-                      Subtotal
-                    </td>
-                    <td className="pt-4 text-right tabular-nums">{formatCurrency(subtotal)}</td>
-                  </tr>
-                  <tr>
-                    <td colSpan={2} className="pt-1 text-ink-muted">
-                      Tax (8%)
-                    </td>
-                    <td className="pt-1 text-right tabular-nums">{formatCurrency(tax)}</td>
-                  </tr>
-                  <tr>
-                    <td colSpan={2} className="pt-2 font-semibold text-ink">
                       Total due
                     </td>
-                    <td className="pt-2 text-right font-semibold tabular-nums text-ink">
-                      {formatCurrency(total)}
+                    <td className="pt-4 text-right font-semibold tabular-nums text-ink">
+                      {formatCurrency(amount)}
                     </td>
                   </tr>
                 </tfoot>

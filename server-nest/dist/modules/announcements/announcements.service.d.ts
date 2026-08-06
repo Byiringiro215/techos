@@ -27,6 +27,10 @@ export declare class AnnouncementsService {
         success: boolean;
         data: Announcement;
     }>;
+    setPinStatus(id: string, org_id: string, isPinned: boolean): Promise<{
+        success: boolean;
+        data: Announcement;
+    }>;
     remove(id: string, org_id: string): Promise<{
         success: boolean;
         message: string;

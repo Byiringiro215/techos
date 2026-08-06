@@ -5,13 +5,13 @@ export class CreateEmployeeDto {
   @IsString()
   user_id: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  department: string;
+  department?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  position: string;
+  position?: string;
 
   @IsOptional()
   @IsString()

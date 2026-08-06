@@ -42,6 +42,12 @@ let AnnouncementsController = class AnnouncementsController {
     togglePin(user, id) {
         return this.announcementsService.togglePin(id, user.org_id);
     }
+    pin(user, id) {
+        return this.announcementsService.setPinStatus(id, user.org_id, true);
+    }
+    unpin(user, id) {
+        return this.announcementsService.setPinStatus(id, user.org_id, false);
+    }
     remove(user, id) {
         return this.announcementsService.remove(id, user.org_id);
     }
@@ -95,6 +101,22 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], AnnouncementsController.prototype, "togglePin", null);
+__decorate([
+    (0, common_1.Post)(':id/pin'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], AnnouncementsController.prototype, "pin", null);
+__decorate([
+    (0, common_1.Post)(':id/unpin'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], AnnouncementsController.prototype, "unpin", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

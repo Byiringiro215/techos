@@ -6,11 +6,13 @@ import { Employee } from '../../entities/employee.entity';
 import { LeaveRequest } from '../../entities/leave-request.entity';
 import { User } from '../../entities/user.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { WorkspaceModule } from '../workspace/workspace.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Employee, LeaveRequest, User]),
     NotificationsModule,
+    WorkspaceModule,
   ],
   controllers: [HrController],
   providers: [HrService],

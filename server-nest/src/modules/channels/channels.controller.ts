@@ -6,17 +6,22 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ChannelsService } from './channels.service';
 import { CreateChannelDto } from './dto/create-channel.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { MessagesService } from '../messages/messages.service';
 
 @Controller('channels')
 @UseGuards(JwtAuthGuard)
 export class ChannelsController {
-  constructor(private channelsService: ChannelsService) {}
+  constructor(
+    private channelsService: ChannelsService,
+    private messagesService: MessagesService,
+  ) {}
 
   @Post()
   create(@CurrentUser() user: any, @Body() createChannelDto: CreateChannelDto) {
@@ -65,5 +70,20 @@ export class ChannelsController {
   @Put(':id/read')
   markAsRead(@CurrentUser() user: any, @Param('id') id: string) {
     return this.channelsService.updateLastRead(id, user.id);
+  }
+
+  @Get(':id/messages')
+  getChannelMessages(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Query('limit') limit?: number,
+    @Query('before') before?: string,
+  ) {
+    return this.messagesService.findAll(id, user.id, limit, before);
+  }
+
+  @Post(':id/messages')
+  postChannelMessage(@CurrentUser() user: any, @Param('id') id: string, @Body('content') content: string) {
+    return this.messagesService.create(user.id, { channel_id: id, content });
   }
 }

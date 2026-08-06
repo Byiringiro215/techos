@@ -38,6 +38,35 @@ const dashboard_module_1 = require("./modules/dashboard/dashboard.module");
 const integrations_module_1 = require("./modules/integrations/integrations.module");
 const ai_module_1 = require("./modules/ai/ai.module");
 const reports_module_1 = require("./modules/reports/reports.module");
+const ciso_module_1 = require("./modules/ciso/ciso.module");
+const workspace_module_1 = require("./modules/workspace/workspace.module");
+function buildTypeOrmOptions(config) {
+    const dbType = (config.get('DATABASE_TYPE') || 'sqlite').toLowerCase();
+    const isDev = config.get('NODE_ENV') !== 'production';
+    const synchronize = (config.get('DATABASE_SYNC') || (isDev ? 'true' : 'false')) === 'true';
+    if (dbType === 'postgres' || dbType === 'postgresql') {
+        return {
+            type: 'postgres',
+            host: config.get('DATABASE_HOST', 'localhost'),
+            port: Number(config.get('DATABASE_PORT') || 5432),
+            username: config.get('DATABASE_USER', 'techos'),
+            password: config.get('DATABASE_PASSWORD', 'techos'),
+            database: config.get('DATABASE_NAME', 'techos'),
+            entities: entities_1.entities,
+            synchronize,
+            logging: isDev,
+            retryAttempts: 10,
+            retryDelay: 3000,
+        };
+    }
+    return {
+        type: 'sqlite',
+        database: config.get('DATABASE_PATH', './techos.db'),
+        entities: entities_1.entities,
+        synchronize,
+        logging: isDev,
+    };
+}
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -47,17 +76,16 @@ exports.AppModule = AppModule = __decorate([
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
             }),
-            typeorm_1.TypeOrmModule.forRoot({
-                type: 'sqlite',
-                database: process.env.DATABASE_PATH || './techos.db',
-                entities: entities_1.entities,
-                synchronize: true,
-                logging: process.env.NODE_ENV === 'development',
+            typeorm_1.TypeOrmModule.forRootAsync({
+                inject: [config_1.ConfigService],
+                useFactory: (config) => buildTypeOrmOptions(config),
             }),
-            throttler_1.ThrottlerModule.forRoot([{
+            throttler_1.ThrottlerModule.forRoot([
+                {
                     ttl: 60000,
                     limit: 100,
-                }]),
+                },
+            ]),
             common_module_1.CommonModule,
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
@@ -82,6 +110,8 @@ exports.AppModule = AppModule = __decorate([
             integrations_module_1.IntegrationsModule,
             ai_module_1.AiModule,
             reports_module_1.ReportsModule,
+            ciso_module_1.CisoModule,
+            workspace_module_1.WorkspaceModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

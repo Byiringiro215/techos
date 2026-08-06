@@ -1,17 +1,17 @@
 import { IsString, IsNotEmpty, IsOptional, IsNumber, IsEnum } from 'class-validator';
 
 export class CreateDealDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  contact_id: string;
+  contact_id?: string;
 
   @IsNotEmpty()
   @IsString()
   title: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
-  value: number;
+  value?: number;
 
   @IsOptional()
   @IsString()
@@ -29,11 +29,15 @@ export class CreateDealDto {
   @IsString()
   expected_close_date?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  assigned_to: string;
+  assigned_to?: string;
 
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
 }

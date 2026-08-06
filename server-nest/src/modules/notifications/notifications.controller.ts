@@ -26,6 +26,11 @@ export class NotificationsController {
     return this.notificationsService.getUnreadCount(user.id);
   }
 
+  @Get('unread/count')
+  getUnreadCountAlias(@CurrentUser() user: any) {
+    return this.notificationsService.getUnreadCount(user.id);
+  }
+
   @Put(':id/read')
   markAsRead(@CurrentUser() user: any, @Param('id') id: string) {
     return this.notificationsService.markAsRead(id, user.id);
@@ -33,6 +38,11 @@ export class NotificationsController {
 
   @Put('mark-all-read')
   markAllAsRead(@CurrentUser() user: any) {
+    return this.notificationsService.markAllAsRead(user.id);
+  }
+
+  @Put('read-all')
+  markAllAsReadAlias(@CurrentUser() user: any) {
     return this.notificationsService.markAllAsRead(user.id);
   }
 

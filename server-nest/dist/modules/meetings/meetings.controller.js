@@ -52,8 +52,14 @@ let MeetingsController = class MeetingsController {
     createActionItem(user, id, createActionItemDto) {
         return this.meetingsService.createActionItem(id, user.org_id, createActionItemDto);
     }
+    getActionItems(user, id) {
+        return this.meetingsService.getActionItems(id, user.org_id);
+    }
     updateActionItem(id, actionItemId, updateData) {
         return this.meetingsService.updateActionItem(actionItemId, id, updateData);
+    }
+    updateActionItemById(user, id, updateData) {
+        return this.meetingsService.updateActionItemById(id, user.org_id, updateData);
     }
     deleteActionItem(id, actionItemId) {
         return this.meetingsService.deleteActionItem(actionItemId, id);
@@ -138,6 +144,14 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], MeetingsController.prototype, "createActionItem", null);
 __decorate([
+    (0, common_1.Get)(':id/action-items'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], MeetingsController.prototype, "getActionItems", null);
+__decorate([
     (0, common_1.Put)(':id/action-items/:actionItemId'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Param)('actionItemId')),
@@ -146,6 +160,15 @@ __decorate([
     __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
 ], MeetingsController.prototype, "updateActionItem", null);
+__decorate([
+    (0, common_1.Put)('action-items/:id'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", void 0)
+], MeetingsController.prototype, "updateActionItemById", null);
 __decorate([
     (0, common_1.Delete)(':id/action-items/:actionItemId'),
     __param(0, (0, common_1.Param)('id')),

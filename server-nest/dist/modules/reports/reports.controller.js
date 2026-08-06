@@ -52,6 +52,21 @@ let ReportsController = class ReportsController {
     generateBugReport(user, start_date, end_date) {
         return this.reportsService.generateBugReport(user.org_id, start_date, end_date);
     }
+    generateByType(user, type, params) {
+        if (type === 'project') {
+            return this.reportsService.generateProjectReport(user.org_id, params.project_id);
+        }
+        if (type === 'financial') {
+            return this.reportsService.generateFinancialReport(user.org_id, params.start_date, params.end_date);
+        }
+        if (type === 'kpi') {
+            return this.reportsService.generateKPIReport(user.org_id);
+        }
+        if (type === 'tasks') {
+            return this.reportsService.generateTaskReport(user.org_id, params.user_id, params.start_date, params.end_date);
+        }
+        return this.reportsService.generateBugReport(user.org_id, params.start_date, params.end_date);
+    }
 };
 exports.ReportsController = ReportsController;
 __decorate([
@@ -138,6 +153,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, String]),
     __metadata("design:returntype", void 0)
 ], ReportsController.prototype, "generateBugReport", null);
+__decorate([
+    (0, common_1.Get)('generate/:type'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('type')),
+    __param(2, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", void 0)
+], ReportsController.prototype, "generateByType", null);
 exports.ReportsController = ReportsController = __decorate([
     (0, common_1.Controller)('reports'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

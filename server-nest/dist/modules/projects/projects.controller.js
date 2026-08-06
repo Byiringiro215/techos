@@ -25,7 +25,7 @@ let ProjectsController = class ProjectsController {
         this.projectsService = projectsService;
     }
     create(user, createProjectDto) {
-        return this.projectsService.create(user.org_id, user.id, createProjectDto);
+        return this.projectsService.create(user.org_id, user, createProjectDto);
     }
     findAll(user, status) {
         return this.projectsService.findAll(user.org_id, status);
@@ -34,12 +34,15 @@ let ProjectsController = class ProjectsController {
         return this.projectsService.findOne(id, user.org_id);
     }
     update(user, id, updateProjectDto) {
-        return this.projectsService.update(id, user.org_id, updateProjectDto);
+        return this.projectsService.update(id, user.org_id, updateProjectDto, user);
     }
     remove(user, id) {
-        return this.projectsService.remove(id, user.org_id);
+        return this.projectsService.remove(id, user.org_id, user);
     }
     getStats(user, id) {
+        return this.projectsService.getProjectStats(id, user.org_id);
+    }
+    getStatistics(user, id) {
         return this.projectsService.getProjectStats(id, user.org_id);
     }
 };
@@ -93,6 +96,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], ProjectsController.prototype, "getStats", null);
+__decorate([
+    (0, common_1.Get)(':id/statistics'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], ProjectsController.prototype, "getStatistics", null);
 exports.ProjectsController = ProjectsController = __decorate([
     (0, common_1.Controller)('projects'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

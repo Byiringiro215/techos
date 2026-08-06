@@ -4,20 +4,46 @@ import { Sprint } from '../../entities/sprint.entity';
 import { Task } from '../../entities/task.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { ActivityLogService } from '../../common/services/activity-log.service';
 export declare class ProjectsService {
     private projectsRepository;
     private sprintsRepository;
     private tasksRepository;
-    constructor(projectsRepository: Repository<Project>, sprintsRepository: Repository<Sprint>, tasksRepository: Repository<Task>);
-    create(org_id: string, user_id: string, createProjectDto: CreateProjectDto): Promise<{
+    private activityLogService;
+    constructor(projectsRepository: Repository<Project>, sprintsRepository: Repository<Sprint>, tasksRepository: Repository<Task>, activityLogService: ActivityLogService);
+    create(org_id: string, actor: any, createProjectDto: CreateProjectDto): Promise<{
         success: boolean;
-        data: Project;
+        data: {
+            client_name: any;
+            owner_name: any;
+            progress: number;
+            id: string;
+            org_id: string;
+            name: string;
+            description: string;
+            status: string;
+            priority: string;
+            start_date: string;
+            end_date: string;
+            budget: number;
+            created_by: string;
+            metadata: any;
+            created_at: Date;
+            organization: import("../../entities").Organization;
+            sprints: Sprint[];
+            tasks: Task[];
+        };
     }>;
+    private timelineProgress;
+    private withProjectExtras;
     findAll(org_id: string, status?: string): Promise<{
         success: boolean;
         data: {
             task_count: number;
             sprint_count: number;
+            client_name: any;
+            owner_name: any;
+            progress: number;
             id: string;
             org_id: string;
             name: string;
@@ -40,6 +66,9 @@ export declare class ProjectsService {
         data: {
             sprints: Sprint[];
             tasks: Task[];
+            client_name: any;
+            owner_name: any;
+            progress: number;
             id: string;
             org_id: string;
             name: string;
@@ -55,11 +84,30 @@ export declare class ProjectsService {
             organization: import("../../entities").Organization;
         };
     }>;
-    update(id: string, org_id: string, updateProjectDto: UpdateProjectDto): Promise<{
+    update(id: string, org_id: string, updateProjectDto: UpdateProjectDto, actor?: any): Promise<{
         success: boolean;
-        data: Project;
+        data: {
+            client_name: any;
+            owner_name: any;
+            progress: number;
+            id: string;
+            org_id: string;
+            name: string;
+            description: string;
+            status: string;
+            priority: string;
+            start_date: string;
+            end_date: string;
+            budget: number;
+            created_by: string;
+            metadata: any;
+            created_at: Date;
+            organization: import("../../entities").Organization;
+            sprints: Sprint[];
+            tasks: Task[];
+        };
     }>;
-    remove(id: string, org_id: string): Promise<{
+    remove(id: string, org_id: string, actor?: any): Promise<{
         success: boolean;
         message: string;
     }>;

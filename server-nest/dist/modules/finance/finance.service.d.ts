@@ -8,6 +8,7 @@ import { CreateExpenseDto } from './dto/create-expense.dto';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../../common/services/email.service';
+import { ActivityLogService } from '../../common/services/activity-log.service';
 export declare class FinanceService {
     private invoicesRepository;
     private expensesRepository;
@@ -15,20 +16,36 @@ export declare class FinanceService {
     private usersRepository;
     private notificationsService;
     private emailService;
-    constructor(invoicesRepository: Repository<Invoice>, expensesRepository: Repository<Expense>, budgetsRepository: Repository<Budget>, usersRepository: Repository<User>, notificationsService: NotificationsService, emailService: EmailService);
-    createInvoice(org_id: string, createInvoiceDto: CreateInvoiceDto): Promise<{
+    private activityLogService;
+    constructor(invoicesRepository: Repository<Invoice>, expensesRepository: Repository<Expense>, budgetsRepository: Repository<Budget>, usersRepository: Repository<User>, notificationsService: NotificationsService, emailService: EmailService, activityLogService: ActivityLogService);
+    createInvoice(org_id: string, createInvoiceDto: CreateInvoiceDto, actor?: any): Promise<{
         success: boolean;
         data: Invoice;
     }>;
     findAllInvoices(org_id: string, filters?: any): Promise<{
         success: boolean;
-        data: Invoice[];
+        data: {
+            client_name: any;
+            amount: number;
+            id: string;
+            org_id: string;
+            contact_id: string;
+            invoice_number: string;
+            tax: number;
+            total: number;
+            status: string;
+            due_date: string;
+            issued_date: string;
+            items: any[];
+            notes: string;
+            created_at: Date;
+        }[];
     }>;
     findOneInvoice(id: string, org_id: string): Promise<{
         success: boolean;
         data: Invoice;
     }>;
-    updateInvoice(id: string, org_id: string, updateData: Partial<Invoice>): Promise<{
+    updateInvoice(id: string, org_id: string, updateData: Partial<Invoice>, actor?: any): Promise<{
         success: boolean;
         data: Invoice;
     }>;
@@ -40,7 +57,7 @@ export declare class FinanceService {
         success: boolean;
         message: string;
     }>;
-    createExpense(org_id: string, user_id: string, createExpenseDto: CreateExpenseDto): Promise<{
+    createExpense(org_id: string, actor: any, createExpenseDto: CreateExpenseDto): Promise<{
         success: boolean;
         data: Expense;
     }>;

@@ -16,6 +16,7 @@ let Invoice = class Invoice {
     org_id;
     contact_id;
     invoice_number;
+    client_name;
     amount;
     tax;
     total;
@@ -43,6 +44,10 @@ __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
 ], Invoice.prototype, "invoice_number", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", String)
+], Invoice.prototype, "client_name", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'real' }),
     __metadata("design:type", Number)

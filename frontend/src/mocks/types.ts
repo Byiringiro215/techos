@@ -29,6 +29,9 @@ export interface MockRecord {
   updatedAt: string;
   dueDate?: string;
   startDate?: string;
+  start_date?: string;
+  end_date?: string;
+  client_name?: string;
   description: string;
   priority?: Priority;
   amount?: number;
@@ -39,7 +42,6 @@ export interface MockRecord {
   company?: string;
   category?: string;
   assignee?: string;
-  department?: string;
   location?: string;
   rating?: number;
   [key: string]: unknown;
@@ -148,6 +150,7 @@ export interface CalendarEvent {
 export type MockUserRole =
   | 'ceo'
   | 'cto'
+  | 'ciso'
   | 'finance'
   | 'software_engineer'
   | 'ui_ux_designer'
@@ -159,7 +162,6 @@ export interface MockUser {
   firstName: string;
   lastName: string;
   role: MockUserRole;
-  department: string;
   title: string;
   status: 'active' | 'invited' | 'inactive';
   initials: string;

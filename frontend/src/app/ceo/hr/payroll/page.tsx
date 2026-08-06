@@ -2,25 +2,29 @@
 
 import { Card } from '@/components/UI/Card';
 import { Badge } from '@/components/UI/Badge';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/UI/Table';
 import {
   DollarSign,
   CreditCard,
   Users,
-  TrendingUp,
   Calendar,
-  CheckCircle,
-  Clock,
   FileText
 } from 'lucide-react';
+import { EmptyState } from '@/components/UI/EmptyState';
+import { LoadingSpinner } from '@/components/UI/LoadingSpinner';
+import { useEmployees } from '@/hooks/useHR';
+import { useEntityList } from '@/hooks/useEntityApi';
 
 export default function PayrollPage() {
-  const payrollRuns = [
-    { id: '1', period: 'September 2024', runDate: '2024-09-30', employees: 124, total: 985400, status: 'paid' },
-    { id: '2', period: 'August 2024', runDate: '2024-08-31', employees: 122, total: 968200, status: 'paid' },
-    { id: '3', period: 'July 2024', runDate: '2024-07-31', employees: 118, total: 942000, status: 'paid' },
-    { id: '4', period: 'October 2024', runDate: '2024-10-31', employees: 126, total: 1012000, status: 'scheduled' },
-  ];
+  const { data: employees = [], isLoading: employeesLoading } = useEmployees();
+  const { data: payrollRuns = [], isLoading: payrollLoading } = useEntityList('payroll');
+  const salariedEmployees = employees.filter((employee) => Number(employee.salary) > 0);
+  const annualSalaryTotal = salariedEmployees.reduce((total, employee) => total + Number(employee.salary), 0);
+  const monthlySalaryTotal = annualSalaryTotal / 12;
+  const averageSalary = salariedEmployees.length ? annualSalaryTotal / salariedEmployees.length : 0;
+
+  if (employeesLoading || payrollLoading) {
+    return <div className="flex min-h-[60vh] items-center justify-center"><LoadingSpinner size="lg" /></div>;
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -43,23 +47,23 @@ export default function PayrollPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="p-6 bg-surface border border-border">
           <DollarSign className="h-8 w-8 text-ink mb-3" />
-          <p className="text-sm text-ink-muted">Monthly Payroll</p>
-          <p className="text-3xl font-bold text-ink mt-1">$985.4K</p>
+          <p className="text-sm text-ink-muted">Estimated Monthly Salary</p>
+          <p className="text-3xl font-bold text-ink mt-1">${monthlySalaryTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
         </Card>
         <Card className="p-6 bg-surface border border-border">
           <Users className="h-8 w-8 text-ink mb-3" />
-          <p className="text-sm text-ink-muted">Employees</p>
-          <p className="text-3xl font-bold text-ink mt-1">124</p>
+          <p className="text-sm text-ink-muted">Salaried Employees</p>
+          <p className="text-3xl font-bold text-ink mt-1">{salariedEmployees.length}</p>
         </Card>
         <Card className="p-6 bg-surface border border-border">
           <CreditCard className="h-8 w-8 text-ink mb-3" />
-          <p className="text-sm text-ink-muted">Avg Salary</p>
-          <p className="text-3xl font-bold text-ink mt-1">$7.9K</p>
+          <p className="text-sm text-ink-muted">Average Annual Salary</p>
+          <p className="text-3xl font-bold text-ink mt-1">${averageSalary.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
         </Card>
         <Card className="p-6 bg-surface border border-border">
-          <TrendingUp className="h-8 w-8 text-success mb-3" />
-          <p className="text-sm text-ink-muted">YoY Growth</p>
-          <p className="text-3xl font-bold text-ink mt-1">+8.2%</p>
+          <Calendar className="h-8 w-8 text-ink mb-3" />
+          <p className="text-sm text-ink-muted">Payroll Runs</p>
+          <p className="text-3xl font-bold text-ink mt-1">{payrollRuns.length}</p>
         </Card>
       </div>
 
@@ -68,55 +72,49 @@ export default function PayrollPage() {
           <h2 className="text-lg font-semibold text-ink mb-6 flex items-center gap-2">
             <Calendar className="h-5 w-5" /> Upcoming & Recent Runs
           </h2>
-          <div className="space-y-4">
+          {payrollRuns.length === 0 ? (
+            <EmptyState icon={<Calendar className="h-12 w-12" />} title="No payroll runs yet" description="Payroll runs created in the workspace will appear here." />
+          ) : <div className="space-y-4">
             {payrollRuns.map(run => (
               <div key={run.id} className="flex items-center justify-between p-4 bg-bg-muted border border-border rounded-lg">
                 <div>
-                  <p className="font-medium text-ink">{run.period}</p>
+                  <p className="font-medium text-ink">{run.title}</p>
                   <div className="flex items-center gap-4 mt-1 text-xs text-ink-muted">
                     <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" /> Run: {new Date(run.runDate).toLocaleDateString()}
+                      <Calendar className="h-3 w-3" /> Run: {run.dueDate ? new Date(run.dueDate).toLocaleDateString() : 'Not scheduled'}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Users className="h-3 w-3" /> {run.employees} employees
+                      <Users className="h-3 w-3" /> {run.metadata?.employeeCount ?? salariedEmployees.length} employees
                     </span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-ink font-semibold">${(run.total / 1000).toFixed(1)}K</p>
+                  <p className="text-ink font-semibold">${Number(run.amount || 0).toLocaleString()}</p>
                   <div className="mt-1">{getStatusBadge(run.status)}</div>
                 </div>
               </div>
             ))}
-          </div>
+          </div>}
         </Card>
 
         <Card className="p-6 bg-surface border border-border">
           <h2 className="text-lg font-semibold text-ink mb-6 flex items-center gap-2">
             <FileText className="h-5 w-5" /> Payroll Breakdown
           </h2>
-          <div className="space-y-4">
-            {[
-              { label: 'Base Salaries', amount: 825000, pct: 83 },
-              { label: 'Bonuses', amount: 68000, pct: 7 },
-              { label: 'Benefits', amount: 52400, pct: 5 },
-              { label: 'Taxes', amount: 40000, pct: 5 },
-            ].map((item, i) => (
-              <div key={i}>
+          {salariedEmployees.length === 0 ? (
+            <EmptyState icon={<FileText className="h-12 w-12" />} title="No salary data available" description="Add salaries to employee records to calculate the payroll summary." />
+          ) : <div className="space-y-4">
+              <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-ink-secondary">{item.label}</span>
-                  <span className="text-sm text-ink font-medium">${(item.amount / 1000).toFixed(1)}K</span>
+                  <span className="text-sm text-ink-secondary">Annual base salaries</span>
+                  <span className="text-sm text-ink font-medium">${annualSalaryTotal.toLocaleString()}</span>
                 </div>
                 <div className="w-full bg-bg-muted rounded-full h-2">
-                  <div
-                    className="h-2 rounded-full bg-brand-mist"
-                    style={{ width: `${item.pct}%` }}
-                  />
+                  <div className="h-2 rounded-full bg-brand-mist" style={{ width: '100%' }} />
                 </div>
-                <p className="text-xs text-ink-muted mt-1">{item.pct}% of total</p>
+                <p className="text-xs text-ink-muted mt-1">Based on {salariedEmployees.length} employee records with salary data</p>
               </div>
-            ))}
-          </div>
+          </div>}
         </Card>
       </div>
     </div>

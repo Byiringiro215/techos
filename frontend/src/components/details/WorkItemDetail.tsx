@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Bug, CheckSquare, GitBranch } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatDate } from '@/lib/utils';
-import { useMockMutation } from '@/hooks/useMockQuery';
+import { useUpdateEntity } from '@/hooks/useEntityApi';
 import { Badge } from '@/components/UI/Badge';
 import { Button } from '@/components/UI/Button';
 import { Card } from '@/components/UI/Card';
@@ -31,7 +31,7 @@ export function WorkItemDetail(props: DetailViewProps) {
   const isBug = entityKey === 'bugs';
   const flow = isBug ? BUG_FLOW : TASK_FLOW;
   const { data, extras, isLoading } = useDetailRecord(entityKey, detailId);
-  const statusMutation = useMockMutation({ successMessage: 'Status updated (mock)' });
+  const statusMutation = useUpdateEntity(entityKey);
   const [status, setStatus] = useState<string | null>(null);
 
   if (isLoading) return <DetailLoading />;
@@ -62,7 +62,7 @@ export function WorkItemDetail(props: DetailViewProps) {
           </>
         }
         actions={
-          <Button size="sm" variant="secondary" onClick={() => toast.success('Linked to PR (mock)')}>
+          <Button size="sm" variant="secondary" onClick={() => toast.error('Linking pull requests is not available yet.')}>
             <GitBranch className="h-4 w-4 mr-2" />
             Link PR
           </Button>
@@ -78,7 +78,7 @@ export function WorkItemDetail(props: DetailViewProps) {
               type="button"
               onClick={() => {
                 setStatus(step);
-                statusMutation.mutate();
+                statusMutation.mutate({ id: data.id, data: { ...data, status: step } });
               }}
               className={cn(
                 'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
@@ -169,7 +169,9 @@ export function WorkItemDetail(props: DetailViewProps) {
             <Select
               label="Priority"
               defaultValue={data.priority || 'medium'}
-              onChange={() => toast.success('Priority updated (mock)')}
+              onChange={(event) =>
+                statusMutation.mutate({ id: data.id, data: { ...data, priority: event.target.value } })
+              }
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>

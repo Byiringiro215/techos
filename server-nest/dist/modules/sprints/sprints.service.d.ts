@@ -1,10 +1,12 @@
 import { Repository } from 'typeorm';
 import { Sprint } from '../../entities/sprint.entity';
 import { Project } from '../../entities/project.entity';
+import { Task } from '../../entities/task.entity';
 export declare class SprintsService {
     private sprintsRepository;
     private projectsRepository;
-    constructor(sprintsRepository: Repository<Sprint>, projectsRepository: Repository<Project>);
+    private tasksRepository;
+    constructor(sprintsRepository: Repository<Sprint>, projectsRepository: Repository<Project>, tasksRepository: Repository<Task>);
     create(org_id: string, createSprintDto: any): Promise<{
         success: boolean;
         data: Sprint[];
@@ -22,6 +24,34 @@ export declare class SprintsService {
         data: Sprint | null;
     }>;
     remove(id: string, org_id: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    getStats(id: string, org_id: string): Promise<{
+        success: boolean;
+        data: {
+            total_tasks: number;
+            completed_tasks: number;
+            completion_rate: number;
+        };
+    }>;
+    findActiveSprint(project_id: string, org_id: string): Promise<{
+        success: boolean;
+        data: any;
+    }>;
+    startSprint(id: string, org_id: string): Promise<{
+        success: boolean;
+        data: Sprint;
+    }>;
+    completeSprint(id: string, org_id: string): Promise<{
+        success: boolean;
+        data: Sprint;
+    }>;
+    addTaskToSprint(sprint_id: string, task_id: string, org_id: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    removeTaskFromSprint(sprint_id: string, task_id: string, org_id: string): Promise<{
         success: boolean;
         message: string;
     }>;

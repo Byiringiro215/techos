@@ -4,33 +4,22 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useRouter } from 'next/navigation';
 import { UserRole } from '@/types/roles';
 import { getDefaultRoute } from '@/lib/rbac';
-
-interface User {
-  id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  name: string;
-  role: UserRole;
-  org_id: string;
-  avatar?: string;
-  status: string;
-  preferences?: any;
-}
+import api from '@/lib/api';
+import { mapBackendUserToFrontend, type FrontendAuthUser } from '@/lib/apiMappers/auth';
 
 interface AuthContextType {
-  user: User | null;
+  user: FrontendAuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  updateUser: (updates: Partial<User>) => void;
+  updateUser: (updates: Partial<FrontendAuthUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<FrontendAuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
@@ -41,28 +30,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
       if (!token) {
         setIsLoading(false);
         return;
       }
 
       // Verify token and get user data
-      const response = await fetch('http://localhost:3001/api/auth/me', {
+      const response = await api.get('/auth/me', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.data);
-      } else {
-        localStorage.removeItem('auth_token');
-      }
+      setUser(mapBackendUserToFrontend(response.data.data));
     } catch (error) {
       console.error('Auth check failed:', error);
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('token');
     } finally {
       setIsLoading(false);
     }
@@ -70,23 +54,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch('http://localhost:3001/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Login failed');
-      }
-
-      const data = await response.json();
+      const response = await api.post('/auth/login', { email, password });
+      const data = response.data;
       const { token, user: userData } = data.data;
 
       localStorage.setItem('auth_token', token);
-      setUser(userData);
+      localStorage.setItem('token', token);
+      setUser(mapBackendUserToFrontend(userData));
 
       // Redirect to role-specific default route
       const defaultRoute = getDefaultRoute(userData.role as UserRole);
@@ -99,11 +73,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('token');
     setUser(null);
     router.push('/login');
   };
 
-  const updateUser = (updates: Partial<User>) => {
+  const updateUser = (updates: Partial<FrontendAuthUser>) => {
     if (user) {
       setUser({ ...user, ...updates });
     }

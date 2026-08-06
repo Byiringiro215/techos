@@ -11,6 +11,7 @@ import { CreateExpenseDto } from './dto/create-expense.dto';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../../common/services/email.service';
+import { ActivityLogService } from '../../common/services/activity-log.service';
 
 @Injectable()
 export class FinanceService {
@@ -25,18 +26,48 @@ export class FinanceService {
     private usersRepository: Repository<User>,
     private notificationsService: NotificationsService,
     private emailService: EmailService,
+    private activityLogService: ActivityLogService,
   ) {}
 
   // Invoices
-  async createInvoice(org_id: string, createInvoiceDto: CreateInvoiceDto) {
+  async createInvoice(org_id: string, createInvoiceDto: CreateInvoiceDto, actor?: any) {
+    const amount = Number(createInvoiceDto.amount || 0);
+    const tax = Number(createInvoiceDto.tax || 0);
+    const total = Number(createInvoiceDto.total ?? amount + tax);
+    const today = new Date().toISOString().slice(0, 10);
     const invoice = this.invoicesRepository.create({
       id: randomUUID(),
       org_id,
-      ...createInvoiceDto,
-      status: 'draft',
+      contact_id: createInvoiceDto.contact_id,
+      invoice_number:
+        createInvoiceDto.invoice_number || `INV-${Date.now().toString().slice(-8)}`,
+      client_name: createInvoiceDto.client_name || undefined,
+      amount,
+      tax,
+      total,
+      due_date: createInvoiceDto.due_date || today,
+      issued_date: createInvoiceDto.issued_date || today,
+      items: createInvoiceDto.items || [
+        {
+          description: createInvoiceDto.description || createInvoiceDto.notes || createInvoiceDto.client_name || 'Service',
+          quantity: 1,
+          unit_price: amount,
+          total: amount,
+        },
+      ],
+      notes: createInvoiceDto.notes || createInvoiceDto.description,
+      status: createInvoiceDto.status || 'draft',
     });
 
     await this.invoicesRepository.save(invoice);
+    await this.activityLogService.log({
+      org_id,
+      actor,
+      action: 'created',
+      resource_type: 'invoices',
+      resource_id: invoice.id,
+      summary: `created invoice "${invoice.invoice_number}"`,
+    });
 
     return {
       success: true,
@@ -56,9 +87,19 @@ export class FinanceService {
       order: { created_at: 'DESC' },
     });
 
+    const data = invoices.map((invoice) => ({
+      ...invoice,
+      client_name:
+        invoice.client_name ||
+        invoice.items?.[0]?.description ||
+        invoice.notes ||
+        null,
+      amount: invoice.amount ?? invoice.total ?? 0,
+    }));
+
     return {
       success: true,
-      data: invoices,
+      data,
     };
   }
 
@@ -77,7 +118,7 @@ export class FinanceService {
     };
   }
 
-  async updateInvoice(id: string, org_id: string, updateData: Partial<Invoice>) {
+  async updateInvoice(id: string, org_id: string, updateData: Partial<Invoice>, actor?: any) {
     const invoice = await this.invoicesRepository.findOne({
       where: { id, org_id },
     });
@@ -88,6 +129,15 @@ export class FinanceService {
 
     Object.assign(invoice, updateData);
     await this.invoicesRepository.save(invoice);
+    await this.activityLogService.log({
+      org_id,
+      actor,
+      action: 'updated',
+      resource_type: 'invoices',
+      resource_id: invoice.id,
+      summary: `updated invoice "${invoice.invoice_number}"`,
+      changes: updateData as any,
+    });
 
     return {
       success: true,
@@ -144,16 +194,24 @@ export class FinanceService {
   }
 
   // Expenses
-  async createExpense(org_id: string, user_id: string, createExpenseDto: CreateExpenseDto) {
+  async createExpense(org_id: string, actor: any, createExpenseDto: CreateExpenseDto) {
     const expense = this.expensesRepository.create({
       id: randomUUID(),
       org_id,
       ...createExpenseDto,
-      submitted_by: user_id,
+      submitted_by: actor?.id,
       status: 'pending',
     });
 
     await this.expensesRepository.save(expense);
+    await this.activityLogService.log({
+      org_id,
+      actor,
+      action: 'created',
+      resource_type: 'expenses',
+      resource_id: expense.id,
+      summary: `submitted expense $${expense.amount} (${expense.category || 'general'})`,
+    });
 
     // Notify finance team
     await this.notifyFinanceTeam(

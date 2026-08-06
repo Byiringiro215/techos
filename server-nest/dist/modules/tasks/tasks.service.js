@@ -19,14 +19,17 @@ const typeorm_2 = require("typeorm");
 const crypto_1 = require("crypto");
 const task_entity_1 = require("../../entities/task.entity");
 const project_entity_1 = require("../../entities/project.entity");
+const activity_log_service_1 = require("../../common/services/activity-log.service");
 let TasksService = class TasksService {
     tasksRepository;
     projectsRepository;
-    constructor(tasksRepository, projectsRepository) {
+    activityLogService;
+    constructor(tasksRepository, projectsRepository, activityLogService) {
         this.tasksRepository = tasksRepository;
         this.projectsRepository = projectsRepository;
+        this.activityLogService = activityLogService;
     }
-    async create(org_id, user_id, createTaskDto) {
+    async create(org_id, actor, createTaskDto) {
         const project = await this.projectsRepository.findOne({
             where: { id: createTaskDto.project_id, org_id },
         });
@@ -35,11 +38,31 @@ let TasksService = class TasksService {
         }
         const task = this.tasksRepository.create({
             id: (0, crypto_1.randomUUID)(),
-            ...createTaskDto,
-            reporter_id: user_id,
+            org_id,
+            title: createTaskDto.title,
+            description: createTaskDto.description,
+            project_id: createTaskDto.project_id,
+            sprint_id: createTaskDto.sprint_id,
+            parent_task_id: createTaskDto.parent_task_id,
+            status: createTaskDto.status || 'todo',
+            priority: createTaskDto.priority || 'medium',
+            assignee_id: createTaskDto.assignee_id,
+            estimated_hours: createTaskDto.estimated_hours,
+            story_points: createTaskDto.story_points,
+            due_date: createTaskDto.due_date,
+            tags: createTaskDto.tags,
+            reporter_id: actor?.id,
         });
-        await this.tasksRepository.save(task);
-        return { success: true, data: task };
+        const saved = await this.tasksRepository.save(task);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'created',
+            resource_type: 'tasks',
+            resource_id: saved.id,
+            summary: `created task "${saved.title || 'Untitled'}"`,
+        });
+        return { success: true, data: saved };
     }
     async findAll(org_id, filters) {
         const queryBuilder = this.tasksRepository
@@ -71,7 +94,7 @@ let TasksService = class TasksService {
         }
         return { success: true, data: task };
     }
-    async update(id, org_id, updateTaskDto) {
+    async update(id, org_id, updateTaskDto, actor) {
         const task = await this.tasksRepository
             .createQueryBuilder('task')
             .leftJoin(project_entity_1.Project, 'project', 'task.project_id = project.id')
@@ -84,9 +107,18 @@ let TasksService = class TasksService {
         }
         await this.tasksRepository.update(id, updateTaskDto);
         const updated = await this.tasksRepository.findOne({ where: { id } });
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'updated',
+            resource_type: 'tasks',
+            resource_id: id,
+            summary: `updated task "${updated?.title || task.title || 'Untitled'}"`,
+            changes: updateTaskDto,
+        });
         return { success: true, data: updated };
     }
-    async remove(id, org_id) {
+    async remove(id, org_id, actor) {
         const task = await this.tasksRepository
             .createQueryBuilder('task')
             .leftJoin(project_entity_1.Project, 'project', 'task.project_id = project.id')
@@ -98,7 +130,23 @@ let TasksService = class TasksService {
             throw new common_1.NotFoundException('Task not found');
         }
         await this.tasksRepository.delete(id);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'deleted',
+            resource_type: 'tasks',
+            resource_id: id,
+            summary: `deleted task "${task.title || 'Untitled'}"`,
+        });
         return { success: true, message: 'Task deleted successfully' };
+    }
+    async getSubtasks(task_id, org_id) {
+        await this.findOne(task_id, org_id);
+        const subtasks = await this.tasksRepository.find({
+            where: { parent_task_id: task_id },
+            order: { created_at: 'ASC' },
+        });
+        return { success: true, data: subtasks };
     }
 };
 exports.TasksService = TasksService;
@@ -107,6 +155,7 @@ exports.TasksService = TasksService = __decorate([
     __param(0, (0, typeorm_1.InjectRepository)(task_entity_1.Task)),
     __param(1, (0, typeorm_1.InjectRepository)(project_entity_1.Project)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        activity_log_service_1.ActivityLogService])
 ], TasksService);
 //# sourceMappingURL=tasks.service.js.map
