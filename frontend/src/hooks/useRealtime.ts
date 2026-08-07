@@ -1,21 +1,32 @@
-import { useEffect, useCallback } from 'react';
-import { useSocket } from '@/contexts/SocketContext';
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useSocket } from '@/contexts/SocketContext';
 
-interface Message {
+type LiveMessage = {
   id: string;
-  channelId: string;
-  content: string;
-  userId: string;
-  createdAt: string;
-}
+  channel_id?: string;
+  channelId?: string;
+  content?: string;
+  user_id?: string;
+  userId?: string;
+  created_at?: string;
+  event?: string;
+  [key: string]: unknown;
+};
 
-interface TypingUser {
+type TypingUser = {
   userId: string;
   userName: string;
+  channelId?: string;
+};
+
+function messageChannelId(message: LiveMessage) {
+  return message.channel_id || message.channelId || '';
 }
 
-// Hook for real-time messages in a channel
+/** Join channel room and keep React Query messages cache live. */
 export function useRealtimeMessages(channelId?: string) {
   const { socket, isConnected, joinChannel, leaveChannel } = useSocket();
   const queryClient = useQueryClient();
@@ -23,20 +34,36 @@ export function useRealtimeMessages(channelId?: string) {
   useEffect(() => {
     if (!socket || !isConnected || !channelId) return;
 
-    // Join the channel
     joinChannel(channelId);
 
-    // Listen for new messages
-    const handleNewMessage = (message: Message) => {
-      if (message.channelId === channelId) {
-        // Update messages cache
-        queryClient.invalidateQueries({ queryKey: ['channel-messages', channelId] });
+    const handleNewMessage = (message: LiveMessage) => {
+      if (messageChannelId(message) !== channelId) return;
+
+      // Thread replies belong in the thread panel, not the main feed
+      if (message.parent_message_id) {
+        queryClient.invalidateQueries({
+          queryKey: ['messages', message.parent_message_id, 'thread'],
+        });
+        queryClient.invalidateQueries({ queryKey: ['channels', channelId, 'messages'] });
+        return;
       }
+
+      // Reaction / edit / delete envelopes still use newMessage + event field
+      if (message.event && message.event !== 'created') {
+        queryClient.invalidateQueries({ queryKey: ['channels', channelId, 'messages'] });
+        return;
+      }
+
+      queryClient.setQueryData(['channels', channelId, 'messages'], (old: any) => {
+        const list = Array.isArray(old) ? old : [];
+        if (list.some((m: any) => m.id === message.id)) return list;
+        return [...list, message];
+      });
+      queryClient.invalidateQueries({ queryKey: ['channels'] });
     };
 
     socket.on('newMessage', handleNewMessage);
 
-    // Cleanup
     return () => {
       socket.off('newMessage', handleNewMessage);
       leaveChannel(channelId);
@@ -44,29 +71,27 @@ export function useRealtimeMessages(channelId?: string) {
   }, [socket, isConnected, channelId, joinChannel, leaveChannel, queryClient]);
 }
 
-// Hook for typing indicators
 export function useTypingIndicators(channelId?: string) {
   const { socket, isConnected } = useSocket();
-  const [typingUsers, setTypingUsers] = React.useState<TypingUser[]>([]);
+  const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
 
   useEffect(() => {
     if (!socket || !isConnected || !channelId) return;
 
     const handleUserTyping = (data: TypingUser) => {
-      setTypingUsers(prev => {
-        // Remove if already exists, then add
-        const filtered = prev.filter(u => u.userId !== data.userId);
+      if (data.channelId && data.channelId !== channelId) return;
+      setTypingUsers((prev) => {
+        const filtered = prev.filter((u) => u.userId !== data.userId);
         return [...filtered, data];
       });
-
-      // Auto-remove after 3 seconds
-      setTimeout(() => {
-        setTypingUsers(prev => prev.filter(u => u.userId !== data.userId));
+      window.setTimeout(() => {
+        setTypingUsers((prev) => prev.filter((u) => u.userId !== data.userId));
       }, 3000);
     };
 
-    const handleUserStoppedTyping = (data: { userId: string }) => {
-      setTypingUsers(prev => prev.filter(u => u.userId !== data.userId));
+    const handleUserStoppedTyping = (data: { userId: string; channelId?: string }) => {
+      if (data.channelId && data.channelId !== channelId) return;
+      setTypingUsers((prev) => prev.filter((u) => u.userId !== data.userId));
     };
 
     socket.on('userTyping', handleUserTyping);
@@ -81,7 +106,6 @@ export function useTypingIndicators(channelId?: string) {
   return typingUsers;
 }
 
-// Hook for real-time notifications
 export function useRealtimeNotifications() {
   const { socket, isConnected } = useSocket();
   const queryClient = useQueryClient();
@@ -89,72 +113,21 @@ export function useRealtimeNotifications() {
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    const handleNotification = (notification: any) => {
-      // Invalidate notifications cache
+    const handleNotification = () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     };
 
     socket.on('notification', handleNotification);
-
     return () => {
       socket.off('notification', handleNotification);
     };
   }, [socket, isConnected, queryClient]);
 }
 
-// Hook for real-time task updates
-export function useRealtimeTaskUpdates(projectId?: string) {
-  const { socket, isConnected } = useSocket();
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (!socket || !isConnected || !projectId) return;
-
-    // Join project room
-    socket.emit('joinProject', { projectId });
-
-    const handleTaskUpdate = (task: any) => {
-      // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['tasks', task.id] });
-      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
-    };
-
-    socket.on('taskUpdated', handleTaskUpdate);
-
-    return () => {
-      socket.off('taskUpdated', handleTaskUpdate);
-      socket.emit('leaveProject', { projectId });
-    };
-  }, [socket, isConnected, projectId, queryClient]);
-}
-
-// Hook for real-time project updates
-export function useRealtimeProjectUpdates() {
-  const { socket, isConnected } = useSocket();
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (!socket || !isConnected) return;
-
-    const handleProjectUpdate = (project: any) => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.invalidateQueries({ queryKey: ['projects', project.id] });
-    };
-
-    socket.on('projectUpdated', handleProjectUpdate);
-
-    return () => {
-      socket.off('projectUpdated', handleProjectUpdate);
-    };
-  }, [socket, isConnected, queryClient]);
-}
-
-// Custom hook for sending typing indicators with debounce
 export function useTyping(channelId?: string, userName?: string) {
   const { sendTyping, stopTyping } = useSocket();
-  const [isTyping, setIsTyping] = React.useState(false);
-  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleTyping = useCallback(() => {
     if (!channelId || !userName) return;
@@ -164,12 +137,7 @@ export function useTyping(channelId?: string, userName?: string) {
       sendTyping(channelId, userName);
     }
 
-    // Clear previous timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    // Stop typing after 2 seconds of inactivity
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       setIsTyping(false);
       stopTyping(channelId);
@@ -177,9 +145,7 @@ export function useTyping(channelId?: string, userName?: string) {
   }, [channelId, userName, isTyping, sendTyping, stopTyping]);
 
   const handleStopTyping = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (isTyping && channelId) {
       setIsTyping(false);
       stopTyping(channelId);
@@ -188,14 +154,9 @@ export function useTyping(channelId?: string, userName?: string) {
 
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
 
   return { handleTyping, handleStopTyping };
 }
-
-// Add React import for useState and useRef
-import React from 'react';

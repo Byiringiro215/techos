@@ -78,7 +78,7 @@ export class ProductController {
 
   @Get('bugs')
   findAllBugs(@CurrentUser() user: any, @Query() filters: any) {
-    return this.productService.findAllBugs(user.org_id, filters);
+    return this.productService.findAllBugs(user.org_id, filters, user);
   }
 
   @Get('bugs/:id')

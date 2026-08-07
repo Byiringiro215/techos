@@ -35,6 +35,14 @@ export class Project {
   @Column({ nullable: true })
   created_by: string;
 
+  /**
+   * Roles allowed to see this project.
+   * null / empty = visible to all roles in the org.
+   * CEO always bypasses this filter.
+   */
+  @Column({ type: 'json', nullable: true })
+  visible_to_roles: string[] | null;
+
   @Column({ type: 'json', nullable: true })
   metadata: any;
 

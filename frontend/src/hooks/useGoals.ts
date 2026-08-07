@@ -95,13 +95,20 @@ export const useCreateKeyResult = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (data: CreateKeyResultDto) => {
-      const response = await api.post('/goals/key-results', data);
+    mutationFn: async (data: CreateKeyResultDto & { goal_id?: string; target?: number; current?: number; unit?: string }) => {
+      const response = await api.post('/goals/key-results', {
+        goal_id: data.goal_id || data.goalId,
+        title: data.title,
+        target: data.target ?? data.targetValue ?? 0,
+        current: data.current ?? data.startValue ?? 0,
+        unit: data.unit || '',
+      });
       return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['keyResults'] });
       queryClient.invalidateQueries({ queryKey: ['goals'] });
+      queryClient.invalidateQueries({ queryKey: ['entity', 'goals'] });
       toast.success('Key result created successfully');
     },
     onError: () => {
@@ -114,13 +121,18 @@ export const useUpdateKeyResult = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: UpdateKeyResultDto }) => {
-      const response = await api.put(`/goals/key-results/${id}`, data);
+    mutationFn: async ({ id, data }: { id: string; data: UpdateKeyResultDto & { current?: number } }) => {
+      const response = await api.put(`/goals/key-results/${id}`, {
+        title: data.title,
+        current: data.current ?? data.currentValue,
+        unit: (data as any).unit,
+      });
       return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['keyResults'] });
       queryClient.invalidateQueries({ queryKey: ['goals'] });
+      queryClient.invalidateQueries({ queryKey: ['entity', 'goals'] });
       toast.success('Key result updated successfully');
     },
     onError: () => {

@@ -7,6 +7,21 @@ export declare class DashboardController {
         data: {
             my_tasks: import("../../entities").Task[];
             my_bugs: import("../../entities").Bug[];
+            task_counts: {
+                total: number;
+                active: number;
+                in_progress: number;
+                todo: number;
+                done: number;
+            };
+            bug_counts: {
+                total: number;
+                open: number;
+            };
+            projects: {
+                total: number;
+                active: number;
+            };
             active_sprint: import("../../entities").Sprint | null;
             upcoming_meetings: import("../../entities").Meeting[];
             notifications: import("../../entities").Notification[];

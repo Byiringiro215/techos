@@ -234,8 +234,13 @@ export class AnalyticsService {
       id: randomUUID(),
       org_id,
       owner_id,
-      ...createDto,
-      current: 0,
+      name: createDto.name,
+      description: createDto.description ?? null,
+      target: Number(createDto.target) || 0,
+      current: Number(createDto.current) || 0,
+      unit: createDto.unit || '',
+      frequency: createDto.frequency || 'monthly',
+      category: createDto.category || null,
     });
 
     await this.kpiRepository.save(kpi);

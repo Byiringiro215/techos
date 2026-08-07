@@ -2,13 +2,22 @@ import { io, Socket } from 'socket.io-client';
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:4000';
 
-/** Realtime is opt-in — mock/frontend-only mode must not spam console errors. */
-export const isRealtimeEnabled = () => process.env.NEXT_PUBLIC_ENABLE_WS === 'true';
+/** Realtime on by default in development; set NEXT_PUBLIC_ENABLE_WS=false to disable. */
+export const isRealtimeEnabled = () => {
+  if (process.env.NEXT_PUBLIC_ENABLE_WS === 'false') return false;
+  if (process.env.NEXT_PUBLIC_ENABLE_WS === 'true') return true;
+  return process.env.NODE_ENV !== 'production';
+};
+
+function readAuthToken() {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('token') || localStorage.getItem('auth_token');
+}
 
 class SocketClient {
   private socket: Socket | null = null;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
+  private maxReconnectAttempts = 8;
   private gaveUpLogged = false;
 
   connect(userId?: string): Socket | null {
@@ -24,13 +33,19 @@ class SocketClient {
       return this.socket;
     }
 
+    const token = readAuthToken();
+
     this.socket = io(WS_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: this.maxReconnectAttempts,
-      query: userId ? { userId } : undefined,
+      auth: token ? { token } : undefined,
+      query: {
+        ...(userId ? { userId } : {}),
+        ...(token ? { token } : {}),
+      },
     });
 
     this.setupEventListeners();
@@ -46,7 +61,7 @@ class SocketClient {
     });
 
     this.socket.on('disconnect', () => {
-      // no-op — callers use isConnected from context
+      // callers use isConnected from context
     });
 
     this.socket.on('connect_error', () => {
@@ -54,7 +69,7 @@ class SocketClient {
       if (this.reconnectAttempts >= this.maxReconnectAttempts && !this.gaveUpLogged) {
         this.gaveUpLogged = true;
         console.warn(
-          `[socket] Could not reach ${WS_URL}. Set NEXT_PUBLIC_ENABLE_WS=true when the server is running.`,
+          `[socket] Could not reach ${WS_URL}. Ensure Nest is running and JWT is present.`,
         );
       }
     });
@@ -90,7 +105,6 @@ class SocketClient {
     this.socket?.off(event, callback);
   }
 
-  // Channel methods
   joinChannel(channelId: string) {
     this.emit('joinChannel', { channelId });
   }
@@ -99,7 +113,10 @@ class SocketClient {
     this.emit('leaveChannel', { channelId });
   }
 
-  // Typing indicators
+  joinOrg(orgId: string) {
+    this.emit('joinOrg', { orgId });
+  }
+
   sendTyping(channelId: string, userId: string, userName: string) {
     this.emit('typing', { channelId, userId, userName });
   }
@@ -109,7 +126,6 @@ class SocketClient {
   }
 }
 
-// Singleton instance
 export const socketClient = new SocketClient();
 
 export default socketClient;

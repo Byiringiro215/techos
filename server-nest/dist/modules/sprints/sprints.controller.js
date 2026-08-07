@@ -23,37 +23,37 @@ let SprintsController = class SprintsController {
         this.sprintsService = sprintsService;
     }
     create(user, createSprintDto) {
-        return this.sprintsService.create(user.org_id, createSprintDto);
+        return this.sprintsService.create(user.org_id, createSprintDto, user);
     }
     findAll(user, project_id) {
-        return this.sprintsService.findAll(user.org_id, project_id);
+        return this.sprintsService.findAll(user.org_id, project_id, user);
     }
     findOne(user, id) {
-        return this.sprintsService.findOne(id, user.org_id);
+        return this.sprintsService.findOne(id, user.org_id, user);
     }
     getStats(user, id) {
-        return this.sprintsService.getStats(id, user.org_id);
+        return this.sprintsService.getStats(id, user.org_id, user);
     }
     getActive(user, projectId) {
-        return this.sprintsService.findActiveSprint(projectId, user.org_id);
+        return this.sprintsService.findActiveSprint(projectId, user.org_id, user);
     }
     update(user, id, updateSprintDto) {
-        return this.sprintsService.update(id, user.org_id, updateSprintDto);
+        return this.sprintsService.update(id, user.org_id, updateSprintDto, user);
     }
     start(user, id) {
-        return this.sprintsService.startSprint(id, user.org_id);
+        return this.sprintsService.startSprint(id, user.org_id, user);
     }
     complete(user, id) {
-        return this.sprintsService.completeSprint(id, user.org_id);
+        return this.sprintsService.completeSprint(id, user.org_id, user);
     }
     addTask(user, sprintId, taskId) {
-        return this.sprintsService.addTaskToSprint(sprintId, taskId, user.org_id);
+        return this.sprintsService.addTaskToSprint(sprintId, taskId, user.org_id, user);
     }
     removeTask(user, sprintId, taskId) {
-        return this.sprintsService.removeTaskFromSprint(sprintId, taskId, user.org_id);
+        return this.sprintsService.removeTaskFromSprint(sprintId, taskId, user.org_id, user);
     }
     remove(user, id) {
-        return this.sprintsService.remove(id, user.org_id);
+        return this.sprintsService.remove(id, user.org_id, user);
     }
 };
 exports.SprintsController = SprintsController;

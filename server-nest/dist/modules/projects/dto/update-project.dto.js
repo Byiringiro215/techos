@@ -11,6 +11,16 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdateProjectDto = void 0;
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
+const PROJECT_ROLES = [
+    'ceo',
+    'cto',
+    'ciso',
+    'finance',
+    'software_engineer',
+    'ui_ux_designer',
+    'customer_support',
+];
 class UpdateProjectDto {
     name;
     description;
@@ -20,6 +30,7 @@ class UpdateProjectDto {
     end_date;
     budget;
     client_name;
+    visible_to_roles;
 }
 exports.UpdateProjectDto = UpdateProjectDto;
 __decorate([
@@ -54,6 +65,7 @@ __decorate([
 ], UpdateProjectDto.prototype, "end_date", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Type)(() => Number),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], UpdateProjectDto.prototype, "budget", void 0);
@@ -62,4 +74,10 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdateProjectDto.prototype, "client_name", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsIn)(PROJECT_ROLES, { each: true }),
+    __metadata("design:type", Object)
+], UpdateProjectDto.prototype, "visible_to_roles", void 0);
 //# sourceMappingURL=update-project.dto.js.map

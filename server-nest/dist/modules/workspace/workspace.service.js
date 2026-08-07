@@ -19,30 +19,55 @@ const typeorm_2 = require("typeorm");
 const crypto_1 = require("crypto");
 const workspace_record_entity_1 = require("../../entities/workspace-record.entity");
 const activity_event_entity_1 = require("../../entities/activity-event.entity");
+const record_comment_entity_1 = require("../../entities/record-comment.entity");
 const activity_log_service_1 = require("../../common/services/activity-log.service");
+const org_admin_1 = require("../../common/utils/org-admin");
 let WorkspaceService = class WorkspaceService {
     recordsRepository;
     activityRepository;
+    commentsRepository;
     activityLogService;
-    constructor(recordsRepository, activityRepository, activityLogService) {
+    constructor(recordsRepository, activityRepository, commentsRepository, activityLogService) {
         this.recordsRepository = recordsRepository;
         this.activityRepository = activityRepository;
+        this.commentsRepository = commentsRepository;
         this.activityLogService = activityLogService;
     }
-    async list(org_id, type) {
-        const data = await this.recordsRepository.find({
+    isTeamMember(row, userId) {
+        if (!userId)
+            return false;
+        const meta = (row.metadata || {});
+        const leadId = meta.leadId || meta.lead_id;
+        const memberIds = Array.isArray(meta.memberIds)
+            ? meta.memberIds
+            : Array.isArray(meta.member_ids)
+                ? meta.member_ids
+                : [];
+        return leadId === userId || memberIds.includes(userId) || row.created_by === userId;
+    }
+    async list(org_id, type, user) {
+        let data = await this.recordsRepository.find({
             where: { org_id, type },
             order: { updated_at: 'DESC' },
         });
+        if (type === 'teams' && !(0, org_admin_1.isDeliveryAdmin)(user?.role)) {
+            data = data.filter((row) => this.isTeamMember(row, user?.id));
+        }
         return { success: true, data: data.map((row) => this.toUi(row)) };
     }
-    async get(org_id, type, id) {
+    async get(org_id, type, id, user) {
         const row = await this.recordsRepository.findOne({ where: { id, org_id, type } });
         if (!row)
             throw new common_1.NotFoundException('Record not found');
+        if (type === 'teams' && !(0, org_admin_1.isDeliveryAdmin)(user?.role) && !this.isTeamMember(row, user?.id)) {
+            throw new common_1.ForbiddenException('You are not a member of this team');
+        }
         return { success: true, data: this.toUi(row) };
     }
     async create(org_id, type, actor, dto) {
+        if (type === 'teams') {
+            (0, org_admin_1.assertDeliveryAdmin)(actor, 'create teams');
+        }
         const row = this.recordsRepository.create({
             id: (0, crypto_1.randomUUID)(),
             org_id,
@@ -86,6 +111,76 @@ let WorkspaceService = class WorkspaceService {
         await this.recordsRepository.remove(row);
         await this.recordActivity(org_id, type, id, 'deleted', this.activitySummary('deleted', type, row.title), actor);
         return { success: true, message: 'Deleted' };
+    }
+    async listComments(org_id, entity_type, entity_id) {
+        const data = await this.commentsRepository.find({
+            where: { org_id, entity_type, entity_id },
+            order: { created_at: 'ASC' },
+        });
+        return {
+            success: true,
+            data: data.map((c) => ({
+                id: c.id,
+                entity_type: c.entity_type,
+                entity_id: c.entity_id,
+                body: c.body,
+                author_id: c.author_id,
+                author_name: c.author_name,
+                created_at: c.created_at,
+                updated_at: c.updated_at,
+            })),
+        };
+    }
+    async createComment(org_id, actor, dto) {
+        const first = actor?.first_name || actor?.firstName || '';
+        const last = actor?.last_name || actor?.lastName || '';
+        const author_name = `${first} ${last}`.trim() || actor?.email || 'User';
+        const author_id = String(actor?.id || actor?.sub || '');
+        const row = this.commentsRepository.create({
+            id: (0, crypto_1.randomUUID)(),
+            org_id,
+            entity_type: dto.entity_type,
+            entity_id: dto.entity_id,
+            body: dto.body.trim(),
+            author_id,
+            author_name,
+        });
+        await this.commentsRepository.save(row);
+        await this.activityLogService.log({
+            org_id,
+            actor,
+            action: 'commented',
+            resource_type: dto.entity_type,
+            resource_id: dto.entity_id,
+            summary: `commented: ${dto.body.trim().slice(0, 120)}`,
+            metadata: { comment_id: row.id },
+        });
+        return {
+            success: true,
+            data: {
+                id: row.id,
+                entity_type: row.entity_type,
+                entity_id: row.entity_id,
+                body: row.body,
+                author_id: row.author_id,
+                author_name: row.author_name,
+                created_at: row.created_at,
+                updated_at: row.updated_at,
+            },
+        };
+    }
+    async removeComment(org_id, id, actor) {
+        const row = await this.commentsRepository.findOne({ where: { id, org_id } });
+        if (!row)
+            throw new common_1.NotFoundException('Comment not found');
+        const actorId = String(actor?.id || actor?.sub || '');
+        const isOwner = row.author_id === actorId;
+        const isCeo = String(actor?.role || '').toLowerCase() === 'ceo';
+        if (!isOwner && !isCeo) {
+            throw new common_1.NotFoundException('Comment not found');
+        }
+        await this.commentsRepository.remove(row);
+        return { success: true, message: 'Comment deleted' };
     }
     async listActivity(org_id, entity_type, entity_id, actor_id) {
         if (actor_id && !entity_id && !entity_type) {
@@ -167,7 +262,7 @@ let WorkspaceService = class WorkspaceService {
         const s = (status || '').toLowerCase();
         if (['active', 'completed', 'paid', 'approved', 'won'].includes(s))
             return 'success';
-        if (['pending', 'in_progress', 'scheduled', 'draft'].includes(s))
+        if (['pending', 'in_progress', 'scheduled', 'draft', 'paused'].includes(s))
             return 'warning';
         if (['rejected', 'cancelled', 'terminated', 'lost'].includes(s))
             return 'error';
@@ -179,7 +274,9 @@ exports.WorkspaceService = WorkspaceService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(workspace_record_entity_1.WorkspaceRecord)),
     __param(1, (0, typeorm_1.InjectRepository)(activity_event_entity_1.ActivityEvent)),
+    __param(2, (0, typeorm_1.InjectRepository)(record_comment_entity_1.RecordComment)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         activity_log_service_1.ActivityLogService])
 ], WorkspaceService);

@@ -4,7 +4,7 @@ export declare class TasksController {
     constructor(tasksService: TasksService);
     create(user: any, createTaskDto: any): Promise<{
         success: boolean;
-        data: import("../../entities").Task;
+        data: any;
     }>;
     findAll(user: any, filters: any): Promise<{
         success: boolean;
@@ -16,11 +16,11 @@ export declare class TasksController {
     }>;
     getSubtasks(user: any, id: string): Promise<{
         success: boolean;
-        data: import("../../entities").Task[];
+        data: any[];
     }>;
     update(user: any, id: string, updateTaskDto: any): Promise<{
         success: boolean;
-        data: import("../../entities").Task | null;
+        data: any;
     }>;
     remove(user: any, id: string): Promise<{
         success: boolean;

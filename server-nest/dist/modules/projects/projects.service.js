@@ -21,6 +21,21 @@ const project_entity_1 = require("../../entities/project.entity");
 const sprint_entity_1 = require("../../entities/sprint.entity");
 const task_entity_1 = require("../../entities/task.entity");
 const activity_log_service_1 = require("../../common/services/activity-log.service");
+const project_visibility_1 = require("../../common/utils/project-visibility");
+function normalizeVisibleRoles(roles) {
+    if (!roles || !Array.isArray(roles))
+        return null;
+    const cleaned = [
+        ...new Set(roles
+            .filter((r) => typeof r === 'string' && !!r.trim())
+            .map((r) => r.trim().toLowerCase())),
+    ];
+    if (!cleaned.length)
+        return null;
+    if (!cleaned.includes('ceo'))
+        cleaned.unshift('ceo');
+    return cleaned;
+}
 let ProjectsService = class ProjectsService {
     projectsRepository;
     sprintsRepository;
@@ -32,8 +47,11 @@ let ProjectsService = class ProjectsService {
         this.tasksRepository = tasksRepository;
         this.activityLogService = activityLogService;
     }
+    assertCanView(project, user) {
+        (0, project_visibility_1.assertCanViewProject)(project, user);
+    }
     async create(org_id, actor, createProjectDto) {
-        const { client_name, ...rest } = createProjectDto;
+        const { client_name, visible_to_roles, ...rest } = createProjectDto;
         const project = this.projectsRepository.create({
             id: (0, crypto_1.randomUUID)(),
             org_id,
@@ -45,6 +63,7 @@ let ProjectsService = class ProjectsService {
             budget: rest.budget,
             created_by: actor?.id,
             status: (rest.status || 'active').toLowerCase().replace(/\s+/g, '_'),
+            visible_to_roles: normalizeVisibleRoles(visible_to_roles),
             metadata: client_name ? { client_name } : {},
         });
         await this.projectsRepository.save(project);
@@ -77,20 +96,26 @@ let ProjectsService = class ProjectsService {
     }
     withProjectExtras(project) {
         const client_name = project.metadata?.client_name || null;
+        const visible_to_roles = (0, project_visibility_1.parseProjectVisibleRoles)(project);
         return {
             ...project,
             client_name,
             owner_name: client_name,
             progress: this.timelineProgress(project.start_date, project.end_date),
+            visible_to_roles,
+            visibility: !visible_to_roles || visible_to_roles.length === 0
+                ? 'all'
+                : visible_to_roles.join(', '),
         };
     }
-    async findAll(org_id, status) {
+    async findAll(org_id, user, status) {
         const where = { org_id };
         if (status) {
             where.status = status;
         }
         const projects = await this.projectsRepository.find({ where });
-        const projectsWithCounts = await Promise.all(projects.map(async (project) => {
+        const visible = projects.filter((p) => (0, project_visibility_1.canViewProject)(p, user));
+        const projectsWithCounts = await Promise.all(visible.map(async (project) => {
             const taskCount = await this.tasksRepository.count({
                 where: { project_id: project.id },
             });
@@ -108,13 +133,14 @@ let ProjectsService = class ProjectsService {
             data: projectsWithCounts,
         };
     }
-    async findOne(id, org_id) {
+    async findOne(id, org_id, user) {
         const project = await this.projectsRepository.findOne({
             where: { id, org_id },
         });
         if (!project) {
             throw new common_1.NotFoundException('Project not found');
         }
+        this.assertCanView(project, user);
         const sprints = await this.sprintsRepository.find({
             where: { project_id: id },
         });
@@ -137,10 +163,14 @@ let ProjectsService = class ProjectsService {
         if (!project) {
             throw new common_1.NotFoundException('Project not found');
         }
-        const { client_name, ...rest } = updateProjectDto;
+        this.assertCanView(project, actor);
+        const { client_name, visible_to_roles, ...rest } = updateProjectDto;
         Object.assign(project, rest);
         if (client_name !== undefined) {
             project.metadata = { ...(project.metadata || {}), client_name };
+        }
+        if (visible_to_roles !== undefined) {
+            project.visible_to_roles = normalizeVisibleRoles(visible_to_roles);
         }
         await this.projectsRepository.save(project);
         await this.activityLogService.log({
@@ -164,6 +194,7 @@ let ProjectsService = class ProjectsService {
         if (!project) {
             throw new common_1.NotFoundException('Project not found');
         }
+        this.assertCanView(project, actor);
         const name = project.name;
         await this.projectsRepository.remove(project);
         await this.activityLogService.log({
@@ -179,20 +210,21 @@ let ProjectsService = class ProjectsService {
             message: 'Project deleted successfully',
         };
     }
-    async getProjectStats(id, org_id) {
+    async getProjectStats(id, org_id, user) {
         const project = await this.projectsRepository.findOne({
             where: { id, org_id },
         });
         if (!project) {
             throw new common_1.NotFoundException('Project not found');
         }
+        this.assertCanView(project, user);
         const tasks = await this.tasksRepository.find({
             where: { project_id: id },
         });
         const stats = {
             total_tasks: tasks.length,
             completed_tasks: tasks.filter((t) => t.status === 'done').length,
-            in_progress_tasks: tasks.filter((t) => t.status === 'in-progress').length,
+            in_progress_tasks: tasks.filter((t) => t.status === 'in-progress' || t.status === 'in_progress').length,
             todo_tasks: tasks.filter((t) => t.status === 'todo').length,
             total_estimated_hours: tasks.reduce((sum, t) => sum + (t.estimated_hours || 0), 0),
             total_logged_hours: tasks.reduce((sum, t) => sum + (t.time_logged || 0), 0),

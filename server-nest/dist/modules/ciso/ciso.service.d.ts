@@ -21,6 +21,7 @@ export declare class CisoService {
             status: string;
             priority: string;
             assignee_id: string;
+            assignee_ids: string[];
             reporter_id: string;
             estimated_hours: number;
             time_logged: number;
@@ -47,6 +48,7 @@ export declare class CisoService {
             status: string;
             priority: string;
             assignee_id: string;
+            assignee_ids: string[];
             reporter_id: string;
             estimated_hours: number;
             time_logged: number;
@@ -74,6 +76,7 @@ export declare class CisoService {
             end_date: string;
             budget: number;
             created_by: string;
+            visible_to_roles: string[] | null;
             metadata: any;
             created_at: Date;
             organization: import("../../entities").Organization;

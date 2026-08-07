@@ -16,7 +16,6 @@ import { Button } from '@/components/UI/Button';
 import { EmptyState } from '@/components/UI/EmptyState';
 import { PageHeader } from '@/components/UI/PageHeader';
 import { Skeleton, SkeletonCard } from '@/components/UI/Skeleton';
-import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
 type ActivityRecord = {
@@ -90,7 +89,6 @@ export function useDetailMutations(entityKey: string) {
     deleteEntity,
     removeAndBack: async (id: string) => {
       await deleteEntity.mutateAsync(id);
-      toast.success('Record deleted');
       router.back();
     },
   };

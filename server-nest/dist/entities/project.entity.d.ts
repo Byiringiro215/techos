@@ -12,6 +12,7 @@ export declare class Project {
     end_date: string;
     budget: number;
     created_by: string;
+    visible_to_roles: string[] | null;
     metadata: any;
     created_at: Date;
     organization: Organization;

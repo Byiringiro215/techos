@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -29,28 +29,22 @@ export interface ReportRequest {
   provider?: string;
 }
 
-// Conversations
+// Conversations — Nest has no list endpoint yet; keep chat local-only.
 export function useAIConversations() {
   return useQuery({
     queryKey: ['ai-conversations'],
-    queryFn: async () => {
-      const response = await api.get<AIConversation[]>('/ai/conversations');
-      return response.data;
-    },
+    queryFn: async () => [] as AIConversation[],
+    enabled: false,
+    initialData: [],
   });
 }
 
 // Chat
 export function useSendChatMessage() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (data: ChatRequest) => {
       const response = await api.post('/ai/chat', data);
       return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ai-conversations'] });
     },
     onError: () => {
       toast.error('Failed to send message');

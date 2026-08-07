@@ -9,4 +9,10 @@ export declare class CreateDealDto {
     assigned_to?: string;
     notes?: string;
     description?: string;
+    company?: string;
+    company_name?: string;
+    email?: string;
+    phone?: string;
+    contact_first_name?: string;
+    contact_last_name?: string;
 }

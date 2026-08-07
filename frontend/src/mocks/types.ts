@@ -44,7 +44,13 @@ export interface MockRecord {
   assignee?: string;
   location?: string;
   rating?: number;
-  [key: string]: unknown;
+  project_id?: string;
+  sprint_id?: string | null;
+  assignee_id?: string;
+  assignee_ids?: string[];
+  assignees?: { id: string; name: string }[];
+  // Flexible entity bags (workspace metadata, CRM extras, etc.)
+  [key: string]: any;
 }
 
 export interface KpiStat {
@@ -175,6 +181,7 @@ export type PageKind =
   | 'detail'
   | 'create'
   | 'analytics'
+  | 'reports'
   | 'messages'
   | 'calendar'
   | 'tasks'

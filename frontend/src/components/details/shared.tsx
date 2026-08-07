@@ -4,11 +4,14 @@ import { useState, type ReactNode } from 'react';
 import { Clock, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { DetailActivity, DetailComment, DetailRelated } from '@/mocks/detailExtras';
+import { useCreateComment, useDeleteComment, useEntityComments } from '@/hooks/useEntityApi';
+import { useAuthStore } from '@/store/authStore';
 import { Avatar } from '@/components/UI/Avatar';
 import { Badge } from '@/components/UI/Badge';
 import { Button } from '@/components/UI/Button';
 import { Card } from '@/components/UI/Card';
 import { TextArea } from '@/components/UI/TextArea';
+import { RelatedRecordsPanel } from './RelatedRecordsPanel';
 
 export function ActivityFeed({ items }: { items: DetailActivity[] }) {
   return (
@@ -33,25 +36,44 @@ export function ActivityFeed({ items }: { items: DetailActivity[] }) {
 }
 
 export function CommentThread({
-  seed,
+  seed = [],
+  entityKey,
+  recordId,
 }: {
-  seed: DetailComment[];
+  seed?: DetailComment[];
+  entityKey?: string;
+  recordId?: string;
 }) {
   const [comment, setComment] = useState('');
-  const [local, setLocal] = useState<DetailComment[]>([]);
-  const comments = [...local, ...seed];
+  const live = Boolean(entityKey && recordId);
+  const commentsQuery = useEntityComments(entityKey, recordId);
+  const createComment = useCreateComment(entityKey || '', recordId || '');
+  const deleteComment = useDeleteComment(entityKey || '', recordId || '');
+  const currentUser = useAuthStore((s) => s.user);
 
-  const post = () => {
+  const remote = (commentsQuery.data || []).map((c) => ({
+    id: c.id,
+    author: c.author_name || 'User',
+    authorId: c.author_id,
+    body: c.body,
+    time: c.created_at ? new Date(c.created_at).toLocaleString() : '',
+  }));
+
+  const comments = live
+    ? remote
+    : seed.map((c) => ({ ...c, authorId: undefined as string | undefined }));
+
+  const post = async () => {
     if (!comment.trim()) {
       toast.error('Write a comment first');
       return;
     }
-    setLocal((prev) => [
-      { id: `local-${Date.now()}`, author: 'You', body: comment.trim(), time: 'Just now' },
-      ...prev,
-    ]);
+    if (!live) {
+      toast.error('Comments are unavailable for this record');
+      return;
+    }
+    await createComment.mutateAsync(comment.trim());
     setComment('');
-    toast.success('Comment posted (mock)');
   };
 
   return (
@@ -65,31 +87,70 @@ export function CommentThread({
           rows={3}
         />
         <div className="flex justify-end">
-          <Button size="sm" onClick={post}>
+          <Button size="sm" onClick={post} loading={createComment.isPending} disabled={!live}>
             <Send className="h-4 w-4 mr-2" />
             Comment
           </Button>
         </div>
       </Card>
-      {comments.map((c) => (
-        <Card key={c.id} className="!p-4">
-          <div className="flex items-start gap-3">
-            <Avatar name={c.author} size="sm" />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-medium text-ink">{c.author}</p>
-                <p className="text-xs text-ink-muted">{c.time}</p>
+
+      {live && commentsQuery.isLoading ? (
+        <p className="text-sm text-ink-muted">Loading comments…</p>
+      ) : comments.length === 0 ? (
+        <p className="text-sm text-ink-muted">No comments yet. Be the first to leave one.</p>
+      ) : (
+        comments.map((c) => {
+          const canDelete =
+            live &&
+            (c.authorId === currentUser?.id ||
+              String(currentUser?.role || '').toLowerCase() === 'ceo');
+          return (
+            <Card key={c.id} className="!p-4">
+              <div className="flex items-start gap-3">
+                <Avatar name={c.author} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="text-sm font-medium text-ink truncate">{c.author}</p>
+                      <p className="text-xs text-ink-muted shrink-0">{c.time}</p>
+                    </div>
+                    {canDelete ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        type="button"
+                        loading={deleteComment.isPending}
+                        onClick={() => deleteComment.mutate(c.id)}
+                      >
+                        Delete
+                      </Button>
+                    ) : null}
+                  </div>
+                  <p className="text-sm text-ink-secondary mt-1 leading-relaxed whitespace-pre-wrap">
+                    {c.body}
+                  </p>
+                </div>
               </div>
-              <p className="text-sm text-ink-secondary mt-1 leading-relaxed">{c.body}</p>
-            </div>
-          </div>
-        </Card>
-      ))}
+            </Card>
+          );
+        })
+      )}
     </div>
   );
 }
 
-export function RelatedList({ items }: { items: DetailRelated[] }) {
+export function RelatedList({
+  items,
+  entityKey,
+  recordId,
+}: {
+  items: DetailRelated[];
+  entityKey?: string;
+  recordId?: string;
+}) {
+  if (entityKey && recordId) {
+    return <RelatedRecordsPanel entityKey={entityKey} recordId={recordId} seed={items} />;
+  }
   if (items.length === 0) {
     return <p className="text-sm text-ink-muted">No related records.</p>;
   }

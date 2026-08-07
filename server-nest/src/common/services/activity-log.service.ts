@@ -35,6 +35,7 @@ export const VALUABLE_ACTIVITY_TYPES = new Set([
   'messages',
   'bugs',
   'features',
+  'codeReviews',
   'workspace',
 ]);
 

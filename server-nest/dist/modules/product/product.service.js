@@ -23,6 +23,9 @@ const bug_entity_1 = require("../../entities/bug.entity");
 const release_entity_1 = require("../../entities/release.entity");
 const customer_feedback_entity_1 = require("../../entities/customer-feedback.entity");
 const roadmap_entity_1 = require("../../entities/roadmap.entity");
+const project_entity_1 = require("../../entities/project.entity");
+const user_entity_1 = require("../../entities/user.entity");
+const project_visibility_1 = require("../../common/utils/project-visibility");
 let ProductService = class ProductService {
     featureRepository;
     epicRepository;
@@ -30,13 +33,17 @@ let ProductService = class ProductService {
     releaseRepository;
     feedbackRepository;
     roadmapRepository;
-    constructor(featureRepository, epicRepository, bugRepository, releaseRepository, feedbackRepository, roadmapRepository) {
+    projectRepository;
+    userRepository;
+    constructor(featureRepository, epicRepository, bugRepository, releaseRepository, feedbackRepository, roadmapRepository, projectRepository, userRepository) {
         this.featureRepository = featureRepository;
         this.epicRepository = epicRepository;
         this.bugRepository = bugRepository;
         this.releaseRepository = releaseRepository;
         this.feedbackRepository = feedbackRepository;
         this.roadmapRepository = roadmapRepository;
+        this.projectRepository = projectRepository;
+        this.userRepository = userRepository;
     }
     async createFeature(org_id, createDto) {
         const feature = this.featureRepository.create({
@@ -137,19 +144,64 @@ let ProductService = class ProductService {
         return { success: true, message: 'Epic deleted successfully' };
     }
     async createBug(org_id, reporter_id, createDto) {
+        if (createDto.project_id) {
+            const project = await this.projectRepository.findOne({
+                where: { id: createDto.project_id, org_id },
+            });
+            if (!project)
+                throw new common_1.NotFoundException('Project not found');
+        }
         const bug = this.bugRepository.create({
             id: (0, crypto_1.randomUUID)(),
             org_id,
             reporter_id,
-            ...createDto,
+            title: createDto.title,
+            description: createDto.description || createDto.steps_to_reproduce || createDto.title,
             status: createDto.status || 'open',
-            severity: createDto.severity || 'medium',
-            priority: createDto.priority || 'medium',
+            severity: createDto.severity || createDto.priority || 'medium',
+            priority: createDto.priority || createDto.severity || 'medium',
+            project_id: createDto.project_id || null,
+            assignee_id: createDto.assignee_id || null,
+            steps_to_reproduce: createDto.steps_to_reproduce || null,
+            expected_behavior: createDto.expected_behavior || null,
+            actual_behavior: createDto.actual_behavior || null,
+            environment: createDto.environment || null,
         });
         await this.bugRepository.save(bug);
-        return { success: true, data: bug };
+        return { success: true, data: await this.enrichBug(bug) };
     }
-    async findAllBugs(org_id, filters) {
+    async enrichBugs(bugs) {
+        if (!bugs.length)
+            return [];
+        const projectIds = [...new Set(bugs.map((b) => b.project_id).filter(Boolean))];
+        const userIds = [
+            ...new Set(bugs.flatMap((b) => [b.assignee_id, b.reporter_id].filter(Boolean))),
+        ];
+        const [projects, users] = await Promise.all([
+            projectIds.length
+                ? this.projectRepository.find({ where: { id: (0, typeorm_2.In)(projectIds) } })
+                : Promise.resolve([]),
+            userIds.length
+                ? this.userRepository.find({ where: { id: (0, typeorm_2.In)(userIds) } })
+                : Promise.resolve([]),
+        ]);
+        const projectName = Object.fromEntries(projects.map((p) => [p.id, p.name]));
+        const userName = Object.fromEntries(users.map((u) => [
+            u.id,
+            u.name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
+        ]));
+        return bugs.map((b) => ({
+            ...b,
+            project_name: b.project_id ? projectName[b.project_id] || null : null,
+            assignee_name: b.assignee_id ? userName[b.assignee_id] || null : null,
+            reporter_name: b.reporter_id ? userName[b.reporter_id] || null : null,
+        }));
+    }
+    async enrichBug(bug) {
+        const [enriched] = await this.enrichBugs([bug]);
+        return enriched;
+    }
+    async findAllBugs(org_id, filters, user) {
         const query = this.bugRepository.createQueryBuilder('bug')
             .where('bug.org_id = :org_id', { org_id });
         if (filters?.status)
@@ -163,14 +215,20 @@ let ProductService = class ProductService {
         if (filters?.project_id)
             query.andWhere('bug.project_id = :project_id', { project_id: filters.project_id });
         query.orderBy('bug.priority', 'DESC').addOrderBy('bug.created_at', 'DESC');
-        const bugs = await query.getMany();
-        return { success: true, data: bugs };
+        let bugs = await query.getMany();
+        const role = String(user?.role || '').toLowerCase();
+        if (role && role !== 'ceo') {
+            const projects = await this.projectRepository.find({ where: { org_id } });
+            const allowed = new Set(projects.filter((p) => (0, project_visibility_1.canViewProject)(p, user)).map((p) => p.id));
+            bugs = bugs.filter((b) => !b.project_id || allowed.has(b.project_id));
+        }
+        return { success: true, data: await this.enrichBugs(bugs) };
     }
     async findOneBug(id, org_id) {
         const bug = await this.bugRepository.findOne({ where: { id, org_id } });
         if (!bug)
             throw new common_1.NotFoundException('Bug not found');
-        return { success: true, data: bug };
+        return { success: true, data: await this.enrichBug(bug) };
     }
     async updateBug(id, org_id, updateDto) {
         const bug = await this.bugRepository.findOne({ where: { id, org_id } });
@@ -327,7 +385,11 @@ exports.ProductService = ProductService = __decorate([
     __param(3, (0, typeorm_1.InjectRepository)(release_entity_1.Release)),
     __param(4, (0, typeorm_1.InjectRepository)(customer_feedback_entity_1.CustomerFeedback)),
     __param(5, (0, typeorm_1.InjectRepository)(roadmap_entity_1.Roadmap)),
+    __param(6, (0, typeorm_1.InjectRepository)(project_entity_1.Project)),
+    __param(7, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

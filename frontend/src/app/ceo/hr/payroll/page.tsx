@@ -12,11 +12,13 @@ import {
 import { EmptyState } from '@/components/UI/EmptyState';
 import { LoadingSpinner } from '@/components/UI/LoadingSpinner';
 import { useEmployees } from '@/hooks/useHR';
-import { useEntityList } from '@/hooks/useEntityApi';
+import { useCreateEntity, useEntityList } from '@/hooks/useEntityApi';
+import { Button } from '@/components/UI/Button';
 
 export default function PayrollPage() {
   const { data: employees = [], isLoading: employeesLoading } = useEmployees();
   const { data: payrollRuns = [], isLoading: payrollLoading } = useEntityList('payroll');
+  const createPayroll = useCreateEntity('payroll');
   const salariedEmployees = employees.filter((employee) => Number(employee.salary) > 0);
   const annualSalaryTotal = salariedEmployees.reduce((total, employee) => total + Number(employee.salary), 0);
   const monthlySalaryTotal = annualSalaryTotal / 12;
@@ -42,6 +44,21 @@ export default function PayrollPage() {
           <h1 className="text-3xl font-bold text-ink">Payroll</h1>
           <p className="text-ink-muted mt-2">Salary and compensation management</p>
         </div>
+        <Button
+          size="sm"
+          onClick={() =>
+            void createPayroll.mutateAsync({
+              title: `Payroll · ${new Date().toLocaleString('en-US', { month: 'short', year: 'numeric' })}`,
+              status: 'scheduled',
+              amount: Math.round(monthlySalaryTotal),
+              dueDate: new Date().toISOString().slice(0, 10),
+              employeeCount: salariedEmployees.length,
+            })
+          }
+          loading={createPayroll.isPending}
+        >
+          Create payroll run
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -73,7 +90,22 @@ export default function PayrollPage() {
             <Calendar className="h-5 w-5" /> Upcoming & Recent Runs
           </h2>
           {payrollRuns.length === 0 ? (
-            <EmptyState icon={<Calendar className="h-12 w-12" />} title="No payroll runs yet" description="Payroll runs created in the workspace will appear here." />
+            <EmptyState
+              icon={<Calendar className="h-12 w-12" />}
+              title="No payroll runs yet"
+              description="Create a payroll run from salaried employees to get started."
+              action={{
+                label: 'Create payroll run',
+                onClick: () =>
+                  void createPayroll.mutateAsync({
+                    title: `Payroll · ${new Date().toLocaleString('en-US', { month: 'short', year: 'numeric' })}`,
+                    status: 'scheduled',
+                    amount: Math.round(monthlySalaryTotal),
+                    dueDate: new Date().toISOString().slice(0, 10),
+                    employeeCount: salariedEmployees.length,
+                  }),
+              }}
+            />
           ) : <div className="space-y-4">
             {payrollRuns.map(run => (
               <div key={run.id} className="flex items-center justify-between p-4 bg-bg-muted border border-border rounded-lg">

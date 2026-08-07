@@ -39,7 +39,23 @@ export declare class CrmService {
     findOneContact(id: string, org_id: string): Promise<{
         success: boolean;
         data: {
-            deals: any[];
+            deals: {
+                assigned_first_name: string | null;
+                assigned_last_name: string | null;
+                owner_name: string;
+                id: string;
+                org_id: string;
+                contact_id: string;
+                title: string;
+                value: number;
+                currency: string;
+                stage: string;
+                probability: number;
+                expected_close_date: string;
+                assigned_to: string;
+                notes: string;
+                created_at: Date;
+            }[];
             id: string;
             org_id: string;
             first_name: string;
@@ -56,7 +72,7 @@ export declare class CrmService {
             created_at: Date;
         };
     }>;
-    updateContact(id: string, org_id: string, updateData: Partial<Contact>): Promise<{
+    updateContact(id: string, org_id: string, updateData: Partial<Contact> & Record<string, any>): Promise<{
         success: boolean;
         data: Contact;
     }>;
@@ -74,6 +90,10 @@ export declare class CrmService {
             owner_name: string;
             assigned_to: string;
             company_name: string | null;
+            email: string | null;
+            phone: string | null;
+            contact_first_name: string | null;
+            contact_last_name: string | null;
             updated_at: Date;
             id: string;
             org_id: string;
@@ -90,11 +110,51 @@ export declare class CrmService {
     }>;
     findOneDeal(id: string, org_id: string): Promise<{
         success: boolean;
-        data: any;
+        data: {
+            owner_name: string;
+            company_name: string | null;
+            email: string | null;
+            phone: string | null;
+            contact_first_name: string | null;
+            contact_last_name: string | null;
+            updated_at: Date;
+            id: string;
+            org_id: string;
+            contact_id: string;
+            title: string;
+            value: number;
+            currency: string;
+            stage: string;
+            probability: number;
+            expected_close_date: string;
+            assigned_to: string;
+            notes: string;
+            created_at: Date;
+        };
     }>;
-    updateDeal(id: string, org_id: string, updateData: Partial<Deal>, actor?: any): Promise<{
+    updateDeal(id: string, org_id: string, updateData: Partial<Deal> & Record<string, any>, actor?: any): Promise<{
         success: boolean;
-        data: Deal;
+        data: {
+            owner_name: string;
+            company_name: string | null;
+            email: string | null;
+            phone: string | null;
+            contact_first_name: string | null;
+            contact_last_name: string | null;
+            updated_at: Date;
+            id: string;
+            org_id: string;
+            contact_id: string;
+            title: string;
+            value: number;
+            currency: string;
+            stage: string;
+            probability: number;
+            expected_close_date: string;
+            assigned_to: string;
+            notes: string;
+            created_at: Date;
+        };
     }>;
     deleteDeal(id: string, org_id: string, actor?: any): Promise<{
         success: boolean;

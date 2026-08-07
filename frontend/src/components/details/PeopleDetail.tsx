@@ -1,12 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { Briefcase, Mail, Hash } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { fetchDocumentBlob } from '@/hooks/useDocuments';
+import { CreateEntityForm, createEntityLabel } from '@/components/forms/CreateEntityForm';
 import { Avatar } from '@/components/UI/Avatar';
 import { Badge } from '@/components/UI/Badge';
 import { Button } from '@/components/UI/Button';
 import { Card } from '@/components/UI/Card';
+import { Modal } from '@/components/UI/Modal';
 import { Tabs, TabList, Tab, TabPanel } from '@/components/UI/Tabs';
 import {
   DetailHeader,
@@ -16,17 +20,31 @@ import {
   type DetailViewProps,
 } from './DetailShell';
 import { ActivityFeed, MetaGrid, RelatedList } from './shared';
+import { RelatedRecordsPanel } from './RelatedRecordsPanel';
 
 /** HRIS-style employee / candidate profile. */
 export function PeopleDetail(props: DetailViewProps) {
   const { entityKey, detailId, title, breadcrumbs, basePath } = props;
   const { data, extras, isLoading } = useDetailRecord(entityKey, detailId);
   const isCandidate = entityKey === 'candidates';
+  const [editOpen, setEditOpen] = useState(false);
 
   if (isLoading) return <DetailLoading />;
   if (!data || !extras) return <DetailNotFound entityKey={entityKey} detailId={detailId} />;
 
   const name = data.title || data.name || title;
+
+  const openAttachment = async (file: { id: string; name: string }) => {
+    try {
+      const { blob, mime } = await fetchDocumentBlob(file.id);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      if (!mime) toast.success(`Opened ${file.name}`);
+    } catch {
+      toast.error(`Unable to open ${file.name}`);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -37,7 +55,7 @@ export function PeopleDetail(props: DetailViewProps) {
         basePath={basePath}
         badges={<Badge variant={data.statusVariant}>{data.status}</Badge>}
         actions={
-          <Button size="sm" variant="secondary" onClick={() => toast.success('Profile edited (mock)')}>
+          <Button size="sm" variant="secondary" onClick={() => setEditOpen(true)}>
             Edit profile
           </Button>
         }
@@ -58,7 +76,7 @@ export function PeopleDetail(props: DetailViewProps) {
           <div className="space-y-2 text-sm border-t border-border pt-4 text-left">
             <p className="flex items-center gap-2 text-ink-secondary">
               <Mail className="h-4 w-4" />
-              {data.email || data.ownerEmail || `${name.toLowerCase().replace(/\s+/g, '.')}@techos.io`}
+              {data.email || data.ownerEmail || '—'}
             </p>
             <p className="flex items-center gap-2 text-ink-secondary">
               <Briefcase className="h-4 w-4" />
@@ -76,7 +94,12 @@ export function PeopleDetail(props: DetailViewProps) {
             <p className="text-sm text-ink-secondary leading-relaxed">{data.description}</p>
             <MetaGrid
               items={[
-                { label: isCandidate ? 'Role applied' : 'Role', value: (data.role || data.category || data.tags?.[0] || '—').toString().replace(/_/g, ' ') },
+                {
+                  label: isCandidate ? 'Role applied' : 'Role',
+                  value: (data.role || data.category || data.tags?.[0] || '—')
+                    .toString()
+                    .replace(/_/g, ' '),
+                },
                 { label: 'Position', value: data.position || data.title || '—' },
                 { label: 'Location', value: data.location || 'Remote' },
                 {
@@ -102,28 +125,44 @@ export function PeopleDetail(props: DetailViewProps) {
               <ActivityFeed items={extras.activities} />
             </TabPanel>
             <TabPanel value="docs" className="pt-4">
-              <Card className="space-y-2 text-sm">
-                {extras.attachments.map((f) => (
-                  <button
-                    key={f.id}
-                    type="button"
-                    className="w-full flex justify-between rounded-lg border border-border px-3 py-2 hover:bg-surface-hover"
-                    onClick={() => toast.success(`Opening ${f.name} (mock)`)}
-                  >
-                    <span className="text-ink">{f.name}</span>
-                    <span className="text-ink-muted">{f.size}</span>
-                  </button>
-                ))}
-              </Card>
+              <RelatedRecordsPanel entityKey={entityKey} recordId={detailId} />
+              {(extras.attachments?.length ?? 0) > 0 ? (
+                <Card className="mt-4 space-y-2 text-sm">
+                  {extras.attachments.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      className="w-full flex justify-between rounded-lg border border-border px-3 py-2 hover:bg-surface-hover"
+                      onClick={() => void openAttachment(f)}
+                    >
+                      <span className="text-ink">{f.name}</span>
+                      <span className="text-ink-muted">{f.size}</span>
+                    </button>
+                  ))}
+                </Card>
+              ) : null}
             </TabPanel>
             <TabPanel value="related" className="pt-4">
               <Card>
-                <RelatedList items={extras.related} />
+                <RelatedList items={extras.related} entityKey={entityKey} recordId={detailId} />
               </Card>
             </TabPanel>
           </Tabs>
         </div>
       </div>
+
+      <Modal
+        isOpen={editOpen}
+        onClose={() => setEditOpen(false)}
+        title={`Edit ${createEntityLabel(entityKey)}`}
+        size="lg"
+      >
+        <CreateEntityForm
+          entityKey={entityKey}
+          record={data}
+          onDone={() => setEditOpen(false)}
+        />
+      </Modal>
     </div>
   );
 }

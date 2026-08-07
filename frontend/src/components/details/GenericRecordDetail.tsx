@@ -108,11 +108,11 @@ export function GenericRecordDetail(props: DetailViewProps) {
               <ActivityFeed items={extras.activities} />
             </TabPanel>
             <TabPanel value="comments" className="pt-4">
-              <CommentThread seed={extras.comments} />
+              <CommentThread seed={extras.comments} entityKey={entityKey} recordId={detailId} />
             </TabPanel>
             <TabPanel value="related" className="pt-4">
               <Card>
-                <RelatedList items={extras.related} />
+                <RelatedList items={extras.related} entityKey={entityKey} recordId={detailId} />
               </Card>
             </TabPanel>
           </Tabs>

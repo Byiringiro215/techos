@@ -127,7 +127,7 @@ export declare class AnalyticsController {
     }>;
     createKPI(user: any, createDto: any): Promise<{
         success: boolean;
-        data: import("../../entities").KPI[];
+        data: import("../../entities").KPI;
     }>;
     getAllKPIs(user: any, filters: any): Promise<{
         success: boolean;

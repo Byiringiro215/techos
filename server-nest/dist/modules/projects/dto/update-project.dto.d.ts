@@ -7,4 +7,5 @@ export declare class UpdateProjectDto {
     end_date?: string;
     budget?: number;
     client_name?: string;
+    visible_to_roles?: string[] | null;
 }

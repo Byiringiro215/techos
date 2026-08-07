@@ -12,6 +12,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateProjectDto = void 0;
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
+const PROJECT_ROLES = [
+    'ceo',
+    'cto',
+    'ciso',
+    'finance',
+    'software_engineer',
+    'ui_ux_designer',
+    'customer_support',
+];
 class CreateProjectDto {
     name;
     description;
@@ -21,6 +30,7 @@ class CreateProjectDto {
     end_date;
     budget;
     client_name;
+    visible_to_roles;
 }
 exports.CreateProjectDto = CreateProjectDto;
 __decorate([
@@ -64,4 +74,10 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateProjectDto.prototype, "client_name", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsIn)(PROJECT_ROLES, { each: true }),
+    __metadata("design:type", Array)
+], CreateProjectDto.prototype, "visible_to_roles", void 0);
 //# sourceMappingURL=create-project.dto.js.map

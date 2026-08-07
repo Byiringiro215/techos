@@ -32,7 +32,23 @@ export declare class CrmController {
     findOneContact(user: any, id: string): Promise<{
         success: boolean;
         data: {
-            deals: any[];
+            deals: {
+                assigned_first_name: string | null;
+                assigned_last_name: string | null;
+                owner_name: string;
+                id: string;
+                org_id: string;
+                contact_id: string;
+                title: string;
+                value: number;
+                currency: string;
+                stage: string;
+                probability: number;
+                expected_close_date: string;
+                assigned_to: string;
+                notes: string;
+                created_at: Date;
+            }[];
             id: string;
             org_id: string;
             first_name: string;
@@ -75,6 +91,10 @@ export declare class CrmController {
             owner_name: string;
             assigned_to: string;
             company_name: string | null;
+            email: string | null;
+            phone: string | null;
+            contact_first_name: string | null;
+            contact_last_name: string | null;
             updated_at: Date;
             id: string;
             org_id: string;
@@ -91,11 +111,51 @@ export declare class CrmController {
     }>;
     findOneDeal(user: any, id: string): Promise<{
         success: boolean;
-        data: any;
+        data: {
+            owner_name: string;
+            company_name: string | null;
+            email: string | null;
+            phone: string | null;
+            contact_first_name: string | null;
+            contact_last_name: string | null;
+            updated_at: Date;
+            id: string;
+            org_id: string;
+            contact_id: string;
+            title: string;
+            value: number;
+            currency: string;
+            stage: string;
+            probability: number;
+            expected_close_date: string;
+            assigned_to: string;
+            notes: string;
+            created_at: Date;
+        };
     }>;
     updateDeal(user: any, id: string, updateData: any): Promise<{
         success: boolean;
-        data: import("../../entities").Deal;
+        data: {
+            owner_name: string;
+            company_name: string | null;
+            email: string | null;
+            phone: string | null;
+            contact_first_name: string | null;
+            contact_last_name: string | null;
+            updated_at: Date;
+            id: string;
+            org_id: string;
+            contact_id: string;
+            title: string;
+            value: number;
+            currency: string;
+            stage: string;
+            probability: number;
+            expected_close_date: string;
+            assigned_to: string;
+            notes: string;
+            created_at: Date;
+        };
     }>;
     deleteDeal(user: any, id: string): Promise<{
         success: boolean;

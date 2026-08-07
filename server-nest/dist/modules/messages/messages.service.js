@@ -35,6 +35,41 @@ let MessagesService = class MessagesService {
         this.usersRepository = usersRepository;
         this.eventsGateway = eventsGateway;
     }
+    formatMessage(message, user) {
+        const first = user?.first_name || '';
+        const last = user?.last_name || '';
+        const name = `${first} ${last}`.trim() || user?.email || 'User';
+        return {
+            id: message.id,
+            channel_id: message.channel_id,
+            channelId: message.channel_id,
+            user_id: message.user_id,
+            userId: message.user_id,
+            sender_id: message.user_id,
+            content: message.content,
+            parent_message_id: message.parent_message_id,
+            attachments: message.attachments,
+            mentions: message.mentions,
+            reactions: message.reactions,
+            is_edited: message.is_edited,
+            is_deleted: message.is_deleted,
+            created_at: message.created_at,
+            createdAt: message.created_at,
+            updated_at: message.updated_at,
+            user_first_name: user?.first_name || null,
+            user_last_name: user?.last_name || null,
+            user_avatar: user?.avatar || null,
+            user_name: name,
+            user: user
+                ? {
+                    id: user.id,
+                    first_name: user.first_name,
+                    last_name: user.last_name,
+                    avatar: user.avatar,
+                }
+                : undefined,
+        };
+    }
     async create(user_id, createMessageDto) {
         const { channel_id } = createMessageDto;
         const channel = await this.channelsRepository.findOne({
@@ -43,11 +78,20 @@ let MessagesService = class MessagesService {
         if (!channel) {
             throw new common_1.NotFoundException('Channel not found');
         }
-        const membership = await this.channelMembersRepository.findOne({
+        let membership = await this.channelMembersRepository.findOne({
             where: { channel_id, user_id },
         });
         if (!membership && channel.type === 'private') {
             throw new common_1.ForbiddenException('You are not a member of this channel');
+        }
+        if (!membership && channel.type === 'public') {
+            membership = this.channelMembersRepository.create({
+                id: (0, crypto_1.randomUUID)(),
+                channel_id,
+                user_id,
+                role: 'member',
+            });
+            await this.channelMembersRepository.save(membership);
         }
         const message = this.messagesRepository.create({
             id: (0, crypto_1.randomUUID)(),
@@ -78,31 +122,26 @@ let MessagesService = class MessagesService {
         if (!membership && channel.type === 'private') {
             throw new common_1.ForbiddenException('You do not have access to this channel');
         }
-        let query = this.messagesRepository
-            .createQueryBuilder('message')
-            .leftJoinAndSelect(user_entity_1.User, 'user', 'message.user_id = user.id')
-            .where('message.channel_id = :channel_id', { channel_id })
-            .andWhere('message.is_deleted = :is_deleted', { is_deleted: false })
-            .orderBy('message.created_at', 'DESC')
-            .limit(limit);
+        const where = { channel_id, is_deleted: false, parent_message_id: (0, typeorm_2.IsNull)() };
         if (before) {
-            query = query.andWhere('message.created_at < :before', { before });
+            where.created_at = (0, typeorm_2.LessThan)(new Date(before));
         }
-        const messages = await query
-            .select([
-            'message.*',
-            'user.id as user_id',
-            'user.first_name as user_first_name',
-            'user.last_name as user_last_name',
-            'user.avatar as user_avatar',
-        ])
-            .getRawMany();
+        const messages = await this.messagesRepository.find({
+            where,
+            order: { created_at: 'DESC' },
+            take: limit,
+        });
+        const userIds = [...new Set(messages.map((m) => m.user_id).filter(Boolean))];
+        const users = userIds.length
+            ? await this.usersRepository.find({ where: { id: (0, typeorm_2.In)(userIds) } })
+            : [];
+        const userMap = new Map(users.map((u) => [u.id, u]));
         const messagesWithThreads = await Promise.all(messages.map(async (msg) => {
             const threadCount = await this.messagesRepository.count({
                 where: { parent_message_id: msg.id, is_deleted: false },
             });
             return {
-                ...msg,
+                ...this.formatMessage(msg, userMap.get(msg.user_id)),
                 thread_count: threadCount,
             };
         }));
@@ -255,23 +294,18 @@ let MessagesService = class MessagesService {
         if (!membership && channel.type === 'private') {
             throw new common_1.ForbiddenException('You do not have access to this thread');
         }
-        const replies = await this.messagesRepository
-            .createQueryBuilder('message')
-            .leftJoinAndSelect(user_entity_1.User, 'user', 'message.user_id = user.id')
-            .where('message.parent_message_id = :parent_message_id', { parent_message_id })
-            .andWhere('message.is_deleted = :is_deleted', { is_deleted: false })
-            .orderBy('message.created_at', 'ASC')
-            .select([
-            'message.*',
-            'user.id as user_id',
-            'user.first_name as user_first_name',
-            'user.last_name as user_last_name',
-            'user.avatar as user_avatar',
-        ])
-            .getRawMany();
+        const replies = await this.messagesRepository.find({
+            where: { parent_message_id, is_deleted: false },
+            order: { created_at: 'ASC' },
+        });
+        const userIds = [...new Set(replies.map((m) => m.user_id).filter(Boolean))];
+        const users = userIds.length
+            ? await this.usersRepository.find({ where: { id: (0, typeorm_2.In)(userIds) } })
+            : [];
+        const userMap = new Map(users.map((u) => [u.id, u]));
         return {
             success: true,
-            data: replies,
+            data: replies.map((m) => this.formatMessage(m, userMap.get(m.user_id))),
         };
     }
     async search(channel_id, user_id, query) {
@@ -289,38 +323,28 @@ let MessagesService = class MessagesService {
         }
         const messages = await this.messagesRepository
             .createQueryBuilder('message')
-            .leftJoinAndSelect(user_entity_1.User, 'user', 'message.user_id = user.id')
             .where('message.channel_id = :channel_id', { channel_id })
             .andWhere('message.content LIKE :query', { query: `%${query}%` })
             .andWhere('message.is_deleted = :is_deleted', { is_deleted: false })
             .orderBy('message.created_at', 'DESC')
             .limit(50)
-            .select([
-            'message.*',
-            'user.first_name as user_first_name',
-            'user.last_name as user_last_name',
-            'user.avatar as user_avatar',
-        ])
-            .getRawMany();
+            .getMany();
+        const userIds = [...new Set(messages.map((m) => m.user_id).filter(Boolean))];
+        const users = userIds.length
+            ? await this.usersRepository.find({ where: { id: (0, typeorm_2.In)(userIds) } })
+            : [];
+        const userMap = new Map(users.map((u) => [u.id, u]));
         return {
             success: true,
-            data: messages,
+            data: messages.map((m) => this.formatMessage(m, userMap.get(m.user_id))),
         };
     }
     async getMessageWithUser(message_id) {
-        const result = await this.messagesRepository
-            .createQueryBuilder('message')
-            .leftJoinAndSelect(user_entity_1.User, 'user', 'message.user_id = user.id')
-            .where('message.id = :message_id', { message_id })
-            .select([
-            'message.*',
-            'user.id as user_id',
-            'user.first_name as user_first_name',
-            'user.last_name as user_last_name',
-            'user.avatar as user_avatar',
-        ])
-            .getRawOne();
-        return result;
+        const message = await this.messagesRepository.findOne({ where: { id: message_id } });
+        if (!message)
+            return null;
+        const user = await this.usersRepository.findOne({ where: { id: message.user_id } });
+        return this.formatMessage(message, user);
     }
     async notifyMentionedUsers(mention_ids, sender_id, channel_id, content) {
         const sender = await this.usersRepository.findOne({ where: { id: sender_id } });

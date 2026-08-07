@@ -6,10 +6,14 @@ import { WorkItemDetail } from '@/components/details/WorkItemDetail';
 import { InvoiceDetail } from '@/components/details/InvoiceDetail';
 import { TicketDetail } from '@/components/details/TicketDetail';
 import { CrmDetail } from '@/components/details/CrmDetail';
+import { MarketingDetail } from '@/components/details/MarketingDetail';
+import { OperationsDetail } from '@/components/details/OperationsDetail';
 import { PeopleDetail } from '@/components/details/PeopleDetail';
 import { CodeReviewDetail } from '@/components/details/CodeReviewDetail';
 import { SprintDetail } from '@/components/details/SprintDetail';
 import { ExpenseDetail } from '@/components/details/ExpenseDetail';
+import { GoalDetail } from '@/components/details/GoalDetail';
+import { DocumentDetail } from '@/components/details/DocumentDetail';
 import { GenericRecordDetail } from '@/components/details/GenericRecordDetail';
 
 /**
@@ -49,9 +53,21 @@ export function EntityDetailView(props: DetailViewProps) {
     case 'opportunities':
       return <CrmDetail {...props} />;
 
+    case 'campaigns':
+      return <MarketingDetail {...props} />;
+
+    case 'processes':
+      return <OperationsDetail {...props} />;
+
     case 'employees':
     case 'candidates':
       return <PeopleDetail {...props} />;
+
+    case 'goals':
+      return <GoalDetail {...props} />;
+
+    case 'documents':
+      return <DocumentDetail {...props} />;
 
     default:
       return <GenericRecordDetail {...props} />;

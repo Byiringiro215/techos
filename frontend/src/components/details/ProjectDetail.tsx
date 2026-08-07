@@ -110,6 +110,14 @@ export function ProjectDetail(props: DetailViewProps) {
                 { label: 'Project lead', value: data.owner },
                 { label: 'Budget', value: typeof data.amount === 'number' ? formatCurrency(data.amount) : '—' },
                 { label: 'Target date', value: data.dueDate ? formatDate(data.dueDate) : '—' },
+                {
+                  label: 'Visible to',
+                  value:
+                    String(data.visibility || '') ||
+                    (Array.isArray(data.visible_to_roles) && data.visible_to_roles.length
+                      ? (data.visible_to_roles as string[]).join(', ')
+                      : 'All roles'),
+                },
                 { label: 'Last update', value: formatDate(data.updatedAt) },
               ]}
             />
@@ -149,14 +157,14 @@ export function ProjectDetail(props: DetailViewProps) {
             </TabPanel>
             <TabPanel value="work" className="pt-4">
               <Card>
-                <RelatedList items={extras.related} />
+                <RelatedList items={extras.related} entityKey={entityKey} recordId={detailId} />
               </Card>
             </TabPanel>
             <TabPanel value="activity" className="pt-4">
               <ActivityFeed items={extras.activities} />
             </TabPanel>
             <TabPanel value="discussion" className="pt-4">
-              <CommentThread seed={extras.comments} />
+              <CommentThread seed={extras.comments} entityKey={entityKey} recordId={detailId} />
             </TabPanel>
           </Tabs>
         </div>

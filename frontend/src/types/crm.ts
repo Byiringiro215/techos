@@ -38,11 +38,10 @@ export interface Pipeline {
 }
 
 export interface LeadScore {
-  id: string;
-  org_id: string;
   contact_id: string;
   score: number;
-  factors: Record<string, number>;
-  last_calculated: string;
+  rating: 'hot' | 'warm' | 'cold' | string;
+  factors?: Record<string, number>;
+  last_calculated?: string;
   contact?: Contact;
 }

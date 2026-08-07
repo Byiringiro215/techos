@@ -27,19 +27,19 @@ let CalendarController = class CalendarController {
         return this.calendarService.create(user.org_id, user.id, createEventDto);
     }
     findAll(user, start_date, end_date, type) {
-        return this.calendarService.findAll(user.org_id, start_date, end_date, type);
+        return this.calendarService.findAll(user.org_id, user.id, start_date, end_date, type);
     }
     getUserEvents(user, start_date, end_date) {
         return this.calendarService.getUserEvents(user.org_id, user.id, start_date, end_date);
     }
     findOne(user, id) {
-        return this.calendarService.findOne(id, user.org_id);
+        return this.calendarService.findOne(id, user.org_id, user.id);
     }
     update(user, id, updateData) {
-        return this.calendarService.update(id, user.org_id, updateData);
+        return this.calendarService.update(id, user.org_id, user.id, updateData);
     }
     remove(user, id) {
-        return this.calendarService.remove(id, user.org_id);
+        return this.calendarService.remove(id, user.org_id, user.id);
     }
 };
 exports.CalendarController = CalendarController;

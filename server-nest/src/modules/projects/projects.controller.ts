@@ -27,12 +27,12 @@ export class ProjectsController {
 
   @Get()
   findAll(@CurrentUser() user: any, @Query('status') status?: string) {
-    return this.projectsService.findAll(user.org_id, status);
+    return this.projectsService.findAll(user.org_id, user, status);
   }
 
   @Get(':id')
   findOne(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.projectsService.findOne(id, user.org_id);
+    return this.projectsService.findOne(id, user.org_id, user);
   }
 
   @Put(':id')
@@ -51,11 +51,11 @@ export class ProjectsController {
 
   @Get(':id/stats')
   getStats(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.projectsService.getProjectStats(id, user.org_id);
+    return this.projectsService.getProjectStats(id, user.org_id, user);
   }
 
   @Get(':id/statistics')
   getStatistics(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.projectsService.getProjectStats(id, user.org_id);
+    return this.projectsService.getProjectStats(id, user.org_id, user);
   }
 }

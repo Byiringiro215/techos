@@ -12,13 +12,14 @@ const typeorm_1 = require("@nestjs/typeorm");
 const calendar_controller_1 = require("./calendar.controller");
 const calendar_service_1 = require("./calendar.service");
 const calendar_event_entity_1 = require("../../entities/calendar-event.entity");
-const user_entity_1 = require("../../entities/user.entity");
+const meeting_entity_1 = require("../../entities/meeting.entity");
+const meeting_participant_entity_1 = require("../../entities/meeting-participant.entity");
 let CalendarModule = class CalendarModule {
 };
 exports.CalendarModule = CalendarModule;
 exports.CalendarModule = CalendarModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([calendar_event_entity_1.CalendarEvent, user_entity_1.User])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([calendar_event_entity_1.CalendarEvent, meeting_entity_1.Meeting, meeting_participant_entity_1.MeetingParticipant])],
         controllers: [calendar_controller_1.CalendarController],
         providers: [calendar_service_1.CalendarService],
         exports: [calendar_service_1.CalendarService],

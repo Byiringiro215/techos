@@ -25,11 +25,7 @@ const SocketContext = createContext<SocketContextValue>({
 });
 
 export function useSocket() {
-  const context = useContext(SocketContext);
-  if (!context) {
-    throw new Error('useSocket must be used within SocketProvider');
-  }
-  return context;
+  return useContext(SocketContext);
 }
 
 interface SocketProviderProps {
@@ -57,13 +53,18 @@ export function SocketProvider({ children }: SocketProviderProps) {
 
     setSocket(connectedSocket);
 
-    const handleConnect = () => setIsConnected(true);
+    const handleConnect = () => {
+      setIsConnected(true);
+      const orgId = (user as any).org_id || (user as any).orgId;
+      if (orgId) socketClient.joinOrg(orgId);
+    };
     const handleDisconnect = () => setIsConnected(false);
     const handleNotification = (notification: {
-      message: string;
+      message?: string;
+      title?: string;
       type?: 'error' | 'success' | 'warning' | string;
     }) => {
-      toast(notification.message, {
+      toast(notification.message || notification.title || 'New notification', {
         icon:
           notification.type === 'error'
             ? '❌'
@@ -78,7 +79,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
     connectedSocket.on('connect', handleConnect);
     connectedSocket.on('disconnect', handleDisconnect);
     connectedSocket.on('notification', handleNotification);
-    if (connectedSocket.connected) setIsConnected(true);
+    if (connectedSocket.connected) handleConnect();
 
     return () => {
       connectedSocket.off('connect', handleConnect);
@@ -88,7 +89,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
       setSocket(null);
       setIsConnected(false);
     };
-  }, [user?.id]);
+  }, [user?.id, (user as any)?.org_id, (user as any)?.orgId]);
 
   const joinChannel = useCallback((channelId: string) => {
     socketClient.joinChannel(channelId);
@@ -98,29 +99,35 @@ export function SocketProvider({ children }: SocketProviderProps) {
     socketClient.leaveChannel(channelId);
   }, []);
 
-  const sendTyping = useCallback((channelId: string, userName: string) => {
-    if (user?.id) {
-      socketClient.sendTyping(channelId, user.id, userName);
-    }
-  }, [user?.id]);
+  const sendTyping = useCallback(
+    (channelId: string, userName: string) => {
+      if (user?.id) {
+        socketClient.sendTyping(channelId, user.id, userName);
+      }
+    },
+    [user?.id],
+  );
 
-  const stopTyping = useCallback((channelId: string) => {
-    if (user?.id) {
-      socketClient.stopTyping(channelId, user.id);
-    }
-  }, [user?.id]);
-
-  const value: SocketContextValue = {
-    socket,
-    isConnected,
-    joinChannel,
-    leaveChannel,
-    sendTyping,
-    stopTyping,
-  };
+  const stopTyping = useCallback(
+    (channelId: string) => {
+      if (user?.id) {
+        socketClient.stopTyping(channelId, user.id);
+      }
+    },
+    [user?.id],
+  );
 
   return (
-    <SocketContext.Provider value={value}>
+    <SocketContext.Provider
+      value={{
+        socket,
+        isConnected,
+        joinChannel,
+        leaveChannel,
+        sendTyping,
+        stopTyping,
+      }}
+    >
       {children}
     </SocketContext.Provider>
   );

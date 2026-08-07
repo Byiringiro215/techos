@@ -77,7 +77,7 @@ export function SprintDetail(props: DetailViewProps) {
             </TabList>
             <TabPanel value="scope" className="pt-4">
               <Card>
-                <RelatedList items={extras.related} />
+                <RelatedList items={extras.related} entityKey={entityKey} recordId={detailId} />
               </Card>
             </TabPanel>
             <TabPanel value="activity" className="pt-4">

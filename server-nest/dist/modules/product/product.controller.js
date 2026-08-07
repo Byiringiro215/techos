@@ -62,7 +62,7 @@ let ProductController = class ProductController {
         return this.productService.createBug(user.org_id, user.id, createDto);
     }
     findAllBugs(user, filters) {
-        return this.productService.findAllBugs(user.org_id, filters);
+        return this.productService.findAllBugs(user.org_id, filters, user);
     }
     findOneBug(user, id) {
         return this.productService.findOneBug(id, user.org_id);

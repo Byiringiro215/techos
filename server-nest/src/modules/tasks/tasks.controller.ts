@@ -15,17 +15,17 @@ export class TasksController {
 
   @Get()
   findAll(@CurrentUser() user: any, @Query() filters: any) {
-    return this.tasksService.findAll(user.org_id, filters);
+    return this.tasksService.findAll(user.org_id, filters, user);
   }
 
   @Get(':id')
   findOne(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.tasksService.findOne(id, user.org_id);
+    return this.tasksService.findOne(id, user.org_id, user);
   }
 
   @Get(':id/subtasks')
   getSubtasks(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.tasksService.getSubtasks(id, user.org_id);
+    return this.tasksService.getSubtasks(id, user.org_id, user);
   }
 
   @Put(':id')

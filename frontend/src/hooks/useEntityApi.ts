@@ -19,10 +19,16 @@ function unwrapItem(payload: any): any {
 export function useEntityList(entityKey: string) {
   const config = getEntityApi(entityKey);
   return useQuery({
-    queryKey: ['entity', entityKey],
+    queryKey: ['entity', entityKey, config.listParams || null],
     queryFn: async () => {
-      const response = await api.get(config.listPath);
-      return unwrapList(response.data).map((row) => config.toUi(row));
+      const response = await api.get(config.listPath, {
+        params: config.listParams,
+      });
+      let rows = unwrapList(response.data);
+      if (config.listFilter) {
+        rows = rows.filter(config.listFilter);
+      }
+      return rows.map((row) => config.toUi(row));
     },
   });
 }
@@ -62,7 +68,11 @@ export function useUpdateEntity(entityKey: string) {
   const config = getEntityApi(entityKey);
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
-      const response = await api.put(config.itemPath(id), config.toCreateBody(data));
+      const body = config.toCreateBody(data);
+      const cleaned = Object.fromEntries(
+        Object.entries(body).filter(([, value]) => value !== undefined),
+      );
+      const response = await api.put(config.itemPath(id), cleaned);
       return unwrapItem(response.data);
     },
     onSuccess: (_data, vars) => {
@@ -105,6 +115,70 @@ export function useEntityActivity(entityType?: string, entityId?: string, actorI
       const qs = params.toString();
       const response = await api.get(`/workspace/activity${qs ? `?${qs}` : ''}`);
       return unwrapList(response.data);
+    },
+  });
+}
+
+export type RecordCommentDto = {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  body: string;
+  author_id: string;
+  author_name: string;
+  created_at: string;
+  updated_at?: string;
+};
+
+export function useEntityComments(entityType?: string, entityId?: string) {
+  return useQuery({
+    queryKey: ['comments', entityType, entityId],
+    queryFn: async () => {
+      const response = await api.get('/workspace/comments', {
+        params: { entity_type: entityType, entity_id: entityId },
+      });
+      return unwrapList(response.data) as RecordCommentDto[];
+    },
+    enabled: Boolean(entityType && entityId),
+    refetchInterval: 15_000,
+  });
+}
+
+export function useCreateComment(entityType: string, entityId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: string) => {
+      const response = await api.post('/workspace/comments', {
+        entity_type: entityType,
+        entity_id: entityId,
+        body,
+      });
+      return response.data?.data || response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments', entityType, entityId] });
+      queryClient.invalidateQueries({ queryKey: ['activity', entityType, entityId] });
+      toast.success('Comment posted');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Failed to post comment');
+    },
+  });
+}
+
+export function useDeleteComment(entityType: string, entityId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.delete(`/workspace/comments/${id}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments', entityType, entityId] });
+      toast.success('Comment deleted');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Failed to delete comment');
     },
   });
 }

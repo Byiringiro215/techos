@@ -11,6 +11,7 @@ export declare class Task {
     status: string;
     priority: string;
     assignee_id: string;
+    assignee_ids: string[];
     reporter_id: string;
     estimated_hours: number;
     time_logged: number;

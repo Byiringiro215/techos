@@ -19,6 +19,9 @@ let Document = class Document {
     type;
     folder;
     tags;
+    storage_path;
+    file_mime;
+    file_size;
     created_by;
     version;
     is_archived;
@@ -54,6 +57,18 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'json', nullable: true }),
     __metadata("design:type", Array)
 ], Document.prototype, "tags", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", Object)
+], Document.prototype, "storage_path", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
+    __metadata("design:type", Object)
+], Document.prototype, "file_mime", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'integer', nullable: true }),
+    __metadata("design:type", Object)
+], Document.prototype, "file_size", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)

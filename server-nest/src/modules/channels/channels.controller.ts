@@ -28,6 +28,12 @@ export class ChannelsController {
     return this.channelsService.create(user.org_id, user.id, createChannelDto);
   }
 
+  /** Find or create a 1:1 direct message channel with another user. */
+  @Post('direct')
+  openDirect(@CurrentUser() user: any, @Body() body: { user_id: string }) {
+    return this.channelsService.findOrCreateDirect(user.org_id, user.id, body.user_id);
+  }
+
   @Get()
   findAll(@CurrentUser() user: any) {
     return this.channelsService.findAll(user.org_id, user.id);
@@ -83,7 +89,16 @@ export class ChannelsController {
   }
 
   @Post(':id/messages')
-  postChannelMessage(@CurrentUser() user: any, @Param('id') id: string, @Body('content') content: string) {
-    return this.messagesService.create(user.id, { channel_id: id, content });
+  postChannelMessage(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: { content: string; parent_message_id?: string; mentions?: string[] },
+  ) {
+    return this.messagesService.create(user.id, {
+      channel_id: id,
+      content: body.content,
+      parent_message_id: body.parent_message_id,
+      mentions: body.mentions,
+    });
   }
 }
