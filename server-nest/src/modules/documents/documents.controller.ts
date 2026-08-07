@@ -7,11 +7,13 @@ import {
   Body,
   Param,
   Query,
+  Res,
   UseGuards,
   UseInterceptors,
   UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { DocumentsService } from './documents.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -37,6 +39,16 @@ export class DocumentsController {
     return this.documentsService.uploadFile(user.org_id, user.id, file, metadata);
   }
 
+  @Post(':id/file')
+  @UseInterceptors(FileInterceptor('file'))
+  attachFile(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.documentsService.attachFile(id, user.org_id, file);
+  }
+
   @Get()
   findAll(@CurrentUser() user: any, @Query() filters: any) {
     return this.documentsService.findAll(user.org_id, filters);
@@ -58,6 +70,27 @@ export class DocumentsController {
     @Body() body: { name: string; parent_folder_id?: string },
   ) {
     return this.documentsService.createFolder(user.org_id, user.id, body);
+  }
+
+  @Get(':id/file')
+  async getFile(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    const file = await this.documentsService.resolveFile(id, user.org_id);
+
+    if (file.kind === 'remote') {
+      return res.redirect(file.url);
+    }
+
+    const safeName = file.filename.replace(/"/g, '');
+    res.setHeader('Content-Type', file.mime);
+    res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
+    if (file.size != null) {
+      res.setHeader('Content-Length', String(file.size));
+    }
+    return file.stream.pipe(res);
   }
 
   @Get(':id')

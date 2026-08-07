@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { useCreateEntity, useDeleteEntity, useEntityList, useUpdateEntity } from '@/hooks/useEntityApi';
 import { useUsers } from '@/hooks/useUsers';
+import { useAuthStore } from '@/store/authStore';
+import { canCreateTeams } from '@/lib/access';
 import { Avatar } from '@/components/UI/Avatar';
 import { Badge } from '@/components/UI/Badge';
 import { Button } from '@/components/UI/Button';
@@ -78,6 +80,8 @@ const emptyForm = (leadId = ''): FormState => ({
 });
 
 export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
+  const user = useAuthStore((s) => s.user);
+  const allowCreate = canCreateTeams(user?.role);
   const teamsQuery = useEntityList('teams');
   const usersQuery = useUsers();
   const projectsQuery = useEntityList('projects');
@@ -245,13 +249,19 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
     <div className="space-y-5">
       <PageHeader
         title="Teams"
-        description="Create teams, pick people, and assign them to projects."
+        description={
+          allowCreate
+            ? 'Create teams, pick people, and assign them to projects.'
+            : 'Teams you belong to and their project assignments.'
+        }
         breadcrumbs={breadcrumbs}
         actions={
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create team
-          </Button>
+          allowCreate ? (
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create team
+            </Button>
+          ) : null
         }
       />
 
@@ -326,13 +336,17 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
                   <p className="text-sm text-ink-secondary mt-3 max-w-2xl">{selected.description}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" onClick={() => openEdit(selected)}>
-                    Edit team
-                  </Button>
-                  <Button size="sm" onClick={() => openAssign(selected)}>
-                    <FolderKanban className="h-4 w-4 mr-2" />
-                    Assign projects
-                  </Button>
+                  {allowCreate ? (
+                    <>
+                      <Button size="sm" variant="outline" onClick={() => openEdit(selected)}>
+                        Edit team
+                      </Button>
+                      <Button size="sm" onClick={() => openAssign(selected)}>
+                        <FolderKanban className="h-4 w-4 mr-2" />
+                        Assign projects
+                      </Button>
+                    </>
+                  ) : null}
                 </div>
               </div>
             </Card>
@@ -344,9 +358,11 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
                     <UserPlus className="h-4 w-4 text-brand" />
                     Members ({selected.memberIds.length})
                   </h3>
-                  <Button size="sm" variant="ghost" onClick={() => openEdit(selected)}>
-                    Manage
-                  </Button>
+                  {allowCreate ? (
+                    <Button size="sm" variant="ghost" onClick={() => openEdit(selected)}>
+                      Manage
+                    </Button>
+                  ) : null}
                 </div>
                 <ul className="space-y-2">
                   {selected.memberIds.map((id) => {
@@ -378,15 +394,25 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
                     <FolderKanban className="h-4 w-4 text-brand" />
                     Assigned projects ({selected.projectIds.length})
                   </h3>
-                  <Button size="sm" variant="ghost" onClick={() => openAssign(selected)}>
-                    Assign
-                  </Button>
+                  {allowCreate ? (
+                    <Button size="sm" variant="ghost" onClick={() => openAssign(selected)}>
+                      Assign
+                    </Button>
+                  ) : null}
                 </div>
                 {selected.projectIds.length === 0 ? (
                   <EmptyState
                     title="No projects yet"
-                    description="Assign this team to one or more projects."
-                    action={{ label: 'Assign projects', onClick: () => openAssign(selected) }}
+                    description={
+                      allowCreate
+                        ? 'Assign this team to one or more projects.'
+                        : 'No projects assigned to this team.'
+                    }
+                    action={
+                      allowCreate
+                        ? { label: 'Assign projects', onClick: () => openAssign(selected) }
+                        : undefined
+                    }
                   />
                 ) : (
                   <ul className="space-y-2">
@@ -410,32 +436,41 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
               </Card>
             </div>
 
-            <div className="flex justify-end">
-              <Button
-                variant="danger"
-                size="sm"
-                loading={removeTeam.isPending}
-                onClick={async () => {
-                  await removeTeam.mutateAsync(selected.id);
-                  setSelectedId(teams.find((t) => t.id !== selected.id)?.id || null);
-                }}
-              >
-                Delete team
-              </Button>
-            </div>
+            {allowCreate ? (
+              <div className="flex justify-end">
+                <Button
+                  variant="danger"
+                  size="sm"
+                  loading={removeTeam.isPending}
+                  onClick={async () => {
+                    await removeTeam.mutateAsync(selected.id);
+                    setSelectedId(teams.find((t) => t.id !== selected.id)?.id || null);
+                  }}
+                >
+                  Delete team
+                </Button>
+              </div>
+            ) : null}
           </div>
         ) : (
           <Card>
             <EmptyState
               title="No team selected"
-              description="Create a team to get started."
-              action={{ label: 'Create team', onClick: openCreate }}
+              description={
+                allowCreate
+                  ? 'Create a team to get started.'
+                  : 'You are not assigned to any teams yet.'
+              }
+              action={
+                allowCreate ? { label: 'Create team', onClick: openCreate } : undefined
+              }
             />
           </Card>
         )}
       </div>
 
       {/* Create / Edit modal */}
+      {allowCreate && (createOpen || editOpen) ? (
       <Modal
         isOpen={createOpen || editOpen}
         onClose={() => {
@@ -446,33 +481,38 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
         size="xl"
       >
         <div className="space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Team name"
-              required
-              value={form.name}
-              error={errors.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="e.g. Mobile Platform"
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Team</p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                label="Team name"
+                required
+                value={form.name}
+                error={errors.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="e.g. Mobile Platform"
+              />
+              <Select
+                label="Status"
+                value={form.status}
+                onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as TeamStatus }))}
+              >
+                <option value="forming">Forming</option>
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+              </Select>
+            </div>
+            <TextArea
+              label="Description"
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              rows={3}
+              placeholder="What does this team own?"
             />
-            <Select
-              label="Status"
-              value={form.status}
-              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as TeamStatus }))}
-            >
-              <option value="forming">Forming</option>
-              <option value="active">Active</option>
-              <option value="archived">Archived</option>
-            </Select>
           </div>
-          <TextArea
-            label="Description"
-            value={form.description}
-            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-            rows={3}
-            placeholder="What does this team own?"
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          <div className="space-y-3 rounded-xl border border-border bg-surface-hover/50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">People</p>
             <Select
               label="Team lead"
               required
@@ -493,25 +533,27 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
                 </option>
               ))}
             </Select>
+            <PeoplePicker
+              label="Select members"
+              people={people}
+              selectedIds={form.memberIds}
+              lockedId={form.leadId}
+              onToggle={toggleMember}
+              error={errors.memberIds}
+            />
           </div>
 
-          <PeoplePicker
-            label="Select members"
-            people={people}
-            selectedIds={form.memberIds}
-            lockedId={form.leadId}
-            onToggle={toggleMember}
-            error={errors.memberIds}
-          />
-
-          <ProjectPicker
-            label="Assign to projects (optional)"
-            projects={projects}
-            selectedIds={form.projectIds}
-            onToggle={(id) =>
-              toggleProject(id, form.projectIds, (projectIds) => setForm((f) => ({ ...f, projectIds })))
-            }
-          />
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Projects</p>
+            <ProjectPicker
+              label="Assign to projects (optional)"
+              projects={projects}
+              selectedIds={form.projectIds}
+              onToggle={(id) =>
+                toggleProject(id, form.projectIds, (projectIds) => setForm((f) => ({ ...f, projectIds })))
+              }
+            />
+          </div>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button
@@ -529,10 +571,11 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
           </div>
         </div>
       </Modal>
+      ) : null}
 
       {/* Assign projects modal */}
       <Modal
-        isOpen={assignOpen}
+        isOpen={allowCreate && assignOpen}
         onClose={() => setAssignOpen(false)}
         title={`Assign projects · ${selected?.name || ''}`}
         size="lg"

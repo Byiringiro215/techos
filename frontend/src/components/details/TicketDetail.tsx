@@ -111,7 +111,7 @@ export function TicketDetail(props: DetailViewProps) {
               <Tab value="related">Related</Tab>
             </TabList>
             <TabPanel value="conversation" className="pt-4">
-              <CommentThread seed={extras.comments} />
+              <CommentThread seed={extras.comments} entityKey={entityKey} recordId={detailId} />
             </TabPanel>
             <TabPanel value="internal" className="pt-4">
               <Card className="text-sm text-ink-secondary">
@@ -123,7 +123,7 @@ export function TicketDetail(props: DetailViewProps) {
             </TabPanel>
             <TabPanel value="related" className="pt-4">
               <Card>
-                <RelatedList items={extras.related} />
+                <RelatedList items={extras.related} entityKey={entityKey} recordId={detailId} />
               </Card>
             </TabPanel>
           </Tabs>

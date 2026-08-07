@@ -166,6 +166,17 @@ export function useLeadScores() {
   });
 }
 
+export function useContactLeadScore(contactId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['lead-score', contactId],
+    queryFn: async () => {
+      const response = await api.get(`/crm/contacts/${contactId}/score`);
+      return response.data.data as { contact_id: string; score: number; rating: string };
+    },
+    enabled: !!contactId && enabled,
+  });
+}
+
 export function useCalculateLeadScore() {
   const queryClient = useQueryClient();
   
@@ -174,8 +185,9 @@ export function useCalculateLeadScore() {
       const response = await api.post(`/crm/lead-scores/${contactId}/calculate`);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, contactId) => {
       queryClient.invalidateQueries({ queryKey: ['lead-scores'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-score', contactId] });
       toast.success('Lead score calculated!');
     },
     onError: (error: any) => {

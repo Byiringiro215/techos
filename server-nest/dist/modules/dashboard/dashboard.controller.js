@@ -23,7 +23,7 @@ let DashboardController = class DashboardController {
         this.dashboardService = dashboardService;
     }
     getDeveloperDashboard(user) {
-        return this.dashboardService.getDeveloperDashboard(user.id, user.org_id);
+        return this.dashboardService.getDeveloperDashboard(user.id, user.org_id, user.role);
     }
     getExecutiveDashboard(user) {
         return this.dashboardService.getExecutiveDashboard(user.org_id);

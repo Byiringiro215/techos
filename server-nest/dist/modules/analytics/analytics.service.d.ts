@@ -138,7 +138,7 @@ export declare class AnalyticsService {
     }>;
     createKPI(org_id: string, owner_id: string, createDto: any): Promise<{
         success: boolean;
-        data: KPI[];
+        data: KPI;
     }>;
     getAllKPIs(org_id: string, filters?: any): Promise<{
         success: boolean;

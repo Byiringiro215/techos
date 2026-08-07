@@ -5,6 +5,8 @@ import { Bug } from '../../entities/bug.entity';
 import { Release } from '../../entities/release.entity';
 import { CustomerFeedback } from '../../entities/customer-feedback.entity';
 import { Roadmap } from '../../entities/roadmap.entity';
+import { Project } from '../../entities/project.entity';
+import { User } from '../../entities/user.entity';
 export declare class ProductService {
     private featureRepository;
     private epicRepository;
@@ -12,7 +14,9 @@ export declare class ProductService {
     private releaseRepository;
     private feedbackRepository;
     private roadmapRepository;
-    constructor(featureRepository: Repository<Feature>, epicRepository: Repository<Epic>, bugRepository: Repository<Bug>, releaseRepository: Repository<Release>, feedbackRepository: Repository<CustomerFeedback>, roadmapRepository: Repository<Roadmap>);
+    private projectRepository;
+    private userRepository;
+    constructor(featureRepository: Repository<Feature>, epicRepository: Repository<Epic>, bugRepository: Repository<Bug>, releaseRepository: Repository<Release>, feedbackRepository: Repository<CustomerFeedback>, roadmapRepository: Repository<Roadmap>, projectRepository: Repository<Project>, userRepository: Repository<User>);
     createFeature(org_id: string, createDto: any): Promise<{
         success: boolean;
         data: Feature[];
@@ -71,15 +75,77 @@ export declare class ProductService {
     }>;
     createBug(org_id: string, reporter_id: string, createDto: any): Promise<{
         success: boolean;
-        data: Bug[];
+        data: {
+            project_name: string | null;
+            assignee_name: string | null;
+            reporter_name: string | null;
+            id: string;
+            org_id: string;
+            title: string;
+            description: string;
+            status: string;
+            severity: string;
+            priority: string;
+            assignee_id: string;
+            reporter_id: string;
+            project_id: string;
+            steps_to_reproduce: string;
+            expected_behavior: string;
+            actual_behavior: string;
+            environment: string;
+            created_at: Date;
+        };
     }>;
-    findAllBugs(org_id: string, filters?: any): Promise<{
+    private enrichBugs;
+    private enrichBug;
+    findAllBugs(org_id: string, filters?: any, user?: {
+        id?: string;
+        role?: string;
+    }): Promise<{
         success: boolean;
-        data: Bug[];
+        data: {
+            project_name: string | null;
+            assignee_name: string | null;
+            reporter_name: string | null;
+            id: string;
+            org_id: string;
+            title: string;
+            description: string;
+            status: string;
+            severity: string;
+            priority: string;
+            assignee_id: string;
+            reporter_id: string;
+            project_id: string;
+            steps_to_reproduce: string;
+            expected_behavior: string;
+            actual_behavior: string;
+            environment: string;
+            created_at: Date;
+        }[];
     }>;
     findOneBug(id: string, org_id: string): Promise<{
         success: boolean;
-        data: Bug;
+        data: {
+            project_name: string | null;
+            assignee_name: string | null;
+            reporter_name: string | null;
+            id: string;
+            org_id: string;
+            title: string;
+            description: string;
+            status: string;
+            severity: string;
+            priority: string;
+            assignee_id: string;
+            reporter_id: string;
+            project_id: string;
+            steps_to_reproduce: string;
+            expected_behavior: string;
+            actual_behavior: string;
+            environment: string;
+            created_at: Date;
+        };
     }>;
     updateBug(id: string, org_id: string, updateDto: any): Promise<{
         success: boolean;

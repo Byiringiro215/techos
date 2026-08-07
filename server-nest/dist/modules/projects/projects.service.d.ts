@@ -11,12 +11,15 @@ export declare class ProjectsService {
     private tasksRepository;
     private activityLogService;
     constructor(projectsRepository: Repository<Project>, sprintsRepository: Repository<Sprint>, tasksRepository: Repository<Task>, activityLogService: ActivityLogService);
+    private assertCanView;
     create(org_id: string, actor: any, createProjectDto: CreateProjectDto): Promise<{
         success: boolean;
         data: {
             client_name: any;
             owner_name: any;
             progress: number;
+            visible_to_roles: string[] | null;
+            visibility: string;
             id: string;
             org_id: string;
             name: string;
@@ -36,7 +39,10 @@ export declare class ProjectsService {
     }>;
     private timelineProgress;
     private withProjectExtras;
-    findAll(org_id: string, status?: string): Promise<{
+    findAll(org_id: string, user?: {
+        id?: string;
+        role?: string;
+    } | null, status?: string): Promise<{
         success: boolean;
         data: {
             task_count: number;
@@ -44,6 +50,8 @@ export declare class ProjectsService {
             client_name: any;
             owner_name: any;
             progress: number;
+            visible_to_roles: string[] | null;
+            visibility: string;
             id: string;
             org_id: string;
             name: string;
@@ -61,7 +69,10 @@ export declare class ProjectsService {
             tasks: Task[];
         }[];
     }>;
-    findOne(id: string, org_id: string): Promise<{
+    findOne(id: string, org_id: string, user?: {
+        id?: string;
+        role?: string;
+    } | null): Promise<{
         success: boolean;
         data: {
             sprints: Sprint[];
@@ -69,6 +80,8 @@ export declare class ProjectsService {
             client_name: any;
             owner_name: any;
             progress: number;
+            visible_to_roles: string[] | null;
+            visibility: string;
             id: string;
             org_id: string;
             name: string;
@@ -90,6 +103,8 @@ export declare class ProjectsService {
             client_name: any;
             owner_name: any;
             progress: number;
+            visible_to_roles: string[] | null;
+            visibility: string;
             id: string;
             org_id: string;
             name: string;
@@ -111,7 +126,10 @@ export declare class ProjectsService {
         success: boolean;
         message: string;
     }>;
-    getProjectStats(id: string, org_id: string): Promise<{
+    getProjectStats(id: string, org_id: string, user?: {
+        id?: string;
+        role?: string;
+    } | null): Promise<{
         success: boolean;
         data: {
             total_tasks: number;

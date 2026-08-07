@@ -93,6 +93,7 @@ export function useStartSprint() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sprints'] });
+      queryClient.invalidateQueries({ queryKey: ['entity', 'sprints'] });
       toast.success('Sprint started!');
     },
     onError: (error: any) => {
@@ -111,7 +112,9 @@ export function useCompleteSprint() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sprints'] });
-      toast.success('Sprint completed!');
+      queryClient.invalidateQueries({ queryKey: ['entity', 'sprints'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['entity', 'tasks'] });
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to complete sprint');
@@ -148,6 +151,8 @@ export function useAddTaskToSprint() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sprints'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['entity', 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['entity', 'sprints'] });
       toast.success('Task added to sprint!');
     },
     onError: (error: any) => {
@@ -167,6 +172,8 @@ export function useRemoveTaskFromSprint() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sprints'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['entity', 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['entity', 'sprints'] });
       toast.success('Task removed from sprint!');
     },
     onError: (error: any) => {

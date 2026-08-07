@@ -28,10 +28,10 @@ let ProjectsController = class ProjectsController {
         return this.projectsService.create(user.org_id, user, createProjectDto);
     }
     findAll(user, status) {
-        return this.projectsService.findAll(user.org_id, status);
+        return this.projectsService.findAll(user.org_id, user, status);
     }
     findOne(user, id) {
-        return this.projectsService.findOne(id, user.org_id);
+        return this.projectsService.findOne(id, user.org_id, user);
     }
     update(user, id, updateProjectDto) {
         return this.projectsService.update(id, user.org_id, updateProjectDto, user);
@@ -40,10 +40,10 @@ let ProjectsController = class ProjectsController {
         return this.projectsService.remove(id, user.org_id, user);
     }
     getStats(user, id) {
-        return this.projectsService.getProjectStats(id, user.org_id);
+        return this.projectsService.getProjectStats(id, user.org_id, user);
     }
     getStatistics(user, id) {
-        return this.projectsService.getProjectStats(id, user.org_id);
+        return this.projectsService.getProjectStats(id, user.org_id, user);
     }
 };
 exports.ProjectsController = ProjectsController;

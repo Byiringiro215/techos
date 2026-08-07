@@ -107,6 +107,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.MANAGE_GOALS,
     Permission.VIEW_REPORTS,
     Permission.VIEW_ANNOUNCEMENTS,
+    Permission.VIEW_SETTINGS,
   ],
 
   [UserRole.CISO]: [
@@ -119,6 +120,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.VIEW_MESSAGES,
     Permission.VIEW_MEETINGS,
     Permission.VIEW_CALENDAR,
+    Permission.VIEW_SETTINGS,
   ],
 
   [UserRole.SOFTWARE_ENGINEER]: [
@@ -134,6 +136,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.VIEW_MEETINGS,
     Permission.VIEW_CALENDAR,
     Permission.VIEW_ANNOUNCEMENTS,
+    Permission.VIEW_SETTINGS,
   ],
 
   [UserRole.UI_UX_DESIGNER]: [
@@ -149,6 +152,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.VIEW_MEETINGS,
     Permission.VIEW_CALENDAR,
     Permission.VIEW_ANNOUNCEMENTS,
+    Permission.VIEW_SETTINGS,
   ],
 
   [UserRole.FINANCE]: [
@@ -165,6 +169,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.VIEW_MEETINGS,
     Permission.VIEW_CALENDAR,
     Permission.VIEW_ANNOUNCEMENTS,
+    Permission.VIEW_SETTINGS,
   ],
 
   [UserRole.CUSTOMER_SUPPORT]: [
@@ -177,6 +182,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.VIEW_MEETINGS,
     Permission.VIEW_CALENDAR,
     Permission.VIEW_ANNOUNCEMENTS,
+    Permission.VIEW_SETTINGS,
   ],
 };
 

@@ -68,6 +68,11 @@ export function useUpdateMyProfile() {
       const response = await api.put('/users/me/profile', data);
       return response.data.data;
     },
+    onError: (error: any) => {
+      const raw = error?.response?.data?.message;
+      const message = Array.isArray(raw) ? raw[0] : raw;
+      toast.error(message || 'Failed to update profile');
+    },
   });
 }
 
@@ -76,6 +81,11 @@ export function useUpdateMyPassword() {
     mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
       const response = await api.put('/users/me/password', data);
       return response.data;
+    },
+    onError: (error: any) => {
+      const raw = error?.response?.data?.message;
+      const message = Array.isArray(raw) ? raw[0] : raw;
+      toast.error(message || 'Failed to update password');
     },
   });
 }

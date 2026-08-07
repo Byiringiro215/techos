@@ -33,6 +33,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { CisoModule } from './modules/ciso/ciso.module';
 import { WorkspaceModule } from './modules/workspace/workspace.module';
+import { CodeReviewsModule } from './modules/code-reviews/code-reviews.module';
 
 function buildTypeOrmOptions(config: ConfigService): TypeOrmModuleOptions {
   const dbType = (config.get<string>('DATABASE_TYPE') || 'sqlite').toLowerCase();
@@ -110,6 +111,7 @@ function buildTypeOrmOptions(config: ConfigService): TypeOrmModuleOptions {
     ReportsModule,
     CisoModule,
     WorkspaceModule,
+    CodeReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -27,6 +27,8 @@ import { Card } from '@/components/UI/Card';
 import { Modal } from '@/components/UI/Modal';
 import { PageHeader } from '@/components/UI/PageHeader';
 import { Input } from '@/components/UI/Input';
+import { Select } from '@/components/UI/Select';
+import { TextArea } from '@/components/UI/TextArea';
 import { cn } from '@/lib/utils';
 
 const TYPE_STYLES: Record<string, string> = {
@@ -36,6 +38,7 @@ const TYPE_STYLES: Record<string, string> = {
   interview: 'bg-success text-ink-inverse',
   review: 'bg-bg-inverse text-ink-inverse',
   event: 'bg-brand-soft text-ink-inverse',
+  personal: 'bg-brand-soft text-ink-inverse',
 };
 
 interface CalendarBoardProps {
@@ -51,6 +54,8 @@ type BoardEvent = {
   type: string;
   location?: string;
   description?: string;
+  canEdit?: boolean;
+  source?: string;
 };
 
 function toBoardEvent(row: any): BoardEvent {
@@ -64,9 +69,11 @@ function toBoardEvent(row: any): BoardEvent {
     date: format(startDate, 'yyyy-MM-dd'),
     startTime: format(startDate, 'HH:mm'),
     endTime: format(endDate, 'HH:mm'),
-    type: row.type || 'meeting',
+    type: row.type || 'event',
     location: row.location,
     description: row.description,
+    canEdit: row.can_edit !== false && row.source !== 'meeting',
+    source: row.source || 'personal',
   };
 }
 
@@ -75,7 +82,13 @@ export function CalendarBoard({ breadcrumbs }: CalendarBoardProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [activeEvent, setActiveEvent] = useState<BoardEvent | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [title, setTitle] = useState('');
+  const [form, setForm] = useState({
+    title: '',
+    type: 'event',
+    start_time: '09:00',
+    end_time: '10:00',
+    description: '',
+  });
 
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
@@ -107,25 +120,34 @@ export function CalendarBoard({ breadcrumbs }: CalendarBoardProps) {
     a.startTime.localeCompare(b.startTime),
   );
 
-  const addQuickEvent = async () => {
-    const start = `${selectedKey}T09:00:00.000Z`;
-    const end = `${selectedKey}T10:00:00.000Z`;
+  const addEvent = async () => {
+    if (!form.title.trim()) {
+      toast.error('Title is required');
+      return;
+    }
+    if (form.end_time <= form.start_time) {
+      toast.error('End time must be after start time');
+      return;
+    }
+    const start = `${selectedKey}T${form.start_time}:00.000Z`;
+    const end = `${selectedKey}T${form.end_time}:00.000Z`;
     await createEvent.mutateAsync({
-      title: title.trim() || 'New event',
+      title: form.title.trim(),
+      description: form.description.trim() || undefined,
       start_datetime: start,
       end_datetime: end,
-      type: 'meeting',
+      type: form.type,
       all_day: false,
     } as any);
-    setTitle('');
+    setForm({ title: '', type: 'event', start_time: '09:00', end_time: '10:00', description: '' });
     setCreateOpen(false);
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Calendar"
-        description="Schedule meetings, deadlines, and reminders."
+        title="My calendar"
+        description="Your personal schedule — add events, deadlines, and reminders. Invited meetings also appear here."
         breadcrumbs={breadcrumbs}
         actions={
           <Button size="sm" onClick={() => setCreateOpen(true)}>
@@ -153,7 +175,7 @@ export function CalendarBoard({ breadcrumbs }: CalendarBoardProps) {
           </div>
 
           {isLoading ? (
-            <p className="text-sm text-ink-muted py-8 text-center">Loading schedule...</p>
+            <p className="text-sm text-ink-muted py-8 text-center">Loading your calendar…</p>
           ) : (
             <>
               <div className="grid grid-cols-7 gap-1 mb-1">
@@ -174,7 +196,9 @@ export function CalendarBoard({ breadcrumbs }: CalendarBoardProps) {
                       onClick={() => setSelectedDate(day)}
                       className={cn(
                         'min-h-[84px] rounded-lg border p-1.5 text-left transition-colors',
-                        isSameMonth(day, cursor) ? 'bg-surface border-border' : 'bg-bg-muted/40 border-transparent text-ink-muted',
+                        isSameMonth(day, cursor)
+                          ? 'bg-surface border-border'
+                          : 'bg-bg-muted/40 border-transparent text-ink-muted',
                         isSameDay(day, selectedDate) && 'ring-2 ring-brand/40 border-brand/30',
                         isToday(day) && 'bg-brand-mist/40',
                       )}
@@ -184,7 +208,10 @@ export function CalendarBoard({ breadcrumbs }: CalendarBoardProps) {
                         {dayList.slice(0, 2).map((ev) => (
                           <div
                             key={ev.id}
-                            className={cn('truncate rounded px-1 text-[10px]', TYPE_STYLES[ev.type] || TYPE_STYLES.event)}
+                            className={cn(
+                              'truncate rounded px-1 text-[10px]',
+                              TYPE_STYLES[ev.type] || TYPE_STYLES.event,
+                            )}
                           >
                             {ev.title}
                           </div>
@@ -205,7 +232,7 @@ export function CalendarBoard({ breadcrumbs }: CalendarBoardProps) {
           <h3 className="text-sm font-medium text-ink mb-3">{format(selectedDate, 'EEEE, MMM d')}</h3>
           <div className="space-y-2">
             {dayEvents.length === 0 && (
-              <p className="text-sm text-ink-muted">No events scheduled.</p>
+              <p className="text-sm text-ink-muted">Nothing on your calendar for this day.</p>
             )}
             {dayEvents.map((ev) => (
               <button
@@ -216,7 +243,7 @@ export function CalendarBoard({ breadcrumbs }: CalendarBoardProps) {
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium text-ink">{ev.title}</p>
-                  <Badge size="sm">{ev.type}</Badge>
+                  <Badge size="sm">{ev.source === 'meeting' ? 'invited' : ev.type}</Badge>
                 </div>
                 <p className="text-xs text-ink-muted mt-1 flex items-center gap-1">
                   <Clock className="h-3 w-3" />
@@ -234,16 +261,54 @@ export function CalendarBoard({ breadcrumbs }: CalendarBoardProps) {
         </Card>
       </div>
 
-      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="New event">
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="New personal event" size="md">
         <div className="space-y-4">
-          <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Team sync" />
-          <p className="text-xs text-ink-muted">Scheduled on {selectedKey} from 09:00–10:00 (UTC).</p>
+          <Input
+            label="Title"
+            required
+            value={form.title}
+            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+            placeholder="Focus block, deadline, reminder…"
+          />
+          <Select
+            label="Type"
+            value={form.type}
+            onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
+          >
+            <option value="event">Event</option>
+            <option value="reminder">Reminder</option>
+            <option value="deadline">Deadline</option>
+            <option value="meeting">Meeting (personal)</option>
+            <option value="review">Review</option>
+          </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Starts"
+              type="time"
+              value={form.start_time}
+              onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))}
+            />
+            <Input
+              label="Ends"
+              type="time"
+              value={form.end_time}
+              onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))}
+            />
+          </div>
+          <p className="text-xs text-ink-muted">Date: {selectedKey}</p>
+          <TextArea
+            label="Notes"
+            rows={3}
+            value={form.description}
+            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            placeholder="Optional details"
+          />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setCreateOpen(false)}>
               Cancel
             </Button>
-            <Button loading={createEvent.isPending} onClick={addQuickEvent}>
-              Create
+            <Button loading={createEvent.isPending} onClick={() => void addEvent()}>
+              Add to my calendar
             </Button>
           </div>
         </div>
@@ -256,19 +321,29 @@ export function CalendarBoard({ breadcrumbs }: CalendarBoardProps) {
             <p className="text-xs text-ink-muted">
               {activeEvent.date} · {activeEvent.startTime}–{activeEvent.endTime}
             </p>
+            {activeEvent.source === 'meeting' ? (
+              <p className="text-xs text-ink-muted">
+                This is an invited meeting. Manage it from Meetings if you need details.
+              </p>
+            ) : null}
             <div className="flex justify-end gap-2">
-              <Button
-                variant="danger"
-                loading={deleteEvent.isPending}
-                onClick={async () => {
-                  await deleteEvent.mutateAsync(activeEvent.id);
-                  setActiveEvent(null);
-                  toast.success('Event deleted');
-                }}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
+              {activeEvent.canEdit ? (
+                <Button
+                  variant="danger"
+                  loading={deleteEvent.isPending}
+                  onClick={async () => {
+                    try {
+                      await deleteEvent.mutateAsync(activeEvent.id);
+                      setActiveEvent(null);
+                    } catch {
+                      /* toast from hook */
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              ) : null}
               <Button onClick={() => setActiveEvent(null)}>Close</Button>
             </div>
           </div>

@@ -27,11 +27,26 @@ export declare class DashboardService {
     private reportRepository;
     private usersRepository;
     constructor(projectRepository: Repository<Project>, taskRepository: Repository<Task>, sprintRepository: Repository<Sprint>, bugRepository: Repository<Bug>, goalRepository: Repository<Goal>, meetingRepository: Repository<Meeting>, notificationRepository: Repository<Notification>, announcementRepository: Repository<Announcement>, invoiceRepository: Repository<Invoice>, expenseRepository: Repository<Expense>, leaveRequestRepository: Repository<LeaveRequest>, reportRepository: Repository<Report>, usersRepository: Repository<User>);
-    getDeveloperDashboard(user_id: string, org_id: string): Promise<{
+    getDeveloperDashboard(user_id: string, org_id: string, user_role?: string): Promise<{
         success: boolean;
         data: {
             my_tasks: Task[];
             my_bugs: Bug[];
+            task_counts: {
+                total: number;
+                active: number;
+                in_progress: number;
+                todo: number;
+                done: number;
+            };
+            bug_counts: {
+                total: number;
+                open: number;
+            };
+            projects: {
+                total: number;
+                active: number;
+            };
             active_sprint: Sprint | null;
             upcoming_meetings: Meeting[];
             notifications: Notification[];

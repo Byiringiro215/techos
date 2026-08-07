@@ -23,17 +23,17 @@ export class MeetingsController {
 
   @Post()
   create(@CurrentUser() user: any, @Body() createMeetingDto: CreateMeetingDto) {
-    return this.meetingsService.create(user.org_id, user.id, createMeetingDto);
+    return this.meetingsService.create(user.org_id, user, createMeetingDto);
   }
 
   @Get()
   findAll(@CurrentUser() user: any, @Query() filters: any) {
-    return this.meetingsService.findAll(user.org_id, filters);
+    return this.meetingsService.findAll(user.org_id, user, filters);
   }
 
   @Get(':id')
   findOne(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.meetingsService.findOne(id, user.org_id);
+    return this.meetingsService.findOne(id, user.org_id, user);
   }
 
   @Put(':id')
@@ -42,12 +42,12 @@ export class MeetingsController {
     @Param('id') id: string,
     @Body() updateMeetingDto: UpdateMeetingDto,
   ) {
-    return this.meetingsService.update(id, user.org_id, updateMeetingDto);
+    return this.meetingsService.update(id, user.org_id, updateMeetingDto, user);
   }
 
   @Delete(':id')
   remove(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.meetingsService.remove(id, user.org_id);
+    return this.meetingsService.remove(id, user.org_id, user);
   }
 
   // Participants

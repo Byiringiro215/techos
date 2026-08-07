@@ -11,7 +11,6 @@ import { mapBackendUserToFrontend } from '@/lib/apiMappers/auth';
 import { useLoginMutation } from '@/hooks/useAuthMutations';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { AuthField } from '@/components/auth/AuthField';
-import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -88,13 +87,9 @@ export default function LoginPage() {
             />
 
             <div className="text-center">
-              <button
-                type="button"
-                onClick={() => toast('Password reset will connect to auth APIs later', { icon: '✉️' })}
-                className="text-xs text-ink-muted hover:text-brand transition-colors"
-              >
-                Forgot password?
-              </button>
+              <p className="text-xs text-ink-muted">
+                Contact your workspace admin if you need a password reset.
+              </p>
             </div>
 
             <button
@@ -105,8 +100,6 @@ export default function LoginPage() {
               {loginMutation.isPending ? 'Signing in...' : 'Login'}
             </button>
           </form>
-
-          <SocialAuthButtons mode="login" />
         </div>
       }
     />

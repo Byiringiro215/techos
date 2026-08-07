@@ -14,6 +14,7 @@ export declare class MeetingsController {
         data: {
             participant_count: number;
             action_item_count: number;
+            participant_ids: string[];
             id: string;
             org_id: string;
             title: string;
@@ -38,8 +39,33 @@ export declare class MeetingsController {
     findOne(user: any, id: string): Promise<{
         success: boolean;
         data: {
-            participants: any[];
-            action_items: any[];
+            organizer_name: string | null;
+            owner: string;
+            participants: {
+                id: string;
+                user_id: string;
+                status: string;
+                is_organizer: boolean;
+                first_name: string | null;
+                last_name: string | null;
+                email: string | null;
+                avatar: string | null;
+                name: string | null;
+            }[];
+            participant_ids: string[];
+            action_items: {
+                assignee_first_name: string | null;
+                assignee_last_name: string | null;
+                assignee_name: string | null;
+                id: string;
+                meeting_id: string;
+                title: string;
+                description: string;
+                assignee_id: string;
+                status: string;
+                due_date: string;
+                created_at: Date;
+            }[];
             id: string;
             org_id: string;
             title: string;
@@ -64,30 +90,52 @@ export declare class MeetingsController {
     update(user: any, id: string, updateMeetingDto: UpdateMeetingDto): Promise<{
         success: boolean;
         data: {
-            success: boolean;
-            data: {
-                participants: any[];
-                action_items: any[];
+            organizer_name: string | null;
+            owner: string;
+            participants: {
                 id: string;
-                org_id: string;
+                user_id: string;
+                status: string;
+                is_organizer: boolean;
+                first_name: string | null;
+                last_name: string | null;
+                email: string | null;
+                avatar: string | null;
+                name: string | null;
+            }[];
+            participant_ids: string[];
+            action_items: {
+                assignee_first_name: string | null;
+                assignee_last_name: string | null;
+                assignee_name: string | null;
+                id: string;
+                meeting_id: string;
                 title: string;
                 description: string;
-                date: string;
-                scheduled_at: string;
-                start_time: string;
-                end_time: string;
-                location: string;
-                meeting_link: string;
-                type: string;
+                assignee_id: string;
                 status: string;
-                organizer_id: string;
-                agenda: string;
-                notes: string;
-                ai_summary: string;
-                decisions: string[];
-                recording_url: string;
+                due_date: string;
                 created_at: Date;
-            };
+            }[];
+            id: string;
+            org_id: string;
+            title: string;
+            description: string;
+            date: string;
+            scheduled_at: string;
+            start_time: string;
+            end_time: string;
+            location: string;
+            meeting_link: string;
+            type: string;
+            status: string;
+            organizer_id: string;
+            agenda: string;
+            notes: string;
+            ai_summary: string;
+            decisions: string[];
+            recording_url: string;
+            created_at: Date;
         };
     }>;
     remove(user: any, id: string): Promise<{

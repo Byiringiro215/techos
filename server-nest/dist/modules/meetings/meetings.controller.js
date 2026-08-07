@@ -26,19 +26,19 @@ let MeetingsController = class MeetingsController {
         this.meetingsService = meetingsService;
     }
     create(user, createMeetingDto) {
-        return this.meetingsService.create(user.org_id, user.id, createMeetingDto);
+        return this.meetingsService.create(user.org_id, user, createMeetingDto);
     }
     findAll(user, filters) {
-        return this.meetingsService.findAll(user.org_id, filters);
+        return this.meetingsService.findAll(user.org_id, user, filters);
     }
     findOne(user, id) {
-        return this.meetingsService.findOne(id, user.org_id);
+        return this.meetingsService.findOne(id, user.org_id, user);
     }
     update(user, id, updateMeetingDto) {
-        return this.meetingsService.update(id, user.org_id, updateMeetingDto);
+        return this.meetingsService.update(id, user.org_id, updateMeetingDto, user);
     }
     remove(user, id) {
-        return this.meetingsService.remove(id, user.org_id);
+        return this.meetingsService.remove(id, user.org_id, user);
     }
     addParticipants(user, id, body) {
         return this.meetingsService.addParticipants(id, user.org_id, body.participant_ids);

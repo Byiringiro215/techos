@@ -1,5 +1,15 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsArray, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
+
+const PROJECT_ROLES = [
+  'ceo',
+  'cto',
+  'ciso',
+  'finance',
+  'software_engineer',
+  'ui_ux_designer',
+  'customer_support',
+] as const;
 
 export class CreateProjectDto {
   @IsNotEmpty()
@@ -34,4 +44,10 @@ export class CreateProjectDto {
   @IsOptional()
   @IsString()
   client_name?: string;
+
+  /** Roles that can see this project. Empty / omitted = everyone. */
+  @IsOptional()
+  @IsArray()
+  @IsIn(PROJECT_ROLES, { each: true })
+  visible_to_roles?: string[];
 }

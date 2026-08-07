@@ -8,12 +8,49 @@ export declare class ChannelsService {
     private membersRepository;
     private usersRepository;
     constructor(channelsRepository: Repository<Channel>, membersRepository: Repository<ChannelMember>, usersRepository: Repository<User>);
+    private ensureDefaultChannel;
+    findOrCreateDirect(org_id: string, user_id: string, other_user_id: string): Promise<{
+        success: boolean;
+        data: {
+            success: boolean;
+            data: {
+                members: {
+                    id: string;
+                    user_id: string;
+                    role: string;
+                    joined_at: any;
+                    first_name: string | null;
+                    last_name: string | null;
+                    email: string | null;
+                    avatar: string | null;
+                }[];
+                user_role: string | undefined;
+                id: string;
+                org_id: string;
+                name: string;
+                description: string;
+                type: string;
+                created_by: string;
+                is_archived: boolean;
+                created_at: Date;
+            };
+        };
+    }>;
     create(org_id: string, user_id: string, createChannelDto: CreateChannelDto): Promise<{
         success: boolean;
         data: {
             success: boolean;
             data: {
-                members: any[];
+                members: {
+                    id: string;
+                    user_id: string;
+                    role: string;
+                    joined_at: any;
+                    first_name: string | null;
+                    last_name: string | null;
+                    email: string | null;
+                    avatar: string | null;
+                }[];
                 user_role: string | undefined;
                 id: string;
                 org_id: string;
@@ -45,7 +82,16 @@ export declare class ChannelsService {
     findOne(id: string, org_id: string, user_id: string): Promise<{
         success: boolean;
         data: {
-            members: any[];
+            members: {
+                id: string;
+                user_id: string;
+                role: string;
+                joined_at: any;
+                first_name: string | null;
+                last_name: string | null;
+                email: string | null;
+                avatar: string | null;
+            }[];
             user_role: string | undefined;
             id: string;
             org_id: string;

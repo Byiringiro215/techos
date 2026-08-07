@@ -30,6 +30,9 @@ let DocumentsController = class DocumentsController {
     uploadFile(user, file, metadata) {
         return this.documentsService.uploadFile(user.org_id, user.id, file, metadata);
     }
+    attachFile(user, id, file) {
+        return this.documentsService.attachFile(id, user.org_id, file);
+    }
     findAll(user, filters) {
         return this.documentsService.findAll(user.org_id, filters);
     }
@@ -41,6 +44,19 @@ let DocumentsController = class DocumentsController {
     }
     createFolder(user, body) {
         return this.documentsService.createFolder(user.org_id, user.id, body);
+    }
+    async getFile(user, id, res) {
+        const file = await this.documentsService.resolveFile(id, user.org_id);
+        if (file.kind === 'remote') {
+            return res.redirect(file.url);
+        }
+        const safeName = file.filename.replace(/"/g, '');
+        res.setHeader('Content-Type', file.mime);
+        res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
+        if (file.size != null) {
+            res.setHeader('Content-Length', String(file.size));
+        }
+        return file.stream.pipe(res);
     }
     findOne(user, id) {
         return this.documentsService.findOne(id, user.org_id);
@@ -81,6 +97,16 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], DocumentsController.prototype, "uploadFile", null);
 __decorate([
+    (0, common_1.Post)(':id/file'),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file')),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.UploadedFile)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", void 0)
+], DocumentsController.prototype, "attachFile", null);
+__decorate([
     (0, common_1.Get)(),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Query)()),
@@ -111,6 +137,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], DocumentsController.prototype, "createFolder", null);
+__decorate([
+    (0, common_1.Get)(':id/file'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:returntype", Promise)
+], DocumentsController.prototype, "getFile", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

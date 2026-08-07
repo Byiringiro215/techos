@@ -4,7 +4,7 @@ export declare class SprintsController {
     constructor(sprintsService: SprintsService);
     create(user: any, createSprintDto: any): Promise<{
         success: boolean;
-        data: import("../../entities").Sprint[];
+        data: import("../../entities").Sprint;
     }>;
     findAll(user: any, project_id?: string): Promise<{
         success: boolean;
@@ -37,6 +37,8 @@ export declare class SprintsController {
     complete(user: any, id: string): Promise<{
         success: boolean;
         data: import("../../entities").Sprint;
+        returned_to_backlog: number;
+        completed_tasks: number;
     }>;
     addTask(user: any, sprintId: string, taskId: string): Promise<{
         success: boolean;

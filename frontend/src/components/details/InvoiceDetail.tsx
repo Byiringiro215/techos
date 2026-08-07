@@ -145,7 +145,7 @@ export function InvoiceDetail(props: DetailViewProps) {
             </TabPanel>
             <TabPanel value="related" className="pt-4">
               <Card>
-                <RelatedList items={extras.related} />
+                <RelatedList items={extras.related} entityKey={entityKey} recordId={detailId} />
               </Card>
             </TabPanel>
           </Tabs>

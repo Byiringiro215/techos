@@ -29,6 +29,7 @@ const expense_entity_1 = require("../../entities/expense.entity");
 const leave_request_entity_1 = require("../../entities/leave-request.entity");
 const report_entity_1 = require("../../entities/report.entity");
 const user_entity_1 = require("../../entities/user.entity");
+const project_visibility_1 = require("../../common/utils/project-visibility");
 let DashboardService = class DashboardService {
     projectRepository;
     taskRepository;
@@ -58,19 +59,22 @@ let DashboardService = class DashboardService {
         this.reportRepository = reportRepository;
         this.usersRepository = usersRepository;
     }
-    async getDeveloperDashboard(user_id, org_id) {
-        const [myTasks, myBugs, upcomingMeetings, notifications, announcements] = await Promise.all([
+    async getDeveloperDashboard(user_id, org_id, user_role) {
+        const [assignedTasks, myBugs, upcomingMeetings, notifications, announcements, visibleProjects] = await Promise.all([
             this.taskRepository.find({
-                where: { assignee_id: user_id, org_id, status: 'in_progress' },
-                order: { priority: 'DESC', due_date: 'ASC' },
-                take: 10,
+                where: [
+                    { assignee_id: user_id, org_id },
+                ],
+                order: { due_date: 'ASC', created_at: 'DESC' },
+                take: 50,
             }),
             this.bugRepository.find({
-                where: { assignee_id: user_id, org_id, status: 'open' },
-                order: { priority: 'DESC' },
-                take: 5,
+                where: { assignee_id: user_id, org_id },
+                order: { priority: 'DESC', created_at: 'DESC' },
+                take: 20,
             }),
-            this.meetingRepository.createQueryBuilder('meeting')
+            this.meetingRepository
+                .createQueryBuilder('meeting')
                 .where('meeting.org_id = :org_id', { org_id })
                 .andWhere('meeting.scheduled_at >= :now', { now: new Date().toISOString() })
                 .orderBy('meeting.scheduled_at', 'ASC')
@@ -86,19 +90,45 @@ let DashboardService = class DashboardService {
                 order: { is_pinned: 'DESC', created_at: 'DESC' },
                 take: 3,
             }),
+            this.projectRepository.find({
+                where: { org_id },
+                order: { created_at: 'DESC' },
+                take: 40,
+            }),
         ]);
+        const role = String(user_role || 'software_engineer').toLowerCase();
+        const projects = visibleProjects.filter((p) => (0, project_visibility_1.canViewProject)(p, { role, id: user_id }));
+        const openBugs = myBugs.filter((b) => !/done|closed|resolved/i.test(String(b.status)));
+        const activeTasks = assignedTasks.filter((t) => !/done|completed|closed/i.test(String(t.status)));
+        const inProgress = assignedTasks.filter((t) => /in_progress|in-progress/i.test(String(t.status)));
+        const todo = assignedTasks.filter((t) => /todo|backlog|open/i.test(String(t.status)));
         const activeSprint = await this.sprintRepository.findOne({
             where: { org_id, status: 'active' },
         });
         return {
             success: true,
             data: {
-                my_tasks: myTasks,
-                my_bugs: myBugs,
+                my_tasks: activeTasks.slice(0, 12),
+                my_bugs: openBugs.slice(0, 8),
+                task_counts: {
+                    total: assignedTasks.length,
+                    active: activeTasks.length,
+                    in_progress: inProgress.length,
+                    todo: todo.length,
+                    done: assignedTasks.length - activeTasks.length,
+                },
+                bug_counts: {
+                    total: myBugs.length,
+                    open: openBugs.length,
+                },
+                projects: {
+                    total: projects.length,
+                    active: projects.filter((p) => /active/i.test(String(p.status))).length,
+                },
                 active_sprint: activeSprint,
                 upcoming_meetings: upcomingMeetings,
-                notifications: notifications,
-                announcements: announcements,
+                notifications,
+                announcements,
             },
         };
     }

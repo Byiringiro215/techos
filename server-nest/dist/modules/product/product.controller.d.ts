@@ -64,15 +64,72 @@ export declare class ProductController {
     }>;
     createBug(user: any, createDto: any): Promise<{
         success: boolean;
-        data: import("../../entities").Bug[];
+        data: {
+            project_name: string | null;
+            assignee_name: string | null;
+            reporter_name: string | null;
+            id: string;
+            org_id: string;
+            title: string;
+            description: string;
+            status: string;
+            severity: string;
+            priority: string;
+            assignee_id: string;
+            reporter_id: string;
+            project_id: string;
+            steps_to_reproduce: string;
+            expected_behavior: string;
+            actual_behavior: string;
+            environment: string;
+            created_at: Date;
+        };
     }>;
     findAllBugs(user: any, filters: any): Promise<{
         success: boolean;
-        data: import("../../entities").Bug[];
+        data: {
+            project_name: string | null;
+            assignee_name: string | null;
+            reporter_name: string | null;
+            id: string;
+            org_id: string;
+            title: string;
+            description: string;
+            status: string;
+            severity: string;
+            priority: string;
+            assignee_id: string;
+            reporter_id: string;
+            project_id: string;
+            steps_to_reproduce: string;
+            expected_behavior: string;
+            actual_behavior: string;
+            environment: string;
+            created_at: Date;
+        }[];
     }>;
     findOneBug(user: any, id: string): Promise<{
         success: boolean;
-        data: import("../../entities").Bug;
+        data: {
+            project_name: string | null;
+            assignee_name: string | null;
+            reporter_name: string | null;
+            id: string;
+            org_id: string;
+            title: string;
+            description: string;
+            status: string;
+            severity: string;
+            priority: string;
+            assignee_id: string;
+            reporter_id: string;
+            project_id: string;
+            steps_to_reproduce: string;
+            expected_behavior: string;
+            actual_behavior: string;
+            environment: string;
+            created_at: Date;
+        };
     }>;
     updateBug(user: any, id: string, updateDto: any): Promise<{
         success: boolean;

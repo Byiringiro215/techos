@@ -18,6 +18,7 @@ const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
 const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
 const workspace_service_1 = require("./workspace.service");
 const create_workspace_record_dto_1 = require("./dto/create-workspace-record.dto");
+const create_record_comment_dto_1 = require("./dto/create-record-comment.dto");
 let WorkspaceController = class WorkspaceController {
     workspaceService;
     constructor(workspaceService) {
@@ -26,11 +27,20 @@ let WorkspaceController = class WorkspaceController {
     listActivity(user, entity_type, entity_id, actor_id) {
         return this.workspaceService.listActivity(user.org_id, entity_type, entity_id, actor_id);
     }
+    listComments(user, entity_type, entity_id) {
+        return this.workspaceService.listComments(user.org_id, entity_type, entity_id);
+    }
+    createComment(user, dto) {
+        return this.workspaceService.createComment(user.org_id, user, dto);
+    }
+    removeComment(user, id) {
+        return this.workspaceService.removeComment(user.org_id, id, user);
+    }
     list(user, type) {
-        return this.workspaceService.list(user.org_id, type);
+        return this.workspaceService.list(user.org_id, type, user);
     }
     get(user, type, id) {
-        return this.workspaceService.get(user.org_id, type, id);
+        return this.workspaceService.get(user.org_id, type, id, user);
     }
     create(user, type, dto) {
         return this.workspaceService.create(user.org_id, type, user, dto);
@@ -53,6 +63,31 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, String, String]),
     __metadata("design:returntype", void 0)
 ], WorkspaceController.prototype, "listActivity", null);
+__decorate([
+    (0, common_1.Get)('comments'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('entity_type')),
+    __param(2, (0, common_1.Query)('entity_id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], WorkspaceController.prototype, "listComments", null);
+__decorate([
+    (0, common_1.Post)('comments'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, create_record_comment_dto_1.CreateRecordCommentDto]),
+    __metadata("design:returntype", void 0)
+], WorkspaceController.prototype, "createComment", null);
+__decorate([
+    (0, common_1.Delete)('comments/:id'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", void 0)
+], WorkspaceController.prototype, "removeComment", null);
 __decorate([
     (0, common_1.Get)(':type'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),

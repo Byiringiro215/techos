@@ -10,7 +10,45 @@ export declare class ChannelsController {
         data: {
             success: boolean;
             data: {
-                members: any[];
+                members: {
+                    id: string;
+                    user_id: string;
+                    role: string;
+                    joined_at: any;
+                    first_name: string | null;
+                    last_name: string | null;
+                    email: string | null;
+                    avatar: string | null;
+                }[];
+                user_role: string | undefined;
+                id: string;
+                org_id: string;
+                name: string;
+                description: string;
+                type: string;
+                created_by: string;
+                is_archived: boolean;
+                created_at: Date;
+            };
+        };
+    }>;
+    openDirect(user: any, body: {
+        user_id: string;
+    }): Promise<{
+        success: boolean;
+        data: {
+            success: boolean;
+            data: {
+                members: {
+                    id: string;
+                    user_id: string;
+                    role: string;
+                    joined_at: any;
+                    first_name: string | null;
+                    last_name: string | null;
+                    email: string | null;
+                    avatar: string | null;
+                }[];
                 user_role: string | undefined;
                 id: string;
                 org_id: string;
@@ -42,7 +80,16 @@ export declare class ChannelsController {
     findOne(user: any, id: string): Promise<{
         success: boolean;
         data: {
-            members: any[];
+            members: {
+                id: string;
+                user_id: string;
+                role: string;
+                joined_at: any;
+                first_name: string | null;
+                last_name: string | null;
+                email: string | null;
+                avatar: string | null;
+            }[];
             user_role: string | undefined;
             id: string;
             org_id: string;
@@ -78,10 +125,69 @@ export declare class ChannelsController {
     }>;
     getChannelMessages(user: any, id: string, limit?: number, before?: string): Promise<{
         success: boolean;
-        data: any[];
+        data: {
+            thread_count: number;
+            id: string;
+            channel_id: string;
+            channelId: string;
+            user_id: string;
+            userId: string;
+            sender_id: string;
+            content: string;
+            parent_message_id: string;
+            attachments: string[];
+            mentions: string[];
+            reactions: Record<string, string[]>;
+            is_edited: boolean;
+            is_deleted: boolean;
+            created_at: Date;
+            createdAt: Date;
+            updated_at: Date;
+            user_first_name: string | null;
+            user_last_name: string | null;
+            user_avatar: string | null;
+            user_name: string;
+            user: {
+                id: string;
+                first_name: string;
+                last_name: string;
+                avatar: string;
+            } | undefined;
+        }[];
     }>;
-    postChannelMessage(user: any, id: string, content: string): Promise<{
+    postChannelMessage(user: any, id: string, body: {
+        content: string;
+        parent_message_id?: string;
+        mentions?: string[];
+    }): Promise<{
         success: boolean;
-        data: any;
+        data: {
+            id: string;
+            channel_id: string;
+            channelId: string;
+            user_id: string;
+            userId: string;
+            sender_id: string;
+            content: string;
+            parent_message_id: string;
+            attachments: string[];
+            mentions: string[];
+            reactions: Record<string, string[]>;
+            is_edited: boolean;
+            is_deleted: boolean;
+            created_at: Date;
+            createdAt: Date;
+            updated_at: Date;
+            user_first_name: string | null;
+            user_last_name: string | null;
+            user_avatar: string | null;
+            user_name: string;
+            user: {
+                id: string;
+                first_name: string;
+                last_name: string;
+                avatar: string;
+            } | undefined;
+        } | null;
     }>;
 }

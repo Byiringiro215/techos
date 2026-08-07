@@ -1,7 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
+import { createReadStream, existsSync, mkdirSync, unlinkSync, writeFileSync } from 'fs';
+import { extname, join } from 'path';
 import { Document } from '../../entities/document.entity';
 import { User } from '../../entities/user.entity';
 import { CreateDocumentDto } from './dto/create-document.dto';
@@ -9,6 +11,8 @@ import { CloudinaryService } from '../../common/services/cloudinary.service';
 
 @Injectable()
 export class DocumentsService {
+  private readonly uploadsRoot = join(process.cwd(), 'uploads', 'documents');
+
   constructor(
     @InjectRepository(Document)
     private documentsRepository: Repository<Document>,
@@ -17,13 +21,47 @@ export class DocumentsService {
     private cloudinaryService: CloudinaryService,
   ) {}
 
+  private ensureDir(dir: string) {
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+  }
+
+  private saveLocalFile(org_id: string, documentId: string, file: Express.Multer.File) {
+    const orgDir = join(this.uploadsRoot, org_id);
+    this.ensureDir(orgDir);
+    const ext = extname(file.originalname || '') || '';
+    const relative = join(org_id, `${documentId}${ext}`).replace(/\\/g, '/');
+    const absolute = join(this.uploadsRoot, relative);
+    writeFileSync(absolute, file.buffer);
+    return relative;
+  }
+
+  private toFileDto(document: Document) {
+    const remote =
+      typeof document.content === 'string' && /^https?:\/\//i.test(document.content)
+        ? document.content
+        : null;
+    const can_view = Boolean(remote || document.storage_path);
+    return {
+      ...document,
+      file_url: remote || (document.storage_path ? `/documents/${document.id}/file` : document.content),
+      file_type: document.file_mime || undefined,
+      file_size: document.file_size ?? undefined,
+      can_view,
+    };
+  }
+
   async create(org_id: string, user_id: string, createDocumentDto: CreateDocumentDto) {
     const document = this.documentsRepository.create({
       id: randomUUID(),
       org_id,
-      ...createDocumentDto,
-      created_by: user_id,
+      title: createDocumentDto.title,
+      content: createDocumentDto.content || '',
       type: createDocumentDto.type || 'general',
+      folder: createDocumentDto.folder,
+      tags: createDocumentDto.tags,
+      created_by: user_id,
       version: 1,
     });
 
@@ -31,23 +69,52 @@ export class DocumentsService {
 
     return {
       success: true,
-      data: document,
+      data: this.toFileDto(document),
     };
   }
 
   async uploadFile(org_id: string, user_id: string, file: Express.Multer.File, metadata?: any) {
-    // Upload to Cloudinary
-    const uploadResult = await this.cloudinaryService.uploadFile(file, `techos/${org_id}/documents`);
+    if (!file?.buffer?.length) {
+      throw new BadRequestException('No file uploaded');
+    }
 
-    // Create document record
+    const id = randomUUID();
+    const storage_path = this.saveLocalFile(org_id, id, file);
+    let fileUrl = `local://${storage_path}`;
+    const fileType = file.mimetype || 'application/octet-stream';
+
+    try {
+      const uploadResult = await this.cloudinaryService.uploadFile(file, `techos/${org_id}/documents`);
+      if (uploadResult?.secure_url) {
+        fileUrl = uploadResult.secure_url;
+      }
+    } catch {
+      // Local file remains viewable when Cloudinary is unavailable.
+    }
+
+    const relatedType = metadata?.related_entity_type || metadata?.relatedEntityType;
+    const relatedId = metadata?.related_entity_id || metadata?.relatedEntityId;
+    const folder =
+      metadata?.folder ||
+      (relatedType && relatedId ? `related/${relatedType}/${relatedId}` : undefined);
+
+    const tags = [
+      ...(Array.isArray(metadata?.tags) ? metadata.tags : []),
+      relatedType ? `related:${relatedType}` : null,
+      relatedId ? `parent:${relatedId}` : null,
+    ].filter(Boolean) as string[];
+
     const document = this.documentsRepository.create({
-      id: randomUUID(),
+      id,
       org_id,
       title: metadata?.title || file.originalname,
-      content: uploadResult.secure_url,
-      type: 'file',
-      folder: metadata?.folder,
-      tags: metadata?.tags,
+      content: fileUrl,
+      type: metadata?.type || 'file',
+      folder,
+      tags,
+      storage_path,
+      file_mime: fileType,
+      file_size: file.size,
       created_by: user_id,
       version: 1,
     });
@@ -56,13 +123,119 @@ export class DocumentsService {
 
     return {
       success: true,
-      data: {
-        ...document,
-        file_url: uploadResult.secure_url,
-        file_type: file.mimetype,
-        file_size: file.size,
-      },
+      data: this.toFileDto(document),
     };
+  }
+
+  /** Attach / replace the binary file on an existing document record. */
+  async attachFile(id: string, org_id: string, file: Express.Multer.File) {
+    if (!file?.buffer?.length) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    const document = await this.documentsRepository.findOne({ where: { id, org_id } });
+    if (!document) {
+      throw new NotFoundException('Document not found');
+    }
+
+    // Remove previous local blob if present
+    if (document.storage_path) {
+      const previous = join(this.uploadsRoot, document.storage_path);
+      if (existsSync(previous)) {
+        try {
+          unlinkSync(previous);
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+
+    const storage_path = this.saveLocalFile(org_id, id, file);
+    let fileUrl = `local://${storage_path}`;
+    const fileType = file.mimetype || 'application/octet-stream';
+
+    try {
+      const uploadResult = await this.cloudinaryService.uploadFile(file, `techos/${org_id}/documents`);
+      if (uploadResult?.secure_url) {
+        fileUrl = uploadResult.secure_url;
+      }
+    } catch {
+      /* keep local */
+    }
+
+    document.content = fileUrl;
+    document.storage_path = storage_path;
+    document.file_mime = fileType;
+    document.file_size = file.size;
+    document.type = document.type === 'folder' ? 'file' : document.type || 'file';
+    if (!document.title || document.title === 'Untitled') {
+      document.title = file.originalname;
+    }
+    document.version = (document.version || 1) + 1;
+
+    await this.documentsRepository.save(document);
+
+    return {
+      success: true,
+      data: this.toFileDto(document),
+    };
+  }
+
+  /**
+   * Resolve a document for inline viewing / download.
+   * Prefers local disk; falls back to remote URL redirect.
+   */
+  async resolveFile(id: string, org_id: string) {
+    const document = await this.documentsRepository.findOne({
+      where: { id, org_id },
+    });
+
+    if (!document) {
+      throw new NotFoundException('Document not found');
+    }
+
+    const filename = document.title || 'file';
+    const candidates: string[] = [];
+
+    if (document.storage_path) {
+      candidates.push(join(this.uploadsRoot, document.storage_path));
+      // Also try absolute if storage_path was saved that way
+      if (/^[a-zA-Z]:[\\/]|^\\\\|^\//.test(document.storage_path)) {
+        candidates.push(document.storage_path);
+      }
+    }
+
+    if (typeof document.content === 'string') {
+      const localMatch = document.content.match(/^local:\/\/(.+)$/i);
+      if (localMatch?.[1]) {
+        candidates.push(join(this.uploadsRoot, localMatch[1]));
+      }
+    }
+
+    for (const absolute of candidates) {
+      if (absolute && existsSync(absolute)) {
+        return {
+          kind: 'local' as const,
+          stream: createReadStream(absolute),
+          mime: document.file_mime || 'application/octet-stream',
+          filename,
+          size: document.file_size ?? undefined,
+        };
+      }
+    }
+
+    if (typeof document.content === 'string' && /^https?:\/\//i.test(document.content)) {
+      return {
+        kind: 'remote' as const,
+        url: document.content,
+        mime: document.file_mime || 'application/octet-stream',
+        filename,
+      };
+    }
+
+    throw new NotFoundException(
+      'File content is not available. Upload the file again from the document page.',
+    );
   }
 
   async findAll(org_id: string, filters?: any) {
@@ -82,32 +255,64 @@ export class DocumentsService {
       order: { created_at: 'DESC' },
     });
 
+    const creatorIds = [...new Set(documents.map((d) => d.created_by).filter(Boolean))];
+    const creators = creatorIds.length
+      ? await this.usersRepository.find({ where: { id: In(creatorIds) as any } })
+      : [];
+    const byId = Object.fromEntries(
+      creators.map((u) => [
+        u.id,
+        u.name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || null,
+      ]),
+    );
+
     return {
       success: true,
-      data: documents,
+      data: documents.map((d) => ({
+        ...this.toFileDto(d),
+        created_by_name: d.created_by ? byId[d.created_by] || null : null,
+        owner: d.created_by ? byId[d.created_by] || '—' : '—',
+      })),
     };
   }
 
   async findOne(id: string, org_id: string) {
-    const document = await this.documentsRepository
-      .createQueryBuilder('document')
-      .leftJoinAndSelect(User, 'user', 'document.created_by = user.id')
-      .where('document.id = :id', { id })
-      .andWhere('document.org_id = :org_id', { org_id })
-      .select([
-        'document.*',
-        'user.first_name as created_by_first_name',
-        'user.last_name as created_by_last_name',
-      ])
-      .getRawOne();
+    const document = await this.documentsRepository.findOne({
+      where: { id, org_id },
+    });
 
     if (!document) {
       throw new NotFoundException('Document not found');
     }
 
+    // Avoid varchar=uuid SQL joins: documents.created_by is varchar; users.id is uuid.
+    let created_by_first_name: string | null = null;
+    let created_by_last_name: string | null = null;
+    let created_by_name: string | null = null;
+    if (document.created_by) {
+      const creator = await this.usersRepository.findOne({
+        where: { id: document.created_by },
+      });
+      if (creator) {
+        created_by_first_name = creator.first_name || null;
+        created_by_last_name = creator.last_name || null;
+        created_by_name =
+          creator.name ||
+          `${creator.first_name || ''} ${creator.last_name || ''}`.trim() ||
+          creator.email ||
+          null;
+      }
+    }
+
     return {
       success: true,
-      data: document,
+      data: {
+        ...this.toFileDto(document),
+        created_by_first_name,
+        created_by_last_name,
+        created_by_name,
+        owner: created_by_name || '—',
+      },
     };
   }
 
@@ -136,6 +341,17 @@ export class DocumentsService {
 
     if (!document) {
       throw new NotFoundException('Document not found');
+    }
+
+    if (document.storage_path) {
+      const absolute = join(this.uploadsRoot, document.storage_path);
+      if (existsSync(absolute)) {
+        try {
+          unlinkSync(absolute);
+        } catch {
+          // Ignore cleanup failures; DB row still removed.
+        }
+      }
     }
 
     await this.documentsRepository.remove(document);

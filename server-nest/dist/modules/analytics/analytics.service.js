@@ -207,8 +207,13 @@ let AnalyticsService = class AnalyticsService {
             id: (0, crypto_1.randomUUID)(),
             org_id,
             owner_id,
-            ...createDto,
-            current: 0,
+            name: createDto.name,
+            description: createDto.description ?? null,
+            target: Number(createDto.target) || 0,
+            current: Number(createDto.current) || 0,
+            unit: createDto.unit || '',
+            frequency: createDto.frequency || 'monthly',
+            category: createDto.category || null,
         });
         await this.kpiRepository.save(kpi);
         return { success: true, data: kpi };

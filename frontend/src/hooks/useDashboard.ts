@@ -11,9 +11,14 @@ export function useDashboard() {
       const role = user?.role?.toLowerCase() || '';
       
       let endpoint = 'executive';
-      if (role.includes('developer') || role.includes('engineer')) {
+      if (
+        role.includes('developer') ||
+        role.includes('engineer') ||
+        role.includes('designer') ||
+        role === 'ui_ux_designer'
+      ) {
         endpoint = 'developer';
-      } else if (role.includes('product') || role.includes('designer')) {
+      } else if (role.includes('product')) {
         endpoint = 'product';
       } else if (role.includes('finance') || role.includes('sales')) {
         endpoint = 'finance';
@@ -21,6 +26,8 @@ export function useDashboard() {
         endpoint = 'hr';
       } else if (role.includes('ciso') || role.includes('security')) {
         endpoint = 'ciso';
+      } else if (role.includes('cto')) {
+        endpoint = 'executive';
       }
 
       const response = await api.get(`/dashboard/${endpoint}`);

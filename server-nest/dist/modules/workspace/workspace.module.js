@@ -11,6 +11,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const workspace_record_entity_1 = require("../../entities/workspace-record.entity");
 const activity_event_entity_1 = require("../../entities/activity-event.entity");
+const record_comment_entity_1 = require("../../entities/record-comment.entity");
 const workspace_controller_1 = require("./workspace.controller");
 const workspace_service_1 = require("./workspace.service");
 let WorkspaceModule = class WorkspaceModule {
@@ -18,7 +19,7 @@ let WorkspaceModule = class WorkspaceModule {
 exports.WorkspaceModule = WorkspaceModule;
 exports.WorkspaceModule = WorkspaceModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([workspace_record_entity_1.WorkspaceRecord, activity_event_entity_1.ActivityEvent])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([workspace_record_entity_1.WorkspaceRecord, activity_event_entity_1.ActivityEvent, record_comment_entity_1.RecordComment])],
         controllers: [workspace_controller_1.WorkspaceController],
         providers: [workspace_service_1.WorkspaceService],
         exports: [workspace_service_1.WorkspaceService],

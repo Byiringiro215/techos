@@ -34,6 +34,8 @@ import { KPI } from './kpi.entity';
 import { Report } from './report.entity';
 import { WorkspaceRecord } from './workspace-record.entity';
 import { ActivityEvent } from './activity-event.entity';
+import { RecordComment } from './record-comment.entity';
+import { CodeReview } from './code-review.entity';
 
 export const entities = [
   Organization,
@@ -71,6 +73,8 @@ export const entities = [
   Report,
   WorkspaceRecord,
   ActivityEvent,
+  RecordComment,
+  CodeReview,
 ];
 
 // Export individual entities
@@ -110,4 +114,6 @@ export {
   Report,
   WorkspaceRecord,
   ActivityEvent,
+  RecordComment,
+  CodeReview,
 };

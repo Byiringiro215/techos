@@ -29,6 +29,9 @@ let ChannelsController = class ChannelsController {
     create(user, createChannelDto) {
         return this.channelsService.create(user.org_id, user.id, createChannelDto);
     }
+    openDirect(user, body) {
+        return this.channelsService.findOrCreateDirect(user.org_id, user.id, body.user_id);
+    }
     findAll(user) {
         return this.channelsService.findAll(user.org_id, user.id);
     }
@@ -53,8 +56,13 @@ let ChannelsController = class ChannelsController {
     getChannelMessages(user, id, limit, before) {
         return this.messagesService.findAll(id, user.id, limit, before);
     }
-    postChannelMessage(user, id, content) {
-        return this.messagesService.create(user.id, { channel_id: id, content });
+    postChannelMessage(user, id, body) {
+        return this.messagesService.create(user.id, {
+            channel_id: id,
+            content: body.content,
+            parent_message_id: body.parent_message_id,
+            mentions: body.mentions,
+        });
     }
 };
 exports.ChannelsController = ChannelsController;
@@ -66,6 +74,14 @@ __decorate([
     __metadata("design:paramtypes", [Object, create_channel_dto_1.CreateChannelDto]),
     __metadata("design:returntype", void 0)
 ], ChannelsController.prototype, "create", null);
+__decorate([
+    (0, common_1.Post)('direct'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], ChannelsController.prototype, "openDirect", null);
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
@@ -138,9 +154,9 @@ __decorate([
     (0, common_1.Post)(':id/messages'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __param(1, (0, common_1.Param)('id')),
-    __param(2, (0, common_1.Body)('content')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:paramtypes", [Object, String, Object]),
     __metadata("design:returntype", void 0)
 ], ChannelsController.prototype, "postChannelMessage", null);
 exports.ChannelsController = ChannelsController = __decorate([

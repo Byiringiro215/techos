@@ -19,6 +19,10 @@ export type EntityApiConfig = {
   listPath: string;
   itemPath: (id: string) => string;
   createPath: string;
+  /** Optional query params for list requests (e.g. CRM type=lead) */
+  listParams?: Record<string, string>;
+  /** Optional client-side filter after fetch */
+  listFilter?: (row: any) => boolean;
   /** Map UI form fields → API body */
   toCreateBody: (form: Record<string, any>) => Record<string, any>;
   /** Normalize API row → UI MockRecord-like shape */
@@ -56,9 +60,21 @@ function workspaceConfig(type: string): EntityApiConfig {
 function statusVariant(status?: string) {
   const s = (status || '').toLowerCase();
   if (['active', 'completed', 'done', 'paid', 'approved', 'won', 'published'].includes(s)) return 'success';
-  if (['pending', 'in_progress', 'open', 'draft', 'scheduled', 'qualified'].includes(s)) return 'warning';
-  if (['rejected', 'cancelled', 'terminated', 'lost', 'critical', 'closed'].includes(s)) return 'error';
+  if (
+    ['pending', 'in_progress', 'open', 'draft', 'scheduled', 'qualified', 'paused', 'under_review'].includes(
+      s,
+    )
+  )
+    return 'warning';
+  if (['rejected', 'cancelled', 'terminated', 'lost', 'critical', 'closed', 'retired', 'blocked'].includes(s))
+    return 'error';
   return 'default';
+}
+
+function humanizeRole(role: string) {
+  return String(role || '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 const native: Record<string, EntityApiConfig> = {
@@ -76,6 +92,9 @@ const native: Record<string, EntityApiConfig> = {
       end_date: form.end_date,
       budget: form.amount ? Number(form.amount) : undefined,
       client_name: form.client_name?.trim() || undefined,
+      visible_to_roles: Array.isArray(form.visible_to_roles)
+        ? form.visible_to_roles
+        : undefined,
     }),
     toUi: (row) => {
       const start = row.start_date;
@@ -94,6 +113,9 @@ const native: Record<string, EntityApiConfig> = {
               return Math.round(((now - s) / (e - s)) * 100);
             })();
       const client = row.client_name || row.metadata?.client_name || row.owner_name || '—';
+      const visibleRoles: string[] = Array.isArray(row.visible_to_roles)
+        ? row.visible_to_roles
+        : [];
       return {
         ...row,
         id: row.id,
@@ -110,6 +132,10 @@ const native: Record<string, EntityApiConfig> = {
         start_date: start,
         end_date: end,
         progress,
+        visible_to_roles: visibleRoles,
+        visibility:
+          row.visibility ||
+          (!visibleRoles.length ? 'All roles' : visibleRoles.map(humanizeRole).join(', ')),
         createdAt: row.created_at,
         updatedAt: row.updated_at || row.created_at,
       };
@@ -120,25 +146,92 @@ const native: Record<string, EntityApiConfig> = {
     listPath: '/tasks',
     itemPath: (id) => `/tasks/${id}`,
     createPath: '/tasks',
-    toCreateBody: (form) => ({
-      title: form.title,
-      description: form.description,
-      status: form.status || 'todo',
-      priority: form.priority || 'medium',
-    }),
-    toUi: (row) => ({
-      id: row.id,
-      title: row.title,
-      description: row.description,
-      status: row.status,
-      statusVariant: statusVariant(row.status),
-      priority: row.priority,
-      owner: row.assignee_name || row.owner || '—',
-      dueDate: row.due_date,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at || row.created_at,
-      ...row,
-    }),
+    toCreateBody: (form) => {
+      const statusRaw = form.status || 'todo';
+      const status = String(statusRaw)
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/^to_do$/, 'todo')
+        .replace(/^open$/, 'backlog')
+        .replace(/^active$/, 'in_progress')
+        .replace(/^review$/, 'in_review')
+        .replace(/^(completed|closed|resolved)$/, 'done');
+
+      const assignee =
+        form.assignee_id ||
+        form.assigned_to ||
+        (typeof form.owner === 'string' && /^[0-9a-f-]{36}$/i.test(form.owner) ? form.owner : undefined) ||
+        form.owner_id;
+
+      const assigneeIds = Array.isArray(form.assignee_ids)
+        ? [...new Set(form.assignee_ids.filter(Boolean))]
+        : assignee
+          ? [assignee]
+          : undefined;
+
+      const body: Record<string, unknown> = {
+        title: form.title,
+        description: form.description ?? '',
+        status,
+        priority: form.priority || 'medium',
+      };
+      if (form.project_id) body.project_id = form.project_id;
+      if (form.assignee_ids !== undefined || form.assignee_id === null || form.assignee_id === '') {
+        if (Array.isArray(form.assignee_ids)) {
+          body.assignee_ids = form.assignee_ids.filter(Boolean);
+          body.assignee_id = (body.assignee_ids as string[])[0] || null;
+        } else if (form.assignee_id === null || form.assignee_id === '') {
+          body.assignee_id = null;
+          body.assignee_ids = [];
+        }
+      } else if (assigneeIds) {
+        body.assignee_ids = assigneeIds;
+        body.assignee_id = assigneeIds[0];
+      }
+      if (form.sprint_id !== undefined) body.sprint_id = form.sprint_id || null;
+      if (form.dueDate || form.due_date) body.due_date = form.dueDate || form.due_date;
+      if (form.story_points != null && form.story_points !== '') {
+        body.story_points = Number(form.story_points);
+      }
+      if (Array.isArray(form.tags)) body.tags = form.tags;
+      return body;
+    },
+    toUi: (row) => {
+      const assigneeIds: string[] = Array.isArray(row.assignee_ids)
+        ? row.assignee_ids.filter(Boolean)
+        : row.assignee_id
+          ? [row.assignee_id]
+          : [];
+      const assignees: { id: string; name: string }[] = Array.isArray(row.assignees)
+        ? row.assignees
+        : [];
+      const assigneeName =
+        assignees.map((a) => a.name).filter(Boolean).join(', ') ||
+        row.assignee_name ||
+        [row.assignee_first_name, row.assignee_last_name].filter(Boolean).join(' ').trim() ||
+        row.owner ||
+        (assigneeIds.length ? 'Assigned' : 'Unassigned');
+      return {
+        ...row,
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        status: row.status || 'todo',
+        statusVariant: statusVariant(row.status),
+        priority: row.priority || 'medium',
+        owner: assigneeName,
+        assignee: assigneeName,
+        assignee_id: assigneeIds[0] || '',
+        assignee_ids: assigneeIds,
+        assignees,
+        project_id: row.project_id || row.projectId || '',
+        sprint_id: row.sprint_id || row.sprintId || null,
+        dueDate: row.due_date || row.dueDate,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at || row.created_at,
+      };
+    },
   },
   contacts: {
     key: 'contacts',
@@ -146,18 +239,28 @@ const native: Record<string, EntityApiConfig> = {
     itemPath: (id) => `/crm/contacts/${id}`,
     createPath: '/crm/contacts',
     toCreateBody: (form) => {
-      const parts = String(form.title || form.owner || 'New Contact').trim().split(/\s+/);
+      const first = form.first_name || String(form.title || 'New').trim().split(/\s+/)[0];
+      const last =
+        form.last_name ||
+        String(form.title || 'Contact')
+          .trim()
+          .split(/\s+/)
+          .slice(1)
+          .join(' ') ||
+        'Contact';
       return {
-        first_name: parts[0] || 'New',
-        last_name: parts.slice(1).join(' ') || 'Contact',
+        first_name: first,
+        last_name: last,
         email: form.email,
-        company_name: form.company,
+        phone: form.phone,
+        company_name: form.company || form.company_name,
         status: form.status || 'active',
-        type: 'lead',
+        type: form.type || (String(form.status || '').toLowerCase() === 'qualified' ? 'lead' : 'customer'),
         notes: form.description,
       };
     },
     toUi: (row) => ({
+      ...row,
       id: row.id,
       title: `${row.first_name || ''} ${row.last_name || ''}`.trim() || row.email,
       name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
@@ -166,9 +269,12 @@ const native: Record<string, EntityApiConfig> = {
       statusVariant: statusVariant(row.status),
       owner: row.owner_name || '—',
       company: row.company_name,
+      email: row.email || '',
+      phone: row.phone || '',
+      first_name: row.first_name || '',
+      last_name: row.last_name || '',
       createdAt: row.created_at,
       updatedAt: row.updated_at || row.created_at,
-      ...row,
     }),
   },
   deals: {
@@ -187,41 +293,60 @@ const native: Record<string, EntityApiConfig> = {
         notes: form.description,
         description: form.description,
         expected_close_date: form.dueDate,
+        company: form.company,
+        company_name: form.company || form.company_name,
+        email: form.email,
+        phone: form.phone,
       };
     },
     toUi: (row) => ({
+      ...row,
       id: row.id,
       title: row.title || row.name,
       description: row.notes || row.description,
       status: row.stage || row.status,
       statusVariant: statusVariant(row.stage || row.status),
       owner: row.owner_name || row.owner || '—',
+      owner_id: row.assigned_to,
       amount: row.value ?? row.amount,
-      company: row.company_name,
-      priority: row.probability != null ? String(row.probability) : undefined,
+      company: row.company_name || row.company,
+      email: row.email || '',
+      phone: row.phone || '',
       dueDate: row.close_date || row.expected_close_date,
       createdAt: row.created_at,
       updatedAt: row.updated_at || row.created_at,
-      ...row,
     }),
   },
   leads: {
     key: 'leads',
     listPath: '/crm/contacts',
+    listParams: { type: 'lead' },
     itemPath: (id) => `/crm/contacts/${id}`,
     createPath: '/crm/contacts',
+    listFilter: (row) => String(row.type || '').toLowerCase() === 'lead',
     toCreateBody: (form) => {
-      const parts = String(form.title || 'New Lead').trim().split(/\s+/);
+      const first = form.first_name || String(form.title || 'New').trim().split(/\s+/)[0];
+      const last =
+        form.last_name ||
+        String(form.title || 'Lead')
+          .trim()
+          .split(/\s+/)
+          .slice(1)
+          .join(' ') ||
+        'Lead';
       return {
-        first_name: parts[0] || 'New',
-        last_name: parts.slice(1).join(' ') || 'Lead',
-        company_name: form.company,
+        first_name: first,
+        last_name: last,
+        email: form.email,
+        phone: form.phone,
+        company_name: form.company || form.company_name,
         type: 'lead',
         status: 'qualified',
         notes: form.description,
       };
     },
     toUi: (row) => ({
+      ...row,
       id: row.id,
       title: `${row.first_name || ''} ${row.last_name || ''}`.trim() || 'Lead',
       description: row.notes,
@@ -229,9 +354,12 @@ const native: Record<string, EntityApiConfig> = {
       statusVariant: statusVariant(row.status),
       owner: row.owner_name || '—',
       company: row.company_name,
+      email: row.email || '',
+      phone: row.phone || '',
+      first_name: row.first_name || '',
+      last_name: row.last_name || '',
       createdAt: row.created_at,
       updatedAt: row.updated_at || row.created_at,
-      ...row,
     }),
   },
   invoices: {
@@ -285,22 +413,24 @@ const native: Record<string, EntityApiConfig> = {
     toCreateBody: (form) => ({
       description: form.description || form.title,
       amount: form.amount ? Number(form.amount) : 0,
-      category: form.owner || 'General',
+      category: form.category || 'General',
+      date: form.date || form.expense_date || new Date().toISOString().slice(0, 10),
       status: form.status || 'pending',
-      expense_date: new Date().toISOString().slice(0, 10),
     }),
     toUi: (row) => ({
+      ...row,
       id: row.id,
       title: row.description || row.category || 'Expense',
       description: row.description,
       status: row.status,
       statusVariant: statusVariant(row.status),
-      owner: row.category || row.submitted_by_name || '—',
+      owner: row.submitted_by_name || '—',
+      category: row.category || 'General',
       amount: row.amount,
-      dueDate: row.expense_date,
+      expense_date: row.date || row.expense_date,
+      dueDate: row.date || row.expense_date,
       createdAt: row.created_at,
       updatedAt: row.updated_at || row.created_at,
-      ...row,
     }),
   },
   budgets: {
@@ -310,21 +440,25 @@ const native: Record<string, EntityApiConfig> = {
     createPath: '/finance/budgets',
     toCreateBody: (form) => ({
       name: form.title || form.name,
-      amount: form.amount ? Number(form.amount) : 0,
-      period: 'annual',
-      description: form.description,
+      category: form.category || 'Operations',
+      allocated: form.amount ? Number(form.amount) : 0,
+      period_start: form.period_start || `${new Date().getFullYear()}-01-01`,
+      period_end: form.period_end || `${new Date().getFullYear()}-12-31`,
     }),
     toUi: (row) => ({
+      ...row,
       id: row.id,
       title: row.name || row.title,
       description: row.description,
       status: row.status || 'active',
       statusVariant: statusVariant(row.status || 'active'),
       owner: row.owner || '—',
-      amount: row.amount || row.allocated,
+      category: row.category || '—',
+      amount: row.allocated ?? row.amount,
+      period_start: row.period_start,
+      period_end: row.period_end,
       createdAt: row.created_at,
       updatedAt: row.updated_at || row.created_at,
-      ...row,
     }),
   },
   meetings: {
@@ -333,30 +467,43 @@ const native: Record<string, EntityApiConfig> = {
     itemPath: (id) => `/meetings/${id}`,
     createPath: '/meetings',
     toCreateBody: (form) => {
-      const start = form.dueDate || new Date(Date.now() + 3600000).toISOString();
-      const day = start.slice(0, 10);
+      const day = form.date || (form.dueDate || '').toString().slice(0, 10) || new Date().toISOString().slice(0, 10);
       return {
         title: form.title,
-        description: form.description,
+        description: form.agenda || form.description,
         date: day,
-        start_time: '09:00',
-        end_time: '10:00',
-        status: form.status || 'scheduled',
-        agenda: form.description,
+        start_time: form.start_time || '09:00',
+        end_time: form.end_time || '10:00',
+        location: form.location,
+        meeting_link: form.meeting_link,
+        type: form.type || 'sync',
+        agenda: form.agenda || form.description,
+        participant_ids: form.participant_ids,
       };
     },
-    toUi: (row) => ({
-      id: row.id,
-      title: row.title,
-      description: row.description || row.agenda,
-      status: row.status,
-      statusVariant: statusVariant(row.status),
-      owner: row.organizer_name || row.owner || '—',
-      dueDate: row.scheduled_at,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at || row.created_at,
-      ...row,
-    }),
+    toUi: (row) => {
+      const date =
+        row.date ||
+        (row.scheduled_at ? String(row.scheduled_at).slice(0, 10) : undefined);
+      return {
+        ...row,
+        id: row.id,
+        title: row.title,
+        description: row.description || row.agenda,
+        status: row.status || 'scheduled',
+        statusVariant: statusVariant(row.status || 'scheduled'),
+        owner: row.organizer_name || row.owner || '—',
+        date,
+        start_time: row.start_time,
+        end_time: row.end_time,
+        location: row.location || row.meeting_link || '—',
+        type: row.type || 'sync',
+        meeting_link: row.meeting_link,
+        dueDate: row.scheduled_at || date,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at || row.created_at,
+      };
+    },
   },
   goals: {
     key: 'goals',
@@ -369,8 +516,11 @@ const native: Record<string, EntityApiConfig> = {
       type: form.type || 'company',
       owner_id: form.owner_id || form.owner,
       due_date: form.dueDate || form.target_date || undefined,
+      quarter: form.quarter,
+      key_results: form.key_results,
     }),
     toUi: (row) => ({
+      ...row,
       id: row.id,
       title: row.title || row.name,
       description: row.description,
@@ -378,11 +528,12 @@ const native: Record<string, EntityApiConfig> = {
       statusVariant: statusVariant(row.status),
       owner: row.owner_name || row.owner || '—',
       owner_id: row.owner_id,
+      type: row.type || 'company',
+      quarter: row.quarter,
       progress: row.progress,
       dueDate: row.due_date || row.target_date,
       createdAt: row.created_at,
       updatedAt: row.updated_at || row.created_at,
-      ...row,
     }),
   },
   documents: {
@@ -392,20 +543,36 @@ const native: Record<string, EntityApiConfig> = {
     createPath: '/documents',
     toCreateBody: (form) => ({
       title: form.title,
-      description: form.description,
-      type: 'document',
-      status: form.status || 'draft',
+      content: form.description || form.content || form.title || '',
+      type: form.type || 'document',
+      folder: form.folder,
+      tags: form.tags,
     }),
     toUi: (row) => ({
+      ...row,
       id: row.id,
       title: row.title || row.name,
-      description: row.description,
-      status: row.status || 'active',
-      statusVariant: statusVariant(row.status),
-      owner: row.owner_name || row.created_by_name || '—',
+      description: row.description || '',
+      status: row.status || (row.is_archived ? 'archived' : 'active'),
+      statusVariant: statusVariant(row.status || (row.is_archived ? 'archived' : 'active')),
+      owner:
+        row.owner ||
+        row.created_by_name ||
+        row.owner_name ||
+        [row.created_by_first_name, row.created_by_last_name].filter(Boolean).join(' ').trim() ||
+        '—',
+      type: row.type || 'document',
+      file_url: row.file_url,
+      file_mime: row.file_mime || row.file_type,
+      file_type: row.file_type || row.file_mime,
+      file_size: row.file_size,
+      storage_path: row.storage_path,
+      can_view: row.can_view,
+      content: row.content,
+      folder: row.folder,
+      version: row.version,
       createdAt: row.created_at,
       updatedAt: row.updated_at || row.created_at,
-      ...row,
     }),
   },
   announcements: {
@@ -461,9 +628,16 @@ const native: Record<string, EntityApiConfig> = {
     createPath: '/product/bugs',
     toCreateBody: (form) => ({
       title: form.title,
-      description: form.description,
+      description: form.description || form.steps_to_reproduce || form.title,
       status: form.status || 'open',
-      priority: form.priority || 'medium',
+      severity: form.severity || form.priority || 'medium',
+      priority: form.priority || form.severity || 'medium',
+      project_id: form.project_id || undefined,
+      assignee_id: form.assignee_id || form.owner || undefined,
+      steps_to_reproduce: form.steps_to_reproduce || undefined,
+      expected_behavior: form.expected_behavior || undefined,
+      actual_behavior: form.actual_behavior || undefined,
+      environment: form.environment || undefined,
     }),
     toUi: (row) => ({
       id: row.id,
@@ -471,8 +645,16 @@ const native: Record<string, EntityApiConfig> = {
       description: row.description,
       status: row.status,
       statusVariant: statusVariant(row.status),
-      priority: row.priority,
+      priority: row.severity || row.priority,
+      severity: row.severity || row.priority,
       owner: row.assignee_name || '—',
+      project: row.project_name || '—',
+      project_id: row.project_id,
+      assignee_id: row.assignee_id,
+      steps_to_reproduce: row.steps_to_reproduce,
+      expected_behavior: row.expected_behavior,
+      actual_behavior: row.actual_behavior,
+      environment: row.environment,
       createdAt: row.created_at,
       updatedAt: row.updated_at || row.created_at,
       ...row,
@@ -490,16 +672,17 @@ const native: Record<string, EntityApiConfig> = {
       release_date: form.dueDate,
     }),
     toUi: (row) => ({
+      ...row,
       id: row.id,
       title: row.name || row.title || row.version,
       description: row.description,
       status: row.status,
       statusVariant: statusVariant(row.status),
       owner: row.owner_name || '—',
+      version: row.version || '—',
       dueDate: row.release_date,
       createdAt: row.created_at,
       updatedAt: row.updated_at || row.created_at,
-      ...row,
     }),
   },
   reports: {
@@ -532,22 +715,32 @@ const native: Record<string, EntityApiConfig> = {
     createPath: '/sprints',
     toCreateBody: (form) => ({
       name: form.title || form.name,
-      goal: form.description,
-      status: form.status || 'planned',
-      start_date: new Date().toISOString().slice(0, 10),
-      end_date: form.dueDate,
+      goal: form.description || form.goal,
+      status: (() => {
+        const s = String(form.status || 'planned').toLowerCase();
+        if (s === 'active') return 'active';
+        if (s === 'completed' || s === 'done') return 'completed';
+        return 'planned';
+      })(),
+      project_id: form.project_id,
+      start_date: form.start_date || form.startDate || new Date().toISOString().slice(0, 10),
+      end_date: form.end_date || form.dueDate || form.endDate,
     }),
     toUi: (row) => ({
+      ...row,
       id: row.id,
       title: row.name || row.title,
       description: row.goal || row.description,
       status: row.status,
       statusVariant: statusVariant(row.status),
       owner: row.owner || '—',
-      dueDate: row.end_date,
+      project_id: row.project_id,
+      startDate: row.start_date || row.startDate,
+      dueDate: row.end_date || row.dueDate,
+      start_date: row.start_date,
+      end_date: row.end_date,
       createdAt: row.created_at,
       updatedAt: row.updated_at || row.created_at,
-      ...row,
     }),
   },
   employees: {
@@ -585,23 +778,74 @@ const native: Record<string, EntityApiConfig> = {
     itemPath: (id) => `/hr/leaves/${id}`,
     createPath: '/hr/leaves',
     toCreateBody: (form) => ({
-      type: 'vacation',
-      start_date: new Date().toISOString().slice(0, 10),
-      end_date: form.dueDate || new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
-      reason: form.description || form.title,
+      type: form.leave_type || form.type || 'vacation',
+      start_date: form.start_date || new Date().toISOString().slice(0, 10),
+      end_date: form.end_date || form.dueDate || new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+      reason: form.reason || form.description || form.title || 'Leave request',
     }),
     toUi: (row) => ({
+      ...row,
       id: row.id,
       title: `${row.type || 'Leave'} — ${row.status}`,
       description: row.reason,
       status: row.status,
       statusVariant: statusVariant(row.status),
       owner: row.employee_name || '—',
+      type: row.type,
+      start_date: row.start_date,
+      end_date: row.end_date,
       dueDate: row.end_date,
       createdAt: row.created_at,
       updatedAt: row.updated_at || row.created_at,
-      ...row,
     }),
+  },
+  codeReviews: {
+    key: 'codeReviews',
+    listPath: '/code-reviews',
+    itemPath: (id) => `/code-reviews/${id}`,
+    createPath: '/code-reviews',
+    toCreateBody: (form) => ({
+      title: form.title,
+      description: form.description,
+      status: form.status,
+      priority: form.priority,
+      project_id: form.project_id || undefined,
+      reviewer_id: form.reviewer_id || form.owner_id || undefined,
+      repository: form.repository,
+      branch: form.branch,
+      base_branch: form.base_branch || 'main',
+      pr_url: form.pr_url,
+      files: Array.isArray(form.files) ? form.files : undefined,
+    }),
+    toUi: (row) => {
+      const files = Array.isArray(row.files) ? row.files : [];
+      return {
+        ...row,
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        status: row.status || 'open',
+        statusVariant: statusVariant(row.status || 'open'),
+        priority: row.priority || 'medium',
+        owner: row.author_name || row.owner || '—',
+        author_id: row.author_id,
+        author_name: row.author_name,
+        reviewer_id: row.reviewer_id,
+        reviewer_name: row.reviewer_name,
+        project_id: row.project_id,
+        project_name: row.project_name,
+        repository: row.repository,
+        branch: row.branch,
+        base_branch: row.base_branch || 'main',
+        pr_url: row.pr_url,
+        files,
+        additions: row.additions ?? files.reduce((s: number, f: any) => s + (f.additions || 0), 0),
+        deletions: row.deletions ?? files.reduce((s: number, f: any) => s + (f.deletions || 0), 0),
+        file_count: row.file_count ?? files.length,
+        createdAt: row.created_at || row.createdAt,
+        updatedAt: row.updated_at || row.updatedAt,
+      };
+    },
   },
 };
 
@@ -611,14 +855,212 @@ export const ENTITY_API: Record<string, EntityApiConfig> = {
   // CRM aliases
   customers: native.contacts,
   opportunities: native.deals,
-  // Finance aliases
-  payments: workspaceConfig('payments'),
+  // Finance: payments = paid invoices (not a separate workspace bag)
+  payments: {
+    ...native.invoices,
+    key: 'payments',
+    listParams: { status: 'paid' },
+    listFilter: (row) => String(row.status || '').toLowerCase() === 'paid',
+    toCreateBody: (form) => ({
+      ...native.invoices.toCreateBody(form),
+      status: 'paid',
+    }),
+    toUi: (row) => ({
+      ...native.invoices.toUi(row),
+      title: row.invoice_number
+        ? `Payment · ${row.invoice_number}`
+        : row.client_name || `Payment ${String(row.id || '').slice(0, 8)}`,
+    }),
+  },
   subscriptions: workspaceConfig('subscriptions'),
   quotations: workspaceConfig('quotations'),
   teams: workspaceConfig('teams'),
-  // Marketing / Sales / Ops
-  campaigns: workspaceConfig('campaigns'),
-  processes: workspaceConfig('processes'),
+  integrations: {
+    key: 'integrations',
+    listPath: '/integrations',
+    itemPath: (id) => `/integrations/${id}`,
+    createPath: '/integrations',
+    toCreateBody: (form) => ({
+      name: form.title || form.name || form.type || 'Integration',
+      type: form.type || 'slack',
+      enabled: form.status !== 'disconnected' && form.enabled !== false,
+      config: form.config || {
+        notes: form.description || '',
+      },
+    }),
+    toUi: (row) => ({
+      ...row,
+      id: row.id,
+      title: row.name || row.type || 'Integration',
+      description: row.config?.notes || row.type,
+      status: row.enabled ? 'connected' : 'disconnected',
+      statusVariant: row.enabled ? 'success' : 'default',
+      owner: row.type || '—',
+      type: row.type,
+      createdAt: row.created_at || row.createdAt,
+      updatedAt: row.updated_at || row.updatedAt || row.created_at,
+    }),
+  },
+  campaigns: {
+    key: 'campaigns',
+    listPath: '/workspace/campaigns',
+    itemPath: (id) => `/workspace/campaigns/${id}`,
+    createPath: '/workspace/campaigns',
+    toCreateBody: (form) => {
+      const budget = form.budget != null && form.budget !== '' ? Number(form.budget) : form.amount ? Number(form.amount) : undefined;
+      const spent = form.spent != null && form.spent !== '' ? Number(form.spent) : undefined;
+      const impressions = form.impressions != null && form.impressions !== '' ? Number(form.impressions) : undefined;
+      const clicks = form.clicks != null && form.clicks !== '' ? Number(form.clicks) : undefined;
+      const leads = form.leads != null && form.leads !== '' ? Number(form.leads) : undefined;
+      const conversions = form.conversions != null && form.conversions !== '' ? Number(form.conversions) : undefined;
+      const goal_target =
+        form.goal_target != null && form.goal_target !== '' ? Number(form.goal_target) : undefined;
+      return {
+        title: form.title || form.name,
+        description: form.description || form.brief,
+        status: form.status || 'draft',
+        owner: form.owner_id || form.owner,
+        amount: budget,
+        due_date: form.end_date || form.dueDate || form.due_date,
+        metadata: {
+          channel: form.channel || 'multi',
+          objective: form.objective || 'lead_generation',
+          audience: form.audience || '',
+          utm_campaign: form.utm_campaign || '',
+          start_date: form.start_date || '',
+          end_date: form.end_date || form.dueDate || '',
+          budget,
+          spent: spent ?? 0,
+          goal_metric: form.goal_metric || 'leads',
+          goal_target: goal_target ?? 0,
+          impressions: impressions ?? 0,
+          clicks: clicks ?? 0,
+          leads: leads ?? 0,
+          conversions: conversions ?? 0,
+          owner_name: form.owner_name || undefined,
+        },
+      };
+    },
+    toUi: (row) => {
+      const meta = row.metadata || {};
+      const impressions = Number(meta.impressions || 0);
+      const clicks = Number(meta.clicks || 0);
+      const budget = Number(row.amount ?? meta.budget ?? 0);
+      const spent = Number(meta.spent || 0);
+      const goal_target = Number(meta.goal_target || 0);
+      const leads = Number(meta.leads || 0);
+      const conversions = Number(meta.conversions || 0);
+      const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+      const progress =
+        goal_target > 0
+          ? Math.min(100, Math.round(((meta.goal_metric === 'conversions' ? conversions : leads) / goal_target) * 100))
+          : undefined;
+      return {
+        ...row,
+        ...meta,
+        id: row.id,
+        title: row.title || row.name,
+        name: row.title || row.name,
+        description: row.description,
+        status: row.status || meta.status || 'draft',
+        statusVariant: statusVariant(row.status || meta.status),
+        owner: meta.owner_name || row.owner_name || row.owner || '—',
+        owner_id: row.owner,
+        amount: budget,
+        budget,
+        spent,
+        channel: meta.channel || 'multi',
+        objective: meta.objective || 'lead_generation',
+        audience: meta.audience || '',
+        utm_campaign: meta.utm_campaign || '',
+        start_date: meta.start_date || '',
+        end_date: meta.end_date || row.due_date || row.dueDate || '',
+        dueDate: meta.end_date || row.due_date || row.dueDate,
+        goal_metric: meta.goal_metric || 'leads',
+        goal_target,
+        impressions,
+        clicks,
+        leads,
+        conversions,
+        ctr,
+        progress,
+        createdAt: row.created_at || row.createdAt,
+        updatedAt: row.updated_at || row.updatedAt,
+      };
+    },
+  },
+  processes: {
+    key: 'processes',
+    listPath: '/workspace/processes',
+    itemPath: (id) => `/workspace/processes/${id}`,
+    createPath: '/workspace/processes',
+    toCreateBody: (form) => {
+      const steps_total =
+        form.steps_total != null && form.steps_total !== '' ? Number(form.steps_total) : undefined;
+      const steps_done =
+        form.steps_done != null && form.steps_done !== '' ? Number(form.steps_done) : undefined;
+      return {
+        title: form.title || form.name,
+        description: form.description || form.sop_summary,
+        status: form.status || 'draft',
+        priority: form.priority || 'medium',
+        owner: form.owner_id || form.owner,
+        due_date: form.next_review_date || form.dueDate || form.due_date,
+        metadata: {
+          category: form.category || 'general',
+          process_type: form.process_type || 'sop',
+          frequency: form.frequency || 'as_needed',
+          department: form.department || '',
+          systems: form.systems || '',
+          sla_hours:
+            form.sla_hours != null && form.sla_hours !== '' ? Number(form.sla_hours) : undefined,
+          steps_total: steps_total ?? 0,
+          steps_done: steps_done ?? 0,
+          next_review_date: form.next_review_date || form.dueDate || '',
+          last_run_date: form.last_run_date || '',
+          risk_level: form.risk_level || 'low',
+          compliance_required: Boolean(form.compliance_required),
+          owner_name: form.owner_name || undefined,
+        },
+      };
+    },
+    toUi: (row) => {
+      const meta = row.metadata || {};
+      const steps_total = Number(meta.steps_total || 0);
+      const steps_done = Number(meta.steps_done || 0);
+      const progress =
+        steps_total > 0 ? Math.min(100, Math.round((steps_done / steps_total) * 100)) : undefined;
+      return {
+        ...row,
+        ...meta,
+        id: row.id,
+        title: row.title || row.name,
+        name: row.title || row.name,
+        description: row.description,
+        status: row.status || 'draft',
+        statusVariant: statusVariant(row.status),
+        priority: row.priority || meta.priority || 'medium',
+        owner: meta.owner_name || row.owner_name || row.owner || '—',
+        owner_id: row.owner,
+        category: meta.category || 'general',
+        process_type: meta.process_type || 'sop',
+        frequency: meta.frequency || 'as_needed',
+        department: meta.department || '',
+        systems: meta.systems || '',
+        sla_hours: meta.sla_hours,
+        steps_total,
+        steps_done,
+        progress,
+        next_review_date: meta.next_review_date || row.due_date || row.dueDate || '',
+        last_run_date: meta.last_run_date || '',
+        dueDate: meta.next_review_date || row.due_date || row.dueDate,
+        risk_level: meta.risk_level || 'low',
+        compliance_required: Boolean(meta.compliance_required),
+        createdAt: row.created_at || row.createdAt,
+        updatedAt: row.updated_at || row.updatedAt,
+      };
+    },
+  },
   candidates: workspaceConfig('candidates'),
   jobs: workspaceConfig('jobs'),
   payroll: workspaceConfig('payroll'),
@@ -631,7 +1073,6 @@ export const ENTITY_API: Record<string, EntityApiConfig> = {
   research: workspaceConfig('research'),
   architecture: workspaceConfig('architecture'),
   deployments: workspaceConfig('deployments'),
-  codeReviews: workspaceConfig('codeReviews'),
   commits: workspaceConfig('commits'),
   notifications: workspaceConfig('notifications'),
 };

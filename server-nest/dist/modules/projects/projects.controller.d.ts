@@ -10,6 +10,8 @@ export declare class ProjectsController {
             client_name: any;
             owner_name: any;
             progress: number;
+            visible_to_roles: string[] | null;
+            visibility: string;
             id: string;
             org_id: string;
             name: string;
@@ -35,6 +37,8 @@ export declare class ProjectsController {
             client_name: any;
             owner_name: any;
             progress: number;
+            visible_to_roles: string[] | null;
+            visibility: string;
             id: string;
             org_id: string;
             name: string;
@@ -60,6 +64,8 @@ export declare class ProjectsController {
             client_name: any;
             owner_name: any;
             progress: number;
+            visible_to_roles: string[] | null;
+            visibility: string;
             id: string;
             org_id: string;
             name: string;
@@ -81,6 +87,8 @@ export declare class ProjectsController {
             client_name: any;
             owner_name: any;
             progress: number;
+            visible_to_roles: string[] | null;
+            visibility: string;
             id: string;
             org_id: string;
             name: string;

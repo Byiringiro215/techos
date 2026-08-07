@@ -22,6 +22,7 @@ const meeting_participant_entity_1 = require("../../entities/meeting-participant
 const meeting_action_item_entity_1 = require("../../entities/meeting-action-item.entity");
 const user_entity_1 = require("../../entities/user.entity");
 const email_service_1 = require("../../common/services/email.service");
+const org_admin_1 = require("../../common/utils/org-admin");
 let MeetingsService = class MeetingsService {
     meetingsRepository;
     participantsRepository;
@@ -35,41 +36,68 @@ let MeetingsService = class MeetingsService {
         this.usersRepository = usersRepository;
         this.emailService = emailService;
     }
-    async create(org_id, user_id, createMeetingDto) {
+    userLabel(user) {
+        if (!user)
+            return null;
+        return `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || null;
+    }
+    async assertCanAccessMeeting(meeting_id, org_id, user) {
+        if ((0, org_admin_1.isOrgAdmin)(user?.role))
+            return;
+        const membership = await this.participantsRepository.findOne({
+            where: { meeting_id, user_id: user?.id },
+        });
+        if (!membership) {
+            throw new common_1.ForbiddenException('You are not invited to this meeting');
+        }
+    }
+    async create(org_id, actor, createMeetingDto) {
+        (0, org_admin_1.assertOrgAdmin)(actor, 'create meetings');
         const { participant_ids, ...meetingData } = createMeetingDto;
+        const viewers = [
+            ...new Set((participant_ids || []).filter((id) => typeof id === 'string' && !!id.trim() && id !== actor.id)),
+        ];
+        if (!viewers.length) {
+            throw new common_1.BadRequestException('Select at least one viewer for this meeting');
+        }
         const meeting = this.meetingsRepository.create({
             id: (0, crypto_1.randomUUID)(),
             org_id,
             ...meetingData,
             scheduled_at: `${meetingData.date}T${meetingData.start_time}:00.000Z`,
-            organizer_id: user_id,
+            organizer_id: actor.id,
             status: 'scheduled',
         });
         await this.meetingsRepository.save(meeting);
         try {
-            await this.addParticipant(meeting.id, user_id, true);
+            await this.addParticipant(meeting.id, actor.id, true);
         }
         catch {
         }
-        if (participant_ids && participant_ids.length > 0) {
-            await Promise.all(participant_ids.map((participantId) => this.addParticipant(meeting.id, participantId, false).catch(() => null)));
-            try {
-                await this.sendMeetingInvites(meeting, participant_ids);
-            }
-            catch {
-            }
+        await Promise.all(viewers.map((participantId) => this.addParticipant(meeting.id, participantId, false).catch(() => null)));
+        try {
+            await this.sendMeetingInvites(meeting, viewers);
+        }
+        catch {
         }
         return {
             success: true,
             data: meeting,
         };
     }
-    async findAll(org_id, filters) {
+    async findAll(org_id, user, filters) {
         const where = { org_id };
         if (filters?.status) {
             where.status = filters.status;
         }
-        const meetings = await this.meetingsRepository.find({ where });
+        let meetings = await this.meetingsRepository.find({ where });
+        if (!(0, org_admin_1.isOrgAdmin)(user?.role) && user?.id) {
+            const memberships = await this.participantsRepository.find({
+                where: { user_id: user.id },
+            });
+            const allowed = new Set(memberships.map((m) => m.meeting_id));
+            meetings = meetings.filter((m) => allowed.has(m.id) || m.organizer_id === user.id);
+        }
         const meetingsWithData = await Promise.all(meetings.map(async (meeting) => {
             const participantCount = await this.participantsRepository.count({
                 where: { meeting_id: meeting.id },
@@ -77,10 +105,14 @@ let MeetingsService = class MeetingsService {
             const actionItemCount = await this.actionItemsRepository.count({
                 where: { meeting_id: meeting.id },
             });
+            const participantRows = await this.participantsRepository.find({
+                where: { meeting_id: meeting.id },
+            });
             return {
                 ...meeting,
                 participant_count: participantCount,
                 action_item_count: actionItemCount,
+                participant_ids: participantRows.map((p) => p.user_id),
             };
         }));
         return {
@@ -88,48 +120,67 @@ let MeetingsService = class MeetingsService {
             data: meetingsWithData,
         };
     }
-    async findOne(id, org_id) {
+    async findOne(id, org_id, user) {
         const meeting = await this.meetingsRepository.findOne({
             where: { id, org_id },
         });
         if (!meeting) {
             throw new common_1.NotFoundException('Meeting not found');
         }
-        const participants = await this.participantsRepository
-            .createQueryBuilder('participant')
-            .leftJoinAndSelect(user_entity_1.User, 'user', 'participant.user_id = user.id')
-            .where('participant.meeting_id = :meetingId', { meetingId: id })
-            .select([
-            'participant.id as id',
-            'participant.user_id as user_id',
-            'participant.status as status',
-            'participant.is_organizer as is_organizer',
-            'user.first_name as first_name',
-            'user.last_name as last_name',
-            'user.email as email',
-            'user.avatar as avatar',
-        ])
-            .getRawMany();
-        const actionItems = await this.actionItemsRepository
-            .createQueryBuilder('action_item')
-            .leftJoinAndSelect(user_entity_1.User, 'user', 'action_item.assignee_id = user.id')
-            .where('action_item.meeting_id = :meetingId', { meetingId: id })
-            .select([
-            'action_item.*',
-            'user.first_name as assignee_first_name',
-            'user.last_name as assignee_last_name',
-        ])
-            .getRawMany();
+        await this.assertCanAccessMeeting(id, org_id, user);
+        const [participantRows, actionItemRows] = await Promise.all([
+            this.participantsRepository.find({ where: { meeting_id: id } }),
+            this.actionItemsRepository.find({ where: { meeting_id: id } }),
+        ]);
+        const userIds = [
+            ...new Set([
+                ...participantRows.map((p) => p.user_id),
+                ...actionItemRows.map((a) => a.assignee_id),
+                meeting.organizer_id,
+            ].filter(Boolean)),
+        ];
+        const users = userIds.length
+            ? await this.usersRepository.find({ where: { id: (0, typeorm_2.In)(userIds) } })
+            : [];
+        const userMap = new Map(users.map((u) => [u.id, u]));
+        const participants = participantRows.map((p) => {
+            const u = userMap.get(p.user_id);
+            return {
+                id: p.id,
+                user_id: p.user_id,
+                status: p.status,
+                is_organizer: p.is_organizer,
+                first_name: u?.first_name || null,
+                last_name: u?.last_name || null,
+                email: u?.email || null,
+                avatar: u?.avatar || null,
+                name: this.userLabel(u),
+            };
+        });
+        const action_items = actionItemRows.map((item) => {
+            const u = userMap.get(item.assignee_id);
+            return {
+                ...item,
+                assignee_first_name: u?.first_name || null,
+                assignee_last_name: u?.last_name || null,
+                assignee_name: this.userLabel(u),
+            };
+        });
+        const organizer = userMap.get(meeting.organizer_id);
         return {
             success: true,
             data: {
                 ...meeting,
+                organizer_name: this.userLabel(organizer),
+                owner: this.userLabel(organizer) || meeting.organizer_id,
                 participants,
-                action_items: actionItems,
+                participant_ids: participantRows.map((p) => p.user_id),
+                action_items,
             },
         };
     }
-    async update(id, org_id, updateMeetingDto) {
+    async update(id, org_id, updateMeetingDto, user) {
+        (0, org_admin_1.assertOrgAdmin)(user, 'update meetings');
         const meeting = await this.meetingsRepository.findOne({
             where: { id, org_id },
         });
@@ -140,10 +191,11 @@ let MeetingsService = class MeetingsService {
         await this.meetingsRepository.save(meeting);
         return {
             success: true,
-            data: await this.findOne(id, org_id),
+            data: (await this.findOne(id, org_id, user)).data,
         };
     }
-    async remove(id, org_id) {
+    async remove(id, org_id, user) {
+        (0, org_admin_1.assertOrgAdmin)(user, 'delete meetings');
         const meeting = await this.meetingsRepository.findOne({
             where: { id, org_id },
         });
@@ -244,14 +296,14 @@ let MeetingsService = class MeetingsService {
         };
     }
     async updateActionItemById(id, org_id, updateData) {
-        const actionItem = await this.actionItemsRepository
-            .createQueryBuilder('action_item')
-            .leftJoin(meeting_entity_1.Meeting, 'meeting', 'action_item.meeting_id = meeting.id')
-            .where('action_item.id = :id', { id })
-            .andWhere('meeting.org_id = :org_id', { org_id })
-            .select('action_item.*')
-            .getRawOne();
+        const actionItem = await this.actionItemsRepository.findOne({ where: { id } });
         if (!actionItem) {
+            throw new common_1.NotFoundException('Action item not found');
+        }
+        const meeting = await this.meetingsRepository.findOne({
+            where: { id: actionItem.meeting_id, org_id },
+        });
+        if (!meeting) {
             throw new common_1.NotFoundException('Action item not found');
         }
         await this.actionItemsRepository.update(id, updateData);

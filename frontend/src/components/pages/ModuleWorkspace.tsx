@@ -9,23 +9,21 @@ import {
   type MockUserRole,
 } from '@/mocks';
 import {
-  useCreateEntity,
   useDeleteEntity,
   useEntityActivity,
   useEntityList,
 } from '@/hooks/useEntityApi';
 import { useDashboard } from '@/hooks/useDashboard';
-import { useAnalyticsOverview, useKPIs } from '@/hooks/useAnalytics';
-import { useSendChatMessage } from '@/hooks/useAI';
-import { useChannels, useChannelMessages, useSendMessage } from '@/hooks/useChannels';
-import { useUpdateMyProfile, useUpdateMyPassword, useUsers } from '@/hooks/useUsers';
+import { useSendChatMessage, useGenerateReport as useGenerateAiReport, useAnalyzeRisk, useSuggestPriorities } from '@/hooks/useAI';
+import { useUpdateMyProfile, useUpdateMyPassword } from '@/hooks/useUsers';
 import { useOrganization, useUpdateOrganization } from '@/hooks/useOrganizations';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { buildBreadcrumbs, humanize, titleFromPath } from '@/lib/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { UserRole } from '@/types/roles';
+import { canCreateEntity } from '@/lib/access';
 import { PageHeader } from '@/components/UI/PageHeader';
 import { DataTable, type Column } from '@/components/UI/DataTable';
-import { Badge } from '@/components/UI/Badge';
 import { Button } from '@/components/UI/Button';
 import { Card } from '@/components/UI/Card';
 import { Progress } from '@/components/UI/Progress';
@@ -40,20 +38,22 @@ import { Tabs, TabList, Tab, TabPanel } from '@/components/UI/Tabs';
 import { Avatar } from '@/components/UI/Avatar';
 import { ConfirmDialog } from '@/components/UI/ConfirmDialog';
 import { Modal } from '@/components/UI/Modal';
+import { CreateEntityForm, createEntityLabel } from '@/components/forms/CreateEntityForm';
+import { getEntityListColumns, getEntitySearchKeys } from '@/lib/entityListColumns';
 import { CalendarBoard } from '@/components/boards/CalendarBoard';
-import { KanbanBoard } from '@/components/boards/KanbanBoard';
-import { SprintWorkspace } from '@/components/boards/SprintWorkspace';
+import { BoardWorkspace } from '@/components/boards/BoardWorkspace';
+import { MessagesWorkspace } from '@/components/messages/MessagesWorkspace';
 import { TeamsWorkspace } from '@/components/teams/TeamsWorkspace';
+import { AnalyticsHub } from '@/components/analytics/AnalyticsHub';
+import { ReportsHub } from '@/components/reports/ReportsHub';
 import { EntityDetailView } from '@/components/pages/EntityDetailView';
 import {
   Plus,
   Download,
   Trash2,
-  Send,
   Bot,
   Calendar as CalendarIcon,
   Sparkles,
-  ChevronRight,
 } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -106,16 +106,13 @@ export function ModuleWorkspace() {
     return <DashboardView basePath={basePath} />;
   }
   if (kind === 'messages') {
-    return <MessagesView breadcrumbs={breadcrumbs} />;
+    return <MessagesWorkspace breadcrumbs={breadcrumbs} />;
   }
   if (kind === 'calendar') {
     return <CalendarBoard breadcrumbs={breadcrumbs} />;
   }
-  if (kind === 'tasks') {
-    return <TasksView title={title} breadcrumbs={breadcrumbs} />;
-  }
-  if (kind === 'sprints') {
-    return <SprintWorkspace breadcrumbs={breadcrumbs} />;
+  if (kind === 'tasks' || kind === 'sprints') {
+    return <BoardWorkspace title="Board" breadcrumbs={breadcrumbs} />;
   }
   if (kind === 'teams') {
     return <TeamsWorkspace breadcrumbs={breadcrumbs} />;
@@ -127,7 +124,10 @@ export function ModuleWorkspace() {
     return <SettingsView breadcrumbs={breadcrumbs} />;
   }
   if (kind === 'analytics') {
-    return <AnalyticsView title={title} breadcrumbs={breadcrumbs} />;
+    return <AnalyticsHub title={title} breadcrumbs={breadcrumbs} pathname={pathname} />;
+  }
+  if (kind === 'reports') {
+    return <ReportsHub title={title} breadcrumbs={breadcrumbs} />;
   }
   if (kind === 'create' || kind === 'form') {
     return <FormView title={title} entityKey={entityKey} breadcrumbs={breadcrumbs} />;
@@ -153,33 +153,6 @@ export function ModuleWorkspace() {
   );
 }
 
-function TasksView({
-  title,
-  breadcrumbs,
-}: {
-  title: string;
-  breadcrumbs: { label: string; href?: string }[];
-}) {
-  const { data: tasks = [], isLoading, isError } = useEntityList('tasks');
-
-  if (isLoading) {
-    return <SkeletonCard className="h-96" />;
-  }
-
-  if (isError) {
-    return <EmptyState title="Unable to load tasks" description="Refresh the page to try again." />;
-  }
-
-  return (
-    <KanbanBoard
-      title={title}
-      description="Drag cards across workflow columns."
-      breadcrumbs={breadcrumbs}
-      initialItems={tasks as MockRecord[]}
-    />
-  );
-}
-
 function ListView({
   title,
   entityKey,
@@ -192,6 +165,8 @@ function ListView({
   pathname: string;
 }) {
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const canCreate = canCreateEntity(entityKey, user?.role);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [pendingIds, setPendingIds] = useState<MockRecord[]>([]);
@@ -203,143 +178,68 @@ function ListView({
   };
 
   const columns: Column<MockRecord>[] = useMemo(
-    () => [
-      {
-        key: 'title',
-        header: 'Name',
-        sortable: true,
-        render: (row) => (
-          <div>
-            <p className="font-medium text-ink group-hover/row:text-brand transition-colors">
-              {row.title || row.name}
-            </p>
-            {row.company && <p className="text-xs text-ink-muted">{row.company}</p>}
-          </div>
-        ),
-      },
-      {
-        key: 'status',
-        header: 'Status',
-        sortable: true,
-        render: (row) => <Badge variant={row.statusVariant}>{row.status}</Badge>,
-      },
-      {
-        key: 'owner',
-        header: entityKey === 'projects' ? 'Client' : 'Owner',
-        sortable: true,
-        render: (row) =>
-          entityKey === 'projects' ? (
-            <span>{row.client_name || row.owner || '—'}</span>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Avatar size="sm" name={row.owner} />
-              <span>{row.owner}</span>
-            </div>
-          ),
-      },
-      ...(entityKey === 'projects'
-        ? [
-            {
-              key: 'progress',
-              header: 'Progress',
-              sortable: true,
-              render: (row: MockRecord) => {
-                const value = typeof row.progress === 'number' ? row.progress : 0;
-                const end = row.end_date || row.dueDate;
-                return (
-                  <div className="min-w-[100px]">
-                    <div className="flex items-center justify-between text-xs text-ink-muted mb-1">
-                      <span>
-                        {row.start_date ? formatDate(row.start_date) : '—'}
-                        {' → '}
-                        {end ? formatDate(end) : '—'}
-                      </span>
-                      <span className="tabular-nums text-ink">{value}%</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-brand"
-                        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              },
-            } as Column<MockRecord>,
-          ]
-        : []),
-      {
-        key: 'priority',
-        header: 'Priority',
-        sortable: true,
-        render: (row) =>
-          row.priority ? (
-            <Badge
-              variant={
-                row.priority === 'critical' || row.priority === 'high'
-                  ? 'error'
-                  : row.priority === 'medium'
-                    ? 'warning'
-                    : 'default'
-              }
-              size="sm"
-            >
-              {row.priority}
-            </Badge>
-          ) : (
-            <span className="text-ink-muted">—</span>
-          ),
-      },
-      {
-        key: 'amount',
-        header: entityKey === 'projects' ? 'Budget' : 'Amount',
-        sortable: true,
-        render: (row) =>
-          typeof row.amount === 'number' ? (
-            <span className="tabular-nums">{formatCurrency(row.amount)}</span>
-          ) : (
-            <span className="text-ink-muted">—</span>
-          ),
-      },
-      {
-        key: 'updatedAt',
-        header: 'Updated',
-        sortable: true,
-        render: (row) => <span className="text-ink-muted">{formatDate(row.updatedAt)}</span>,
-      },
-      {
-        key: '_actions',
-        header: '',
-        className: 'w-28 text-right',
-        render: () => (
-          <span className="inline-flex items-center gap-1 text-sm font-medium text-brand opacity-80 group-hover/row:opacity-100">
-            View
-            <ChevronRight className="h-4 w-4" />
-          </span>
-        ),
-      },
-    ],
+    () => getEntityListColumns(entityKey),
     [entityKey],
   );
+  const searchKeys = useMemo(() => getEntitySearchKeys(entityKey), [entityKey]);
 
   const statuses = Array.from(new Set((data || []).map((r) => r.status).filter(Boolean)));
+
+  const exportCsv = () => {
+    const rows = (data || []) as MockRecord[];
+    if (!rows.length) {
+      toast.error('Nothing to export');
+      return;
+    }
+    const keys = Array.from(
+      new Set(
+        rows.flatMap((row) =>
+          Object.keys(row).filter((k) => !['statusVariant', 'metadata'].includes(k)),
+        ),
+      ),
+    ).slice(0, 20);
+    const escape = (v: unknown) => {
+      const s = v == null ? '' : String(v);
+      return `"${s.replace(/"/g, '""')}"`;
+    };
+    const lines = [
+      keys.join(','),
+      ...rows.map((row) => keys.map((k) => escape((row as any)[k])).join(',')),
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${entityKey}-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${rows.length} rows`);
+  };
 
   return (
     <div className="space-y-2">
       <PageHeader
         title={title}
-        description={`Browse, create, and manage ${title.toLowerCase()}.`}
+        description={`Browse, create, and manage ${
+          entityKey === 'campaigns'
+            ? 'marketing campaigns — channels, budget, schedule, and performance'
+            : entityKey === 'processes'
+              ? 'operational processes — SOPs, owners, SLAs, and reviews'
+              : title.toLowerCase()
+        }.`}
         breadcrumbs={breadcrumbs}
         actions={
           <>
-            <Button variant="outline" size="sm" onClick={() => toast.success('Export queued')}>
+            <Button variant="outline" size="sm" onClick={exportCsv}>
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              New
-            </Button>
+            {canCreate ? (
+              <Button size="sm" onClick={() => setCreateOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                New
+              </Button>
+            ) : null}
           </>
         }
       />
@@ -348,7 +248,7 @@ function ListView({
         columns={columns}
         data={(data || []) as MockRecord[]}
         isLoading={isLoading}
-        searchKeys={['title', 'name', 'owner', 'client_name', 'company', 'status', 'description']}
+        searchKeys={searchKeys}
         filters={[
           {
             key: 'status',
@@ -361,7 +261,11 @@ function ListView({
         pageSizeOptions={[10, 25, 50]}
         getRowId={(row) => row.id}
         emptyTitle={`No ${title.toLowerCase()} yet`}
-        emptyDescription="Create your first record to get started."
+        emptyDescription={
+          canCreate
+            ? 'Create your first record to get started.'
+            : 'Nothing assigned to you yet.'
+        }
         onRowClick={openDetail}
         bulkActions={[
           {
@@ -391,249 +295,23 @@ function ListView({
         }}
       />
 
-      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title={`New ${title}`} size="lg">
-        <CreateFormFields entityKey={entityKey} onDone={() => setCreateOpen(false)} />
-      </Modal>
+      {canCreate ? (
+        <Modal
+          isOpen={createOpen}
+          onClose={() => setCreateOpen(false)}
+          title={`New ${createEntityLabel(entityKey)}`}
+          size={
+            ['bugs', 'tasks', 'meetings', 'documents', 'codeReviews', 'commits', 'sprints'].includes(
+              entityKey,
+            )
+              ? 'xl'
+              : 'lg'
+          }
+        >
+          <CreateEntityForm entityKey={entityKey} onDone={() => setCreateOpen(false)} />
+        </Modal>
+      ) : null}
     </div>
-  );
-}
-
-function formatUserLabel(user: {
-  first_name?: string;
-  last_name?: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  role?: string;
-}) {
-  const first = user.first_name || user.firstName || '';
-  const last = user.last_name || user.lastName || '';
-  const name = `${first} ${last}`.trim();
-  const role = user.role ? ` · ${user.role.replace(/_/g, ' ')}` : '';
-  return `${name || user.email || 'User'}${role}`;
-}
-
-function OwnerUserSelect({
-  value,
-  onChange,
-  error,
-  required,
-}: {
-  value: string;
-  onChange: (userId: string) => void;
-  error?: string;
-  required?: boolean;
-}) {
-  const { data: users = [], isLoading } = useUsers();
-  const currentUser = useAuthStore((s) => s.user);
-
-  useEffect(() => {
-    if (!value && currentUser?.id && (users as any[]).some((u) => u.id === currentUser.id)) {
-      onChange(currentUser.id);
-    }
-  }, [value, currentUser?.id, users, onChange]);
-
-  return (
-    <Select
-      label="Owner"
-      required={required}
-      value={value}
-      error={error}
-      disabled={isLoading}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      <option value="">{isLoading ? 'Loading users...' : 'Select a user'}</option>
-      {(users as any[]).map((user) => (
-        <option key={user.id} value={user.id}>
-          {formatUserLabel(user)}
-        </option>
-      ))}
-    </Select>
-  );
-}
-
-function CreateFormFields({ entityKey, onDone }: { entityKey: string; onDone: () => void }) {
-  const createEntity = useCreateEntity(entityKey);
-  const currentUser = useAuthStore((s) => s.user);
-  const isInvoice = entityKey === 'invoices';
-  const isDeal = entityKey === 'deals' || entityKey === 'opportunities';
-  const isProject = entityKey === 'projects';
-  const today = new Date().toISOString().slice(0, 10);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState({
-    title: '',
-    owner: currentUser?.id || '',
-    client_name: '',
-    status: isDeal ? 'qualification' : isProject ? 'active' : 'Draft',
-    priority: 'medium',
-    description: '',
-    amount: '',
-    start_date: today,
-    end_date: '',
-  });
-
-  const validate = () => {
-    const next: Record<string, string> = {};
-    if (!form.title.trim()) next.title = isInvoice ? 'Invoice title is required' : 'Title is required';
-    if (isInvoice && !form.client_name.trim()) next.client_name = 'Client is required';
-    if (isProject && !form.client_name.trim()) next.client_name = 'Client is required';
-    if (isProject && !form.start_date) next.start_date = 'Start date is required';
-    if (isProject && !form.end_date) next.end_date = 'End date is required';
-    if (
-      isProject &&
-      form.start_date &&
-      form.end_date &&
-      new Date(form.end_date).getTime() <= new Date(form.start_date).getTime()
-    ) {
-      next.end_date = 'End date must be after start date';
-    }
-    if (!isInvoice && !isProject && !form.owner) next.owner = 'Owner is required';
-    if ((isDeal || isInvoice) && !form.amount) next.amount = 'Amount is required';
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
-  return (
-    <form
-      className="space-y-4"
-      noValidate
-      onSubmit={async (e) => {
-        e.preventDefault();
-        if (!validate()) {
-          toast.error('Please fix validation errors');
-          return;
-        }
-        await createEntity.mutateAsync({
-          ...form,
-          owner_id: form.owner,
-          assigned_to: form.owner,
-          client_name: form.client_name || (isInvoice ? form.title : form.client_name),
-        });
-        onDone();
-      }}
-    >
-      <Input
-        label={isInvoice ? 'Invoice title' : isDeal ? 'Deal name' : isProject ? 'Project name' : 'Title'}
-        required
-        value={form.title}
-        error={errors.title}
-        onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-        placeholder={
-          isInvoice
-            ? 'e.g. March retainer'
-            : isDeal
-              ? 'e.g. Acme expansion'
-              : isProject
-                ? 'e.g. Website redesign'
-                : 'Enter a clear title'
-        }
-      />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {isInvoice || isProject ? (
-          <Input
-            label="Client"
-            required
-            value={form.client_name}
-            error={errors.client_name}
-            onChange={(e) => setForm((f) => ({ ...f, client_name: e.target.value }))}
-            placeholder="Client or company name"
-          />
-        ) : (
-          <OwnerUserSelect
-            required
-            value={form.owner}
-            error={errors.owner}
-            onChange={(owner) => setForm((f) => ({ ...f, owner }))}
-          />
-        )}
-        <Select
-          label={isDeal ? 'Stage' : 'Status'}
-          value={form.status}
-          onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-        >
-          {isDeal ? (
-            <>
-              <option value="qualification">Qualification</option>
-              <option value="proposal">Proposal</option>
-              <option value="negotiation">Negotiation</option>
-              <option value="closed_won">Closed won</option>
-              <option value="closed_lost">Closed lost</option>
-            </>
-          ) : isProject ? (
-            <>
-              <option value="active">Active</option>
-              <option value="planning">Planning</option>
-              <option value="on_hold">On hold</option>
-              <option value="completed">Completed</option>
-            </>
-          ) : (
-            <>
-              <option value="Draft">Draft</option>
-              <option value="Active">Active</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
-              {isInvoice && <option value="Sent">Sent</option>}
-              {isInvoice && <option value="Paid">Paid</option>}
-            </>
-          )}
-        </Select>
-      </div>
-      {isProject && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input
-            label="Timeline start"
-            type="date"
-            required
-            value={form.start_date}
-            error={errors.start_date}
-            onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))}
-          />
-          <Input
-            label="Timeline end"
-            type="date"
-            required
-            value={form.end_date}
-            error={errors.end_date}
-            onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))}
-          />
-        </div>
-      )}
-      {!isDeal && (
-        <Select
-          label="Priority"
-          value={form.priority}
-          onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
-        >
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-          <option value="critical">Critical</option>
-        </Select>
-      )}
-      <TextArea
-        label="Description"
-        value={form.description}
-        onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-        rows={3}
-      />
-      <Input
-        label={isDeal || isInvoice ? 'Amount' : isProject ? 'Budget (optional)' : 'Amount (optional)'}
-        type="number"
-        required={isDeal || isInvoice}
-        value={form.amount}
-        error={errors.amount}
-        onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-        placeholder={isDeal ? 'Deal value' : isProject ? 'Project budget' : undefined}
-      />
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="ghost" onClick={onDone}>
-          Cancel
-        </Button>
-        <Button type="submit" loading={createEntity.isPending}>
-          Create
-        </Button>
-      </div>
-    </form>
   );
 }
 
@@ -647,203 +325,17 @@ function FormView({
   breadcrumbs: { label: string; href?: string }[];
 }) {
   const router = useRouter();
-  const createEntity = useCreateEntity(entityKey);
-  const currentUser = useAuthStore((s) => s.user);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState({
-    title: '',
-    owner: currentUser?.id || '',
-    status: 'Draft',
-    priority: 'medium',
-    description: '',
-    amount: '',
-  });
-
-  const validate = () => {
-    const next: Record<string, string> = {};
-    if (!form.title.trim()) next.title = 'Title is required';
-    if (!form.owner) next.owner = 'Owner is required';
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) {
-      toast.error('Please fix validation errors');
-      return;
-    }
-    await createEntity.mutateAsync({
-      ...form,
-      owner_id: form.owner,
-    });
-    router.back();
-  };
+  const label = createEntityLabel(entityKey);
 
   return (
     <div>
       <PageHeader
-        title={title}
-        description={`Create a new ${entityLabel(entityKey).toLowerCase()}.`}
+        title={`Create ${label}`}
+        description={`Add a new ${label.toLowerCase()} with the fields this record needs.`}
         breadcrumbs={breadcrumbs}
       />
-      <Card>
-        <form onSubmit={onSubmit} className="space-y-5 max-w-2xl" noValidate>
-          <Input
-            label="Title"
-            required
-            value={form.title}
-            error={errors.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            placeholder="Enter a clear title"
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <OwnerUserSelect
-              required
-              value={form.owner}
-              error={errors.owner}
-              onChange={(owner) => setForm((f) => ({ ...f, owner }))}
-            />
-            <Select
-              label="Status"
-              value={form.status}
-              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-            >
-              <option value="Draft">Draft</option>
-              <option value="Active">Active</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
-            </Select>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Select
-              label="Priority"
-              value={form.priority}
-              onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
-            </Select>
-            <Input
-              label="Amount (optional)"
-              type="number"
-              value={form.amount}
-              onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-              placeholder="0.00"
-            />
-          </div>
-          <TextArea
-            label="Description"
-            value={form.description}
-            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-            placeholder="Add context for this record"
-            rows={4}
-          />
-          <div className="flex items-center gap-3 pt-2">
-            <Button type="submit" loading={createEntity.isPending}>
-              Create
-            </Button>
-            <Button type="button" variant="ghost" onClick={() => router.back()}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </Card>
-    </div>
-  );
-}
-
-function AnalyticsView({
-  title,
-  breadcrumbs,
-}: {
-  title: string;
-  breadcrumbs: { label: string; href?: string }[];
-}) {
-  const overviewQuery = useAnalyticsOverview();
-  const kpisQuery = useKPIs();
-  const payload = overviewQuery.data?.data || overviewQuery.data;
-  const kpis = kpisQuery.data?.data || kpisQuery.data || [];
-
-  if (overviewQuery.isLoading || kpisQuery.isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <SkeletonCard key={i} className="h-28" />
-        ))}
-      </div>
-    );
-  }
-
-  if (overviewQuery.isError || !payload) {
-    return <EmptyState title="Unable to load analytics" description="Refresh the page to try again." />;
-  }
-
-  const stats = [
-    { id: 'projects', title: 'Projects', value: String(payload.projects?.total ?? 0), change: 0, trend: 'up' as const },
-    { id: 'tasks', title: 'Tasks', value: String(payload.tasks?.total ?? 0), change: 0, trend: 'up' as const },
-    { id: 'sprints', title: 'Sprints', value: String(payload.sprints?.active ?? 0), change: 0, trend: 'up' as const },
-    { id: 'team', title: 'Active team members', value: String(payload.team?.active_members ?? 0), change: 0, trend: 'up' as const },
-  ];
-  const chartData = [
-    { name: 'To do', value: payload.tasks?.todo ?? 0, secondary: payload.projects?.active ?? 0 },
-    { name: 'In progress', value: payload.tasks?.in_progress ?? 0, secondary: payload.sprints?.active ?? 0 },
-    { name: 'Done', value: payload.tasks?.done ?? 0, secondary: payload.projects?.completed ?? 0 },
-    { name: 'Open bugs', value: payload.bugs?.open ?? 0, secondary: payload.bugs?.resolved ?? 0 },
-  ];
-  const metrics = Array.isArray(kpis)
-    ? (kpis as Array<{ id: string; name?: string; title?: string; current?: number; value?: number; target?: number; target_value?: number; unit?: string }>).map((kpi) => ({
-        id: kpi.id,
-        label: kpi.name || kpi.title || 'KPI',
-        value: Number(kpi.current ?? kpi.value ?? 0),
-        target: Number(kpi.target ?? kpi.target_value ?? 0),
-        unit: kpi.unit || '',
-      }))
-    : [];
-
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title={title}
-        description="Track operational performance across your organization."
-        breadcrumbs={breadcrumbs}
-      />
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <StatCard
-            key={stat.id}
-            title={stat.title}
-            value={stat.value}
-            change={stat.change}
-            trend={stat.trend}
-          />
-        ))}
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <h3 className="text-sm font-medium text-ink mb-4">Trend</h3>
-          <SimpleAreaChart data={chartData} dataKey="value" secondaryKey="secondary" height={260} />
-        </Card>
-        <Card>
-          <h3 className="text-sm font-medium text-ink mb-4">Comparison</h3>
-          <SimpleBarChart data={chartData} dataKey="value" height={260} />
-        </Card>
-      </div>
-      <Card>
-        <h3 className="text-sm font-medium text-ink mb-4">Goal progress</h3>
-        <div className="space-y-4">
-          {metrics.length === 0 ? (
-            <EmptyState title="No KPIs yet" description="Create KPIs to monitor progress here." />
-          ) : metrics.map((m) => (
-            <Progress
-              key={m.id}
-              value={m.target > 0 ? Math.min(100, Math.round((m.value / m.target) * 100)) : 0}
-              label={`${m.label} — ${m.value}${m.unit || ''} / ${m.target}${m.unit || ''}`}
-            />
-          ))}
-        </div>
+      <Card className="max-w-2xl p-6">
+        <CreateEntityForm entityKey={entityKey} onDone={() => router.back()} />
       </Card>
     </div>
   );
@@ -859,10 +351,231 @@ type DashboardStat = {
 type MeetingRecord = { id: string; title: string; dueDate?: string; location?: string };
 type ActivityRecord = { id: string; actor_name?: string; action?: string; summary?: string; created_at?: string };
 type GoalRecord = { id: string; title: string; progress?: number };
-type ChannelRecord = { id: string; name: string; description?: string; type?: string };
-type ChannelMessage = { id: string; sender_id?: string; user_id?: string; content?: string; text?: string; created_at?: string };
 
 export function DashboardView({ basePath }: { basePath: string }) {
+  const user = useAuthStore((s) => s.user);
+  const role = String(user?.role || '').toLowerCase();
+
+  if (
+    role.includes('engineer') ||
+    role.includes('developer') ||
+    role === 'ui_ux_designer' ||
+    role.includes('designer')
+  ) {
+    return <EngineerDashboardView basePath={basePath} />;
+  }
+
+  return <ExecutiveDashboardView basePath={basePath} />;
+}
+
+function EngineerDashboardView({ basePath }: { basePath: string }) {
+  const user = useAuthStore((s) => s.user);
+  const dashboardQuery = useDashboard();
+  const apiDash = dashboardQuery.data;
+  const payload = apiDash?.data || apiDash;
+
+  if (dashboardQuery.isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-72" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i} className="h-28" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (dashboardQuery.isError || !payload) {
+    return <EmptyState title="Unable to load dashboard" description="Refresh the page to try again." />;
+  }
+
+  const myTasks = (Array.isArray(payload.my_tasks) ? payload.my_tasks : []) as Array<{
+    id: string;
+    title?: string;
+    status?: string;
+    priority?: string;
+    due_date?: string;
+  }>;
+  const myBugs = (Array.isArray(payload.my_bugs) ? payload.my_bugs : []) as Array<{
+    id: string;
+    title?: string;
+    status?: string;
+    priority?: string;
+  }>;
+  const meetings = (Array.isArray(payload.upcoming_meetings) ? payload.upcoming_meetings : []) as Array<{
+    id: string;
+    title?: string;
+    scheduled_at?: string;
+    location?: string;
+  }>;
+  const sprint = payload.active_sprint as { title?: string; name?: string; status?: string; end_date?: string } | null;
+
+  const taskActive = Number(payload.task_counts?.active ?? myTasks.length);
+  const taskInProgress = Number(payload.task_counts?.in_progress ?? 0);
+  const bugsOpen = Number(payload.bug_counts?.open ?? myBugs.length);
+  const projectsActive = Number(payload.projects?.active ?? 0);
+
+  const stats = [
+    { id: 'tasks', title: 'My open tasks', value: String(taskActive), change: 0, trend: 'up' as const },
+    { id: 'wip', title: 'In progress', value: String(taskInProgress), change: 0, trend: 'up' as const },
+    { id: 'bugs', title: 'My open bugs', value: String(bugsOpen), change: 0, trend: 'up' as const },
+    { id: 'projects', title: 'Visible projects', value: String(projectsActive), change: 0, trend: 'up' as const },
+  ];
+
+  const quickActions = [
+    { label: 'My tasks', href: '/tasks' },
+    { label: 'My bugs', href: '/bugs' },
+    { label: 'Board', href: '/tasks' },
+    { label: 'Code reviews', href: '/code-reviews' },
+    { label: 'Documentation', href: '/documentation' },
+    { label: 'AI assistant', href: '/ai' },
+  ];
+
+  const href = (path: string) =>
+    `${basePath}${path.startsWith('/') ? path : `/${path}`}`;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-semibold text-ink">
+          Welcome back{user?.firstName ? `, ${user.firstName}` : ''}
+        </h1>
+        <p className="mt-1 text-sm text-ink-muted">
+          Your engineering workspace — tasks, bugs, and the current sprint.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map((stat) => (
+          <StatCard
+            key={stat.id}
+            title={stat.title}
+            value={stat.value}
+            change={stat.change}
+            trend={stat.trend}
+          />
+        ))}
+      </div>
+
+      {sprint ? (
+        <Card className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Active sprint</p>
+            <p className="text-base font-semibold text-ink">{sprint.title || sprint.name || 'Sprint'}</p>
+            <p className="text-sm text-ink-muted">
+              {sprint.status || 'active'}
+              {sprint.end_date ? ` · ends ${formatDate(sprint.end_date)}` : ''}
+            </p>
+          </div>
+          <Link href={href('/tasks')}>
+            <Button size="sm" variant="secondary">
+              Open board
+            </Button>
+          </Link>
+        </Card>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <Card className="xl:col-span-2">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-medium text-ink">My tasks</h3>
+            <Link href={href('/tasks')} className="text-xs font-medium text-brand hover:underline">
+              View all
+            </Link>
+          </div>
+          {myTasks.length === 0 ? (
+            <EmptyState title="No open tasks" description="Assigned work will show up here." />
+          ) : (
+            <ul className="divide-y divide-border">
+              {myTasks.slice(0, 8).map((t) => (
+                <li key={t.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-ink">{t.title || 'Task'}</p>
+                    <p className="text-xs text-ink-muted">
+                      {t.status || 'todo'}
+                      {t.priority ? ` · ${t.priority}` : ''}
+                      {t.due_date ? ` · due ${formatDate(t.due_date)}` : ''}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card>
+          <h3 className="mb-4 text-sm font-medium text-ink">Quick actions</h3>
+          <div className="space-y-2">
+            {quickActions.map((action) => (
+              <Link
+                key={action.href + action.label}
+                href={href(action.href)}
+                className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-sm text-ink transition-colors hover:border-brand/40 hover:bg-bg-muted"
+              >
+                {action.label}
+                <Sparkles className="h-4 w-4 text-ink-muted" />
+              </Link>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card>
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-medium text-ink">My bugs</h3>
+            <Link href={href('/bugs')} className="text-xs font-medium text-brand hover:underline">
+              View all
+            </Link>
+          </div>
+          {myBugs.length === 0 ? (
+            <EmptyState title="No open bugs" description="Bugs assigned to you will appear here." />
+          ) : (
+            <ul className="space-y-2">
+              {myBugs.slice(0, 6).map((b) => (
+                <li key={b.id} className="rounded-lg border border-border px-3 py-2">
+                  <p className="text-sm font-medium text-ink">{b.title || 'Bug'}</p>
+                  <p className="text-xs text-ink-muted">
+                    {b.status || 'open'}
+                    {b.priority ? ` · ${b.priority}` : ''}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card>
+          <h3 className="mb-4 text-sm font-medium text-ink">Upcoming meetings</h3>
+          {meetings.length === 0 ? (
+            <EmptyState title="No upcoming meetings" description="Scheduled meetings will appear here." />
+          ) : (
+            <ul className="space-y-3">
+              {meetings.map((m) => (
+                <li key={m.id} className="flex items-start gap-3 rounded-lg border border-border p-3">
+                  <div className="rounded-lg bg-bg-muted p-2">
+                    <CalendarIcon className="h-4 w-4 text-ink-secondary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-ink">{m.title}</p>
+                    <p className="mt-0.5 text-xs text-ink-muted">
+                      {m.scheduled_at ? new Date(m.scheduled_at).toLocaleString() : 'Schedule pending'}
+                    </p>
+                    {m.location ? <p className="mt-0.5 text-xs text-ink-muted">{m.location}</p> : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+export function ExecutiveDashboardView({ basePath }: { basePath: string }) {
   const user = useAuthStore((s) => s.user);
   const dashboardQuery = useDashboard();
   const activityQuery = useEntityActivity();
@@ -935,7 +648,6 @@ export function DashboardView({ basePath }: { basePath: string }) {
     const actor = (a.actor_name || 'Someone').trim();
     const summary = (a.summary || '').trim();
     const action = (a.action || '').trim().toLowerCase();
-    // Prefer summary alone when it already includes the verb (created/updated/deleted...)
     if (summary) {
       const alreadyHasVerb = /^(created|updated|deleted|added|removed|changed)\b/i.test(summary);
       if (alreadyHasVerb) return { actor, text: summary };
@@ -1091,103 +803,6 @@ export function DashboardView({ basePath }: { basePath: string }) {
   );
 }
 
-function MessagesView({ breadcrumbs }: { breadcrumbs: { label: string; href?: string }[] }) {
-  const { data: channels = [], isLoading } = useChannels();
-  const [activeId, setActiveId] = useState<string>('');
-  const [draft, setDraft] = useState('');
-  const channelId = activeId || channels[0]?.id || '';
-  const { data: messages = [] } = useChannelMessages(channelId);
-  const send = useSendMessage();
-  const user = useAuthStore((s) => s.user);
-  const channelItems = channels as ChannelRecord[];
-  const messageItems = messages as ChannelMessage[];
-  const activeChannel = channelItems.find((channel) => channel.id === channelId) || channelItems[0];
-
-  return (
-    <div>
-      <PageHeader title="Messages" description="Team channels and conversations." breadcrumbs={breadcrumbs} />
-      <Card padding="none" className="overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] min-h-[480px]">
-          <aside className="border-b md:border-b-0 md:border-r border-border overflow-y-auto max-h-[480px]">
-            {isLoading && <p className="p-4 text-sm text-ink-muted">Loading channels...</p>}
-            {!isLoading && channels.length === 0 && (
-              <p className="p-4 text-sm text-ink-muted">No channels yet. Create one from the API or seed data.</p>
-            )}
-            {channelItems.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setActiveId(t.id)}
-                className={cnThread(t.id === channelId)}
-              >
-                <Avatar size="sm" name={t.name} />
-                <div className="min-w-0 flex-1 text-left">
-                  <p className="text-sm font-medium text-ink truncate">{t.name}</p>
-                  <p className="text-xs text-ink-muted truncate">{t.description || t.type || 'Channel'}</p>
-                </div>
-              </button>
-            ))}
-          </aside>
-          <div className="flex flex-col">
-            <div className="px-4 py-3 border-b border-border flex items-center gap-3">
-              <Avatar size="sm" name={activeChannel?.name || 'Channel'} />
-              <div>
-                <p className="text-sm font-medium text-ink">{activeChannel?.name || 'Select a channel'}</p>
-                <p className="text-xs text-ink-muted">{activeChannel?.type || 'Workspace'}</p>
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[320px]">
-              {messageItems.map((m) => {
-                const self = m.sender_id === user?.id || m.user_id === user?.id;
-                return (
-                  <div key={m.id} className={`flex ${self ? 'justify-end' : 'justify-start'}`}>
-                    <div
-                      className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
-                        self ? 'bg-brand text-ink-inverse' : 'bg-bg-muted text-ink border border-border'
-                      }`}
-                    >
-                      <p>{m.content || m.text}</p>
-                      <p className={`text-[10px] mt-1 ${self ? 'text-ink-inverse/70' : 'text-ink-muted'}`}>
-                        {m.created_at ? new Date(m.created_at).toLocaleTimeString() : ''}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <form
-              className="p-3 border-t border-border flex gap-2"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (!draft.trim() || !channelId) return;
-                await send.mutateAsync({ channelId, content: draft.trim() });
-                setDraft('');
-              }}
-            >
-              <Input
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder="Write a message..."
-                className="flex-1"
-                disabled={!channelId}
-              />
-              <Button type="submit" loading={send.isPending} aria-label="Send" disabled={!channelId}>
-                <Send className="h-4 w-4" />
-              </Button>
-            </form>
-          </div>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-function cnThread(active: boolean) {
-  return `w-full flex items-center gap-3 px-3 py-3 border-b border-border/80 hover:bg-bg-muted transition-colors ${
-    active ? 'bg-bg-muted' : ''
-  }`;
-}
-
 function AiView({ breadcrumbs }: { breadcrumbs: { label: string; href?: string }[] }) {
   const [prompt, setPrompt] = useState('');
   const [history, setHistory] = useState<{ role: 'user' | 'assistant'; text: string }[]>([
@@ -1197,14 +812,71 @@ function AiView({ breadcrumbs }: { breadcrumbs: { label: string; href?: string }
     },
   ]);
   const mutation = useSendChatMessage();
+  const generateReport = useGenerateAiReport();
+  const analyzeRisk = useAnalyzeRisk();
+  const suggestPriorities = useSuggestPriorities();
+
+  const appendAssistant = (content: string) => {
+    setHistory((h) => [...h, { role: 'assistant', text: content }]);
+  };
+
+  const runTool = async (
+    label: string,
+    runner: () => Promise<any>,
+  ) => {
+    setHistory((h) => [...h, { role: 'user', text: label }]);
+    try {
+      const response = await runner();
+      const content =
+        response?.data?.message || response?.message || response?.data?.data?.message;
+      if (!content) throw new Error('Empty assistant response');
+      appendAssistant(content);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Unable to get an assistant response');
+    }
+  };
 
   return (
     <div>
       <PageHeader
         title="AI Assistant"
-        description="Ask questions about your organization and workspace."
+        description="Ask questions or run executive report, risk, and priority tools."
         breadcrumbs={breadcrumbs}
       />
+      <Card className="mb-4 flex flex-wrap gap-2 max-w-3xl">
+        <Button
+          size="sm"
+          variant="secondary"
+          loading={generateReport.isPending}
+          onClick={() =>
+            void runTool('Generate an executive report', () =>
+              generateReport.mutateAsync({ type: 'executive' }),
+            )
+          }
+        >
+          Executive report
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          loading={analyzeRisk.isPending}
+          onClick={() =>
+            void runTool('Analyze organizational risks', () => analyzeRisk.mutateAsync('openai'))
+          }
+        >
+          Risk analysis
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          loading={suggestPriorities.isPending}
+          onClick={() =>
+            void runTool('Suggest priorities', () => suggestPriorities.mutateAsync('openai'))
+          }
+        >
+          Suggest priorities
+        </Button>
+      </Card>
       <Card className="max-w-3xl space-y-4">
         <div className="space-y-3 min-h-[280px]">
           {history.map((m, i) => (
@@ -1261,15 +933,24 @@ function AiView({ breadcrumbs }: { breadcrumbs: { label: string; href?: string }
 
 function SettingsView({ breadcrumbs }: { breadcrumbs: { label: string; href?: string }[] }) {
   const user = useAuthStore((s) => s.user);
+  const updateUser = useAuthStore((s) => s.updateUser);
   const updateProfile = useUpdateMyProfile();
   const updatePassword = useUpdateMyPassword();
   const { data: orgData } = useOrganization();
   const updateOrg = useUpdateOrganization();
   const org = orgData?.data || orgData;
-  const [name, setName] = useState(`${user?.firstName || ''} ${user?.lastName || ''}`.trim());
+  const isCeo = user?.role === UserRole.CEO;
+  const [firstName, setFirstName] = useState(user?.firstName || '');
+  const [lastName, setLastName] = useState(user?.lastName || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [orgName, setOrgName] = useState('');
+
+  useEffect(() => {
+    setFirstName(user?.firstName || '');
+    setLastName(user?.lastName || '');
+  }, [user?.firstName, user?.lastName]);
 
   return (
     <div>
@@ -1278,21 +959,30 @@ function SettingsView({ breadcrumbs }: { breadcrumbs: { label: string; href?: st
         <TabList aria-label="Settings sections">
           <Tab value="profile">Profile</Tab>
           <Tab value="security">Security</Tab>
-          <Tab value="organization">Organization</Tab>
+          {isCeo ? <Tab value="organization">Organization</Tab> : null}
         </TabList>
         <TabPanel value="profile">
           <Card className="max-w-xl space-y-4">
-            <Input label="Display name" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input label="First name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+            <Input label="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
             <Input label="Email" type="email" value={user?.email || ''} disabled />
             <Button
               loading={updateProfile.isPending}
               onClick={async () => {
-                const parts = name.trim().split(/\s+/);
-                await updateProfile.mutateAsync({
-                  first_name: parts[0] || user?.firstName,
-                  last_name: parts.slice(1).join(' ') || user?.lastName,
-                });
-                toast.success('Profile updated');
+                try {
+                  const updated = await updateProfile.mutateAsync({
+                    first_name: firstName.trim() || user?.firstName,
+                    last_name: lastName.trim(),
+                  });
+                  updateUser({
+                    firstName: updated?.first_name ?? firstName.trim(),
+                    lastName: updated?.last_name ?? lastName.trim(),
+                    avatar: updated?.avatar,
+                  });
+                  toast.success('Profile updated');
+                } catch {
+                  /* toast handled in mutation */
+                }
               }}
             >
               Save profile
@@ -1301,18 +991,29 @@ function SettingsView({ breadcrumbs }: { breadcrumbs: { label: string; href?: st
         </TabPanel>
         <TabPanel value="security">
           <Card className="max-w-xl space-y-4">
-            <p className="text-sm text-ink-muted">We recommend updating your password after first login.</p>
+            <p className="text-sm text-ink-muted">
+              Use your temporary invite password as the current password the first time you change it.
+            </p>
             <Input
               label="Current password"
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
+              autoComplete="current-password"
             />
             <Input
               label="New password"
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+            <Input
+              label="Confirm new password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
             />
             <Button
               loading={updatePassword.isPending}
@@ -1321,33 +1022,44 @@ function SettingsView({ breadcrumbs }: { breadcrumbs: { label: string; href?: st
                   toast.error('Enter current password and a new password (8+ chars)');
                   return;
                 }
-                await updatePassword.mutateAsync({ currentPassword, newPassword });
-                toast.success('Password updated');
-                setCurrentPassword('');
-                setNewPassword('');
+                if (newPassword !== confirmPassword) {
+                  toast.error('New passwords do not match');
+                  return;
+                }
+                try {
+                  await updatePassword.mutateAsync({ currentPassword, newPassword });
+                  toast.success('Password updated');
+                  setCurrentPassword('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                } catch {
+                  /* toast handled in mutation */
+                }
               }}
             >
               Update password
             </Button>
           </Card>
         </TabPanel>
-        <TabPanel value="organization">
-          <Card className="max-w-xl space-y-4">
-            <Input
-              label="Organization name"
-              value={orgName || org?.name || ''}
-              onChange={(e) => setOrgName(e.target.value)}
-            />
-            <Button
-              loading={updateOrg.isPending}
-              onClick={async () => {
-                await updateOrg.mutateAsync({ name: orgName || org?.name });
-              }}
-            >
-              Save organization
-            </Button>
-          </Card>
-        </TabPanel>
+        {isCeo ? (
+          <TabPanel value="organization">
+            <Card className="max-w-xl space-y-4">
+              <Input
+                label="Organization name"
+                value={orgName || org?.name || ''}
+                onChange={(e) => setOrgName(e.target.value)}
+              />
+              <Button
+                loading={updateOrg.isPending}
+                onClick={async () => {
+                  await updateOrg.mutateAsync({ name: orgName || org?.name });
+                }}
+              >
+                Save organization
+              </Button>
+            </Card>
+          </TabPanel>
+        ) : null}
       </Tabs>
     </div>
   );

@@ -34,6 +34,10 @@ export class Task {
   @Column({ nullable: true })
   assignee_id: string;
 
+  /** Multiple card members (Trello-style). `assignee_id` stays as the primary/first member. */
+  @Column({ type: 'json', nullable: true })
+  assignee_ids: string[];
+
   @Column({ nullable: true })
   reporter_id: string;
 

@@ -23,6 +23,16 @@ export class Document {
   @Column({ type: 'json', nullable: true })
   tags: string[];
 
+  /** Relative path under server uploads/ when file is stored locally */
+  @Column({ type: 'text', nullable: true })
+  storage_path: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  file_mime: string | null;
+
+  @Column({ type: 'integer', nullable: true })
+  file_size: number | null;
+
   @Column()
   created_by: string;
 

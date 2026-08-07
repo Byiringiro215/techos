@@ -35,6 +35,7 @@ exports.VALUABLE_ACTIVITY_TYPES = new Set([
     'messages',
     'bugs',
     'features',
+    'codeReviews',
     'workspace',
 ]);
 let ActivityLogService = class ActivityLogService {

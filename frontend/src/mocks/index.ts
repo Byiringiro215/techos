@@ -51,7 +51,7 @@ const SEGMENT_TO_ENTITY_KEY: Record<string, string> = {
   marketing: 'campaigns',
   'social-media': 'campaigns',
   'email-marketing': 'campaigns',
-  content: 'documents',
+  content: 'campaigns',
 
   // Support
   tickets: 'tickets',
@@ -125,7 +125,7 @@ const SEGMENT_TO_ENTITY_KEY: Record<string, string> = {
   announcements: 'announcements',
   processes: 'processes',
   operations: 'processes',
-  integrations: 'processes',
+  integrations: 'integrations',
   notifications: 'notifications',
 };
 
@@ -248,8 +248,6 @@ export function resolvePageKind(pathname: string): PageKind {
 
   const ANALYTICS_SEGMENTS = new Set([
     'analytics',
-    'reports',
-    'financial-reports',
     'metrics',
     'growth',
     'efficiency',
@@ -260,19 +258,31 @@ export function resolvePageKind(pathname: string): PageKind {
     'sales-analytics',
     'marketing-roi',
     'forecasting',
-    'cash-flow',
-    'balance-sheet',
-    'profit-loss',
-    'tax-reports',
-    'quarterly',
-    'annual',
     'satisfaction',
-    'revenue',
     'workload',
     'roadmap',
   ]);
 
-  if (ANALYTICS_SEGMENTS.has(last)) {
+  // Saved / generated reports hub (not AnalyticsHub).
+  if (
+    segments.some((s) => {
+      const v = s.toLowerCase();
+      return v === 'reports' || v === 'financial-reports';
+    }) ||
+    ['profit-loss', 'cash-flow', 'balance-sheet', 'tax-reports', 'quarterly', 'annual'].includes(last)
+  ) {
+    return 'reports';
+  }
+
+  // Finance list routes (expenses / revenue) must stay lists — not AnalyticsHub.
+  const FINANCE_LIST_OVERRIDE = new Set(['expenses', 'revenue', 'payments', 'invoices', 'budgets']);
+  const underFinance = segments.some((s) => s.toLowerCase() === 'finance');
+  if (underFinance && FINANCE_LIST_OVERRIDE.has(last)) {
+    // fall through to list/detail resolution
+  } else if (
+    segments.some((segment) => segment.toLowerCase() === 'analytics') ||
+    ANALYTICS_SEGMENTS.has(last)
+  ) {
     return 'analytics';
   }
 

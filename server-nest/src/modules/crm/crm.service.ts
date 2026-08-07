@@ -92,28 +92,40 @@ export class CrmService {
       throw new NotFoundException('Contact not found');
     }
 
-    // Get associated deals
-    const deals = await this.dealsRepository
-      .createQueryBuilder('deal')
-      .leftJoinAndSelect(User, 'user', 'deal.assigned_to = user.id')
-      .where('deal.contact_id = :contactId', { contactId: id })
-      .select([
-        'deal.*',
-        'user.first_name as assigned_first_name',
-        'user.last_name as assigned_last_name',
-      ])
-      .getRawMany();
+    // Get associated deals (avoid SQL join: deals.assigned_to is varchar, users.id is uuid)
+    const deals = await this.dealsRepository.find({
+      where: { contact_id: id, org_id },
+      order: { created_at: 'DESC' },
+    });
+
+    const ownerIds = [...new Set(deals.map((d) => d.assigned_to).filter(Boolean))];
+    const owners = ownerIds.length
+      ? await this.usersRepository.find({ where: { id: In(ownerIds) } })
+      : [];
+    const ownerMap = new Map(owners.map((u) => [u.id, u]));
+
+    const dealsWithOwners = deals.map((deal) => {
+      const owner = ownerMap.get(deal.assigned_to);
+      return {
+        ...deal,
+        assigned_first_name: owner?.first_name || null,
+        assigned_last_name: owner?.last_name || null,
+        owner_name: owner
+          ? `${owner.first_name || ''} ${owner.last_name || ''}`.trim() || owner.email
+          : '—',
+      };
+    });
 
     return {
       success: true,
       data: {
         ...contact,
-        deals,
+        deals: dealsWithOwners,
       },
     };
   }
 
-  async updateContact(id: string, org_id: string, updateData: Partial<Contact>) {
+  async updateContact(id: string, org_id: string, updateData: Partial<Contact> & Record<string, any>) {
     const contact = await this.contactsRepository.findOne({
       where: { id, org_id },
     });
@@ -122,7 +134,25 @@ export class CrmService {
       throw new NotFoundException('Contact not found');
     }
 
-    Object.assign(contact, updateData);
+    const {
+      company,
+      description,
+      title: _title,
+      owner: _owner,
+      owner_name: _ownerName,
+      statusVariant: _sv,
+      createdAt: _ca,
+      updatedAt: _ua,
+      amount: _amount,
+      dueDate: _due,
+      ...rest
+    } = updateData || {};
+
+    Object.assign(contact, {
+      ...rest,
+      ...(company != null ? { company_name: company } : {}),
+      ...(description != null ? { notes: description } : {}),
+    });
     await this.contactsRepository.save(contact);
 
     return {
@@ -159,12 +189,16 @@ export class CrmService {
         throw new NotFoundException('Contact not found');
       }
     } else {
+      const companyName =
+        createDealDto.company_name || createDealDto.company || createDealDto.title;
       const contact = this.contactsRepository.create({
         id: randomUUID(),
         org_id,
-        first_name: 'Deal',
-        last_name: 'Lead',
-        company_name: createDealDto.title,
+        first_name: createDealDto.contact_first_name || 'Deal',
+        last_name: createDealDto.contact_last_name || 'Lead',
+        ...(createDealDto.email ? { email: createDealDto.email } : {}),
+        ...(createDealDto.phone ? { phone: createDealDto.phone } : {}),
+        company_name: companyName,
         type: 'lead',
         status: 'qualified',
         notes: createDealDto.notes || createDealDto.description,
@@ -242,6 +276,10 @@ export class CrmService {
         owner_name,
         assigned_to: deal.assigned_to,
         company_name: contact?.company_name || null,
+        email: contact?.email || null,
+        phone: contact?.phone || null,
+        contact_first_name: contact?.first_name || null,
+        contact_last_name: contact?.last_name || null,
         updated_at: deal.created_at,
       };
     });
@@ -253,31 +291,6 @@ export class CrmService {
   }
 
   async findOneDeal(id: string, org_id: string) {
-    const deal = await this.dealsRepository
-      .createQueryBuilder('deal')
-      .leftJoinAndSelect(Contact, 'contact', 'deal.contact_id = contact.id')
-      .leftJoinAndSelect(User, 'user', 'deal.assigned_to = user.id')
-      .where('deal.id = :id', { id })
-      .andWhere('deal.org_id = :org_id', { org_id })
-      .select([
-        'deal.*',
-        'contact.*',
-        'user.first_name as assigned_first_name',
-        'user.last_name as assigned_last_name',
-      ])
-      .getRawOne();
-
-    if (!deal) {
-      throw new NotFoundException('Deal not found');
-    }
-
-    return {
-      success: true,
-      data: deal,
-    };
-  }
-
-  async updateDeal(id: string, org_id: string, updateData: Partial<Deal>, actor?: any) {
     const deal = await this.dealsRepository.findOne({
       where: { id, org_id },
     });
@@ -286,8 +299,121 @@ export class CrmService {
       throw new NotFoundException('Deal not found');
     }
 
-    Object.assign(deal, updateData);
+    const [owner, contact] = await Promise.all([
+      deal.assigned_to
+        ? this.usersRepository.findOne({ where: { id: deal.assigned_to } })
+        : Promise.resolve(null),
+      deal.contact_id
+        ? this.contactsRepository.findOne({ where: { id: deal.contact_id } })
+        : Promise.resolve(null),
+    ]);
+
+    const owner_name = owner
+      ? `${owner.first_name || ''} ${owner.last_name || ''}`.trim() || owner.email
+      : '—';
+
+    return {
+      success: true,
+      data: {
+        ...deal,
+        owner_name,
+        company_name: contact?.company_name || null,
+        email: contact?.email || null,
+        phone: contact?.phone || null,
+        contact_first_name: contact?.first_name || null,
+        contact_last_name: contact?.last_name || null,
+        updated_at: deal.created_at,
+      },
+    };
+  }
+
+  async updateDeal(id: string, org_id: string, updateData: Partial<Deal> & Record<string, any>, actor?: any) {
+    const deal = await this.dealsRepository.findOne({
+      where: { id, org_id },
+    });
+
+    if (!deal) {
+      throw new NotFoundException('Deal not found');
+    }
+
+    const {
+      company,
+      company_name,
+      email,
+      phone,
+      contact_first_name,
+      contact_last_name,
+      description,
+      amount,
+      owner,
+      owner_id,
+      owner_name: _ownerName,
+      status,
+      dueDate,
+      title: formTitle,
+      notes: formNotes,
+      value: formValue,
+      stage: formStage,
+      assigned_to: formAssigned,
+      expected_close_date: formClose,
+      ...rest
+    } = updateData || {};
+
+    const nextStageRaw = String(formStage || status || deal.stage || '')
+      .toLowerCase()
+      .replace(/\s+/g, '_');
+    const allowed = new Set(['qualification', 'proposal', 'negotiation', 'closed_won', 'closed_lost']);
+    const stageMap: Record<string, string> = {
+      won: 'closed_won',
+      lost: 'closed_lost',
+      closedwon: 'closed_won',
+      closedlost: 'closed_lost',
+    };
+    const mappedStage = stageMap[nextStageRaw.replace(/_/g, '')] || nextStageRaw;
+
+    Object.assign(deal, {
+      ...rest,
+      ...(formTitle != null ? { title: formTitle } : {}),
+      ...(formNotes != null || description != null
+        ? { notes: formNotes ?? description }
+        : {}),
+      ...(formValue != null || amount != null
+        ? { value: Number(formValue ?? amount) }
+        : {}),
+      ...(mappedStage && allowed.has(mappedStage) ? { stage: mappedStage } : {}),
+      ...(formAssigned || owner_id || owner
+        ? { assigned_to: formAssigned || owner_id || owner }
+        : {}),
+      ...(formClose != null || dueDate != null
+        ? { expected_close_date: formClose ?? dueDate }
+        : {}),
+    });
     await this.dealsRepository.save(deal);
+
+    if (
+      deal.contact_id &&
+      (company != null ||
+        company_name != null ||
+        email != null ||
+        phone != null ||
+        contact_first_name != null ||
+        contact_last_name != null)
+    ) {
+      const contact = await this.contactsRepository.findOne({
+        where: { id: deal.contact_id, org_id },
+      });
+      if (contact) {
+        if (company != null || company_name != null) {
+          contact.company_name = company_name ?? company;
+        }
+        if (email != null) contact.email = email;
+        if (phone != null) contact.phone = phone;
+        if (contact_first_name != null) contact.first_name = contact_first_name;
+        if (contact_last_name != null) contact.last_name = contact_last_name;
+        await this.contactsRepository.save(contact);
+      }
+    }
+
     await this.activityLogService.log({
       org_id,
       actor,
@@ -298,10 +424,7 @@ export class CrmService {
       changes: updateData as any,
     });
 
-    return {
-      success: true,
-      data: deal,
-    };
+    return this.findOneDeal(id, org_id);
   }
 
   async deleteDeal(id: string, org_id: string, actor?: any) {

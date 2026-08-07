@@ -17,12 +17,25 @@ const bug_entity_1 = require("../../entities/bug.entity");
 const release_entity_1 = require("../../entities/release.entity");
 const customer_feedback_entity_1 = require("../../entities/customer-feedback.entity");
 const roadmap_entity_1 = require("../../entities/roadmap.entity");
+const project_entity_1 = require("../../entities/project.entity");
+const user_entity_1 = require("../../entities/user.entity");
 let ProductModule = class ProductModule {
 };
 exports.ProductModule = ProductModule;
 exports.ProductModule = ProductModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([feature_entity_1.Feature, epic_entity_1.Epic, bug_entity_1.Bug, release_entity_1.Release, customer_feedback_entity_1.CustomerFeedback, roadmap_entity_1.Roadmap])],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([
+                feature_entity_1.Feature,
+                epic_entity_1.Epic,
+                bug_entity_1.Bug,
+                release_entity_1.Release,
+                customer_feedback_entity_1.CustomerFeedback,
+                roadmap_entity_1.Roadmap,
+                project_entity_1.Project,
+                user_entity_1.User,
+            ]),
+        ],
         controllers: [product_controller_1.ProductController],
         providers: [product_service_1.ProductService],
         exports: [product_service_1.ProductService],

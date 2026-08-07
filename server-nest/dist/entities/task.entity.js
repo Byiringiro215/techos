@@ -24,6 +24,7 @@ let Task = class Task {
     status;
     priority;
     assignee_id;
+    assignee_ids;
     reporter_id;
     estimated_hours;
     time_logged;
@@ -76,6 +77,10 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Task.prototype, "assignee_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'json', nullable: true }),
+    __metadata("design:type", Array)
+], Task.prototype, "assignee_ids", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)

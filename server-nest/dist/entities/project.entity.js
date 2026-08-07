@@ -25,6 +25,7 @@ let Project = class Project {
     end_date;
     budget;
     created_by;
+    visible_to_roles;
     metadata;
     created_at;
     organization;
@@ -72,6 +73,10 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Project.prototype, "created_by", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'json', nullable: true }),
+    __metadata("design:type", Object)
+], Project.prototype, "visible_to_roles", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'json', nullable: true }),
     __metadata("design:type", Object)

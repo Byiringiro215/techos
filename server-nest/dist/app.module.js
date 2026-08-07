@@ -40,6 +40,7 @@ const ai_module_1 = require("./modules/ai/ai.module");
 const reports_module_1 = require("./modules/reports/reports.module");
 const ciso_module_1 = require("./modules/ciso/ciso.module");
 const workspace_module_1 = require("./modules/workspace/workspace.module");
+const code_reviews_module_1 = require("./modules/code-reviews/code-reviews.module");
 function buildTypeOrmOptions(config) {
     const dbType = (config.get('DATABASE_TYPE') || 'sqlite').toLowerCase();
     const isDev = config.get('NODE_ENV') !== 'production';
@@ -112,6 +113,7 @@ exports.AppModule = AppModule = __decorate([
             reports_module_1.ReportsModule,
             ciso_module_1.CisoModule,
             workspace_module_1.WorkspaceModule,
+            code_reviews_module_1.CodeReviewsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

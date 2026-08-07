@@ -29,6 +29,75 @@ let ChannelsService = class ChannelsService {
         this.membersRepository = membersRepository;
         this.usersRepository = usersRepository;
     }
+    async ensureDefaultChannel(org_id, user_id) {
+        const memberships = await this.membersRepository.count({ where: { user_id } });
+        if (memberships > 0)
+            return;
+        const defaults = [
+            { name: 'general', description: 'Company-wide announcements and chat' },
+            { name: 'engineering', description: 'Dev team discussion — PRs, deploys, architecture' },
+            { name: 'standup', description: 'Daily standup updates and blockers' },
+        ];
+        for (const def of defaults) {
+            let channel = await this.channelsRepository.findOne({
+                where: { org_id, name: def.name },
+            });
+            if (!channel) {
+                channel = this.channelsRepository.create({
+                    id: (0, crypto_1.randomUUID)(),
+                    org_id,
+                    name: def.name,
+                    description: def.description,
+                    type: 'public',
+                    created_by: user_id,
+                });
+                await this.channelsRepository.save(channel);
+            }
+            await this.addMember(channel.id, user_id, def.name === 'general' ? 'admin' : 'member');
+        }
+    }
+    async findOrCreateDirect(org_id, user_id, other_user_id) {
+        if (!other_user_id || other_user_id === user_id) {
+            throw new common_1.ForbiddenException('Pick another teammate for a direct message');
+        }
+        const other = await this.usersRepository.findOne({ where: { id: other_user_id } });
+        if (!other)
+            throw new common_1.NotFoundException('User not found');
+        const myMemberships = await this.membersRepository.find({ where: { user_id } });
+        const myChannelIds = myMemberships.map((m) => m.channel_id);
+        if (myChannelIds.length) {
+            const directChannels = await this.channelsRepository.find({
+                where: { org_id, type: 'direct', id: (0, typeorm_2.In)(myChannelIds) },
+            });
+            for (const channel of directChannels) {
+                const members = await this.membersRepository.find({ where: { channel_id: channel.id } });
+                const ids = members.map((m) => m.user_id).sort();
+                const expected = [user_id, other_user_id].sort();
+                if (ids.length === 2 && ids[0] === expected[0] && ids[1] === expected[1]) {
+                    return {
+                        success: true,
+                        data: await this.findOne(channel.id, org_id, user_id),
+                    };
+                }
+            }
+        }
+        const label = `${other.first_name || ''} ${other.last_name || ''}`.trim() || other.email || 'Direct message';
+        const channel = this.channelsRepository.create({
+            id: (0, crypto_1.randomUUID)(),
+            org_id,
+            name: label,
+            description: 'Direct message',
+            type: 'direct',
+            created_by: user_id,
+        });
+        await this.channelsRepository.save(channel);
+        await this.addMember(channel.id, user_id, 'admin');
+        await this.addMember(channel.id, other_user_id, 'member');
+        return {
+            success: true,
+            data: await this.findOne(channel.id, org_id, user_id),
+        };
+    }
     async create(org_id, user_id, createChannelDto) {
         const { member_ids, ...channelData } = createChannelDto;
         const channel = this.channelsRepository.create({
@@ -49,6 +118,7 @@ let ChannelsService = class ChannelsService {
         };
     }
     async findAll(org_id, user_id) {
+        await this.ensureDefaultChannel(org_id, user_id);
         const memberChannels = await this.membersRepository.find({
             where: { user_id },
         });
@@ -93,21 +163,27 @@ let ChannelsService = class ChannelsService {
         if (!membership && channel.type === 'private') {
             throw new common_1.ForbiddenException('You do not have access to this channel');
         }
-        const members = await this.membersRepository
-            .createQueryBuilder('member')
-            .leftJoinAndSelect(user_entity_1.User, 'user', 'member.user_id = user.id')
-            .where('member.channel_id = :channelId', { channelId: id })
-            .select([
-            'member.id as id',
-            'member.user_id as user_id',
-            'member.role as role',
-            'member.joined_at as joined_at',
-            'user.first_name as first_name',
-            'user.last_name as last_name',
-            'user.email as email',
-            'user.avatar as avatar',
-        ])
-            .getRawMany();
+        const memberRows = await this.membersRepository.find({
+            where: { channel_id: id },
+        });
+        const userIds = [...new Set(memberRows.map((m) => m.user_id).filter(Boolean))];
+        const users = userIds.length
+            ? await this.usersRepository.find({ where: { id: (0, typeorm_2.In)(userIds) } })
+            : [];
+        const userMap = new Map(users.map((u) => [u.id, u]));
+        const members = memberRows.map((m) => {
+            const user = userMap.get(m.user_id);
+            return {
+                id: m.id,
+                user_id: m.user_id,
+                role: m.role,
+                joined_at: m.joined_at || m.created_at,
+                first_name: user?.first_name || null,
+                last_name: user?.last_name || null,
+                email: user?.email || null,
+                avatar: user?.avatar || null,
+            };
+        });
         return {
             success: true,
             data: {
@@ -158,6 +234,11 @@ let ChannelsService = class ChannelsService {
         };
     }
     async addMember(channel_id, user_id, role = 'member') {
+        const existing = await this.membersRepository.findOne({
+            where: { channel_id, user_id },
+        });
+        if (existing)
+            return existing;
         const member = this.membersRepository.create({
             id: (0, crypto_1.randomUUID)(),
             channel_id,

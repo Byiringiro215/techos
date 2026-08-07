@@ -48,6 +48,8 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
             email: user.email,
             org_id: user.org_id,
             role: user.role,
+            first_name: user.first_name,
+            last_name: user.last_name,
         };
     }
 };

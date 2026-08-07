@@ -14,6 +14,8 @@ export declare class JwtStrategy extends JwtStrategy_base {
         email: string;
         org_id: string;
         role: import("../../entities/user.entity").UserRole;
+        first_name: string;
+        last_name: string;
     }>;
 }
 export {};

@@ -26,13 +26,13 @@ let TasksController = class TasksController {
         return this.tasksService.create(user.org_id, user, createTaskDto);
     }
     findAll(user, filters) {
-        return this.tasksService.findAll(user.org_id, filters);
+        return this.tasksService.findAll(user.org_id, filters, user);
     }
     findOne(user, id) {
-        return this.tasksService.findOne(id, user.org_id);
+        return this.tasksService.findOne(id, user.org_id, user);
     }
     getSubtasks(user, id) {
-        return this.tasksService.getSubtasks(id, user.org_id);
+        return this.tasksService.getSubtasks(id, user.org_id, user);
     }
     update(user, id, updateTaskDto) {
         return this.tasksService.update(id, user.org_id, updateTaskDto, user);
