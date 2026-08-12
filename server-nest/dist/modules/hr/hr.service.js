@@ -181,6 +181,11 @@ let HrService = class HrService {
                 ? this.usersRepository.findOne({ where: { id: employee.manager_id } })
                 : Promise.resolve(null),
         ]);
+        const VALID_ROLES = ['ceo', 'cto', 'ciso', 'finance', 'software_engineer', 'ui_ux_designer', 'customer_support'];
+        if (user && updateData.position && VALID_ROLES.includes(updateData.position)) {
+            user.role = updateData.position;
+            await this.usersRepository.save(user);
+        }
         const displayName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim() ||
             user?.email ||
             employee.position ||

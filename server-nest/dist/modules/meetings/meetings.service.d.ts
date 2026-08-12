@@ -7,13 +7,15 @@ import { CreateMeetingDto } from './dto/create-meeting.dto';
 import { UpdateMeetingDto } from './dto/update-meeting.dto';
 import { CreateActionItemDto } from './dto/create-action-item.dto';
 import { EmailService } from '../../common/services/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
 export declare class MeetingsService {
     private meetingsRepository;
     private participantsRepository;
     private actionItemsRepository;
     private usersRepository;
     private emailService;
-    constructor(meetingsRepository: Repository<Meeting>, participantsRepository: Repository<MeetingParticipant>, actionItemsRepository: Repository<MeetingActionItem>, usersRepository: Repository<User>, emailService: EmailService);
+    private notificationsService;
+    constructor(meetingsRepository: Repository<Meeting>, participantsRepository: Repository<MeetingParticipant>, actionItemsRepository: Repository<MeetingActionItem>, usersRepository: Repository<User>, emailService: EmailService, notificationsService: NotificationsService);
     private userLabel;
     private assertCanAccessMeeting;
     create(org_id: string, actor: {

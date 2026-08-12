@@ -238,8 +238,9 @@ export class DocumentsService {
     );
   }
 
-  async findAll(org_id: string, filters?: any) {
+  async findAll(org_id: string, filters?: any, user_id?: string) {
     const where: any = { org_id, is_archived: false };
+    if (user_id) where.created_by = user_id;
 
     if (filters?.type) {
       where.type = filters.type;
@@ -380,11 +381,17 @@ export class DocumentsService {
     };
   }
 
-  async search(org_id: string, query: string) {
-    const documents = await this.documentsRepository
+  async search(org_id: string, query: string, user_id?: string) {
+    const qb = this.documentsRepository
       .createQueryBuilder('document')
       .where('document.org_id = :org_id', { org_id })
-      .andWhere('document.is_archived = :is_archived', { is_archived: false })
+      .andWhere('document.is_archived = :is_archived', { is_archived: false });
+
+    if (user_id) {
+      qb.andWhere('document.created_by = :user_id', { user_id });
+    }
+
+    const documents = await qb
       .andWhere(
         '(document.title LIKE :query OR document.content LIKE :query OR document.tags LIKE :query)',
         { query: `%${query}%` },
@@ -399,14 +406,20 @@ export class DocumentsService {
     };
   }
 
-  async getFolders(org_id: string) {
-    const folders = await this.documentsRepository
+  async getFolders(org_id: string, user_id?: string) {
+    const qb = this.documentsRepository
       .createQueryBuilder('document')
       .select('document.folder', 'folder')
       .addSelect('COUNT(*)', 'document_count')
       .where('document.org_id = :org_id', { org_id })
       .andWhere('document.folder IS NOT NULL')
-      .andWhere('document.is_archived = :is_archived', { is_archived: false })
+      .andWhere('document.is_archived = :is_archived', { is_archived: false });
+
+    if (user_id) {
+      qb.andWhere('document.created_by = :user_id', { user_id });
+    }
+
+    const folders = await qb
       .groupBy('document.folder')
       .getRawMany();
 

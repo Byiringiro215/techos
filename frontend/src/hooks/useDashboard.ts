@@ -2,13 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
-export function useDashboard() {
+export function useDashboard(moduleRole?: string) {
   const user = useAuthStore((state) => state.user);
   
   return useQuery({
-    queryKey: ['dashboard', user?.role],
+    queryKey: ['dashboard', moduleRole || user?.role],
     queryFn: async () => {
-      const role = user?.role?.toLowerCase() || '';
+      const role = (moduleRole || user?.role || '').toLowerCase();
       
       let endpoint = 'executive';
       if (

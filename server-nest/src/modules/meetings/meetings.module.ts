@@ -6,9 +6,10 @@ import { Meeting } from '../../entities/meeting.entity';
 import { MeetingParticipant } from '../../entities/meeting-participant.entity';
 import { MeetingActionItem } from '../../entities/meeting-action-item.entity';
 import { User } from '../../entities/user.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Meeting, MeetingParticipant, MeetingActionItem, User])],
+  imports: [TypeOrmModule.forFeature([Meeting, MeetingParticipant, MeetingActionItem, User]), NotificationsModule],
   controllers: [MeetingsController],
   providers: [MeetingsService],
   exports: [MeetingsService],

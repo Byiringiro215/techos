@@ -103,7 +103,7 @@ export function ModuleWorkspace() {
   const breadcrumbs = buildBreadcrumbs(pathname, basePath, entityLabel(roleKey));
 
   if (kind === 'dashboard') {
-    return <DashboardView basePath={basePath} />;
+    return <DashboardView basePath={basePath} roleKey={roleKey} />;
   }
   if (kind === 'messages') {
     return <MessagesWorkspace breadcrumbs={breadcrumbs} />;
@@ -352,9 +352,9 @@ type MeetingRecord = { id: string; title: string; dueDate?: string; location?: s
 type ActivityRecord = { id: string; actor_name?: string; action?: string; summary?: string; created_at?: string };
 type GoalRecord = { id: string; title: string; progress?: number };
 
-export function DashboardView({ basePath }: { basePath: string }) {
+export function DashboardView({ basePath, roleKey }: { basePath: string; roleKey?: string }) {
   const user = useAuthStore((s) => s.user);
-  const role = String(user?.role || '').toLowerCase();
+  const role = String(roleKey || user?.role || '').toLowerCase();
 
   if (
     role.includes('engineer') ||
@@ -362,15 +362,15 @@ export function DashboardView({ basePath }: { basePath: string }) {
     role === 'ui_ux_designer' ||
     role.includes('designer')
   ) {
-    return <EngineerDashboardView basePath={basePath} />;
+    return <EngineerDashboardView basePath={basePath} roleKey={roleKey} />;
   }
 
-  return <ExecutiveDashboardView basePath={basePath} />;
+  return <ExecutiveDashboardView basePath={basePath} roleKey={roleKey} />;
 }
 
-function EngineerDashboardView({ basePath }: { basePath: string }) {
+function EngineerDashboardView({ basePath, roleKey }: { basePath: string; roleKey?: string }) {
   const user = useAuthStore((s) => s.user);
-  const dashboardQuery = useDashboard();
+  const dashboardQuery = useDashboard(roleKey);
   const apiDash = dashboardQuery.data;
   const payload = apiDash?.data || apiDash;
 
@@ -575,9 +575,9 @@ function EngineerDashboardView({ basePath }: { basePath: string }) {
   );
 }
 
-export function ExecutiveDashboardView({ basePath }: { basePath: string }) {
+export function ExecutiveDashboardView({ basePath, roleKey }: { basePath: string; roleKey?: string }) {
   const user = useAuthStore((s) => s.user);
-  const dashboardQuery = useDashboard();
+  const dashboardQuery = useDashboard(roleKey);
   const activityQuery = useEntityActivity();
   const meetingsQuery = useEntityList('meetings');
   const goalsQuery = useEntityList('goals');

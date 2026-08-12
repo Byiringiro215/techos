@@ -19,6 +19,7 @@ const customer_feedback_entity_1 = require("../../entities/customer-feedback.ent
 const roadmap_entity_1 = require("../../entities/roadmap.entity");
 const project_entity_1 = require("../../entities/project.entity");
 const user_entity_1 = require("../../entities/user.entity");
+const notifications_module_1 = require("../notifications/notifications.module");
 let ProductModule = class ProductModule {
 };
 exports.ProductModule = ProductModule;
@@ -35,6 +36,7 @@ exports.ProductModule = ProductModule = __decorate([
                 project_entity_1.Project,
                 user_entity_1.User,
             ]),
+            notifications_module_1.NotificationsModule,
         ],
         controllers: [product_controller_1.ProductController],
         providers: [product_service_1.ProductService],

@@ -7,6 +7,7 @@ import { CustomerFeedback } from '../../entities/customer-feedback.entity';
 import { Roadmap } from '../../entities/roadmap.entity';
 import { Project } from '../../entities/project.entity';
 import { User } from '../../entities/user.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 export declare class ProductService {
     private featureRepository;
     private epicRepository;
@@ -16,7 +17,8 @@ export declare class ProductService {
     private roadmapRepository;
     private projectRepository;
     private userRepository;
-    constructor(featureRepository: Repository<Feature>, epicRepository: Repository<Epic>, bugRepository: Repository<Bug>, releaseRepository: Repository<Release>, feedbackRepository: Repository<CustomerFeedback>, roadmapRepository: Repository<Roadmap>, projectRepository: Repository<Project>, userRepository: Repository<User>);
+    private notificationsService;
+    constructor(featureRepository: Repository<Feature>, epicRepository: Repository<Epic>, bugRepository: Repository<Bug>, releaseRepository: Repository<Release>, feedbackRepository: Repository<CustomerFeedback>, roadmapRepository: Repository<Roadmap>, projectRepository: Repository<Project>, userRepository: Repository<User>, notificationsService: NotificationsService);
     createFeature(org_id: string, createDto: any): Promise<{
         success: boolean;
         data: Feature[];
