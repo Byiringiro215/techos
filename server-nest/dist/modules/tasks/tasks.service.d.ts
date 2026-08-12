@@ -4,12 +4,14 @@ import { Project } from '../../entities/project.entity';
 import { User } from '../../entities/user.entity';
 import { ActivityLogService } from '../../common/services/activity-log.service';
 import { ProjectViewer } from '../../common/utils/project-visibility';
+import { NotificationsService } from '../notifications/notifications.service';
 export declare class TasksService {
     private tasksRepository;
     private projectsRepository;
     private usersRepository;
     private activityLogService;
-    constructor(tasksRepository: Repository<Task>, projectsRepository: Repository<Project>, usersRepository: Repository<User>, activityLogService: ActivityLogService);
+    private notificationsService;
+    constructor(tasksRepository: Repository<Task>, projectsRepository: Repository<Project>, usersRepository: Repository<User>, activityLogService: ActivityLogService, notificationsService: NotificationsService);
     private getAccessibleProjectIds;
     private assertProjectAccess;
     create(org_id: string, actor: any, createTaskDto: any): Promise<{

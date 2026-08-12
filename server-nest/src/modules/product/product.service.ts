@@ -11,6 +11,7 @@ import { Roadmap } from '../../entities/roadmap.entity';
 import { Project } from '../../entities/project.entity';
 import { User } from '../../entities/user.entity';
 import { canViewProject } from '../../common/utils/project-visibility';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ProductService {
@@ -31,6 +32,7 @@ export class ProductService {
     private projectRepository: Repository<Project>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private notificationsService: NotificationsService,
   ) {}
 
   // ===================== FEATURES =====================
@@ -175,6 +177,23 @@ export class ProductService {
     });
 
     await this.bugRepository.save(bug);
+
+    // Notify assignee
+    if (bug.assignee_id && bug.assignee_id !== reporter_id) {
+      const reporter = await this.userRepository.findOne({ where: { id: reporter_id } }).catch(() => null);
+      const reporterName = reporter
+        ? `${reporter.first_name || ''} ${reporter.last_name || ''}`.trim() || reporter.email
+        : 'Someone';
+      this.notificationsService.create(org_id, {
+        user_id: bug.assignee_id,
+        type: 'bug_assigned',
+        title: 'Bug Assigned to You',
+        message: `${reporterName} assigned bug "${bug.title}" to you`,
+        link: `/bugs`,
+        metadata: { bug_id: bug.id },
+      }).catch(() => null);
+    }
+
     return { success: true, data: await this.enrichBug(bug) };
   }
 

@@ -23,18 +23,21 @@ const meeting_action_item_entity_1 = require("../../entities/meeting-action-item
 const user_entity_1 = require("../../entities/user.entity");
 const email_service_1 = require("../../common/services/email.service");
 const org_admin_1 = require("../../common/utils/org-admin");
+const notifications_service_1 = require("../notifications/notifications.service");
 let MeetingsService = class MeetingsService {
     meetingsRepository;
     participantsRepository;
     actionItemsRepository;
     usersRepository;
     emailService;
-    constructor(meetingsRepository, participantsRepository, actionItemsRepository, usersRepository, emailService) {
+    notificationsService;
+    constructor(meetingsRepository, participantsRepository, actionItemsRepository, usersRepository, emailService, notificationsService) {
         this.meetingsRepository = meetingsRepository;
         this.participantsRepository = participantsRepository;
         this.actionItemsRepository = actionItemsRepository;
         this.usersRepository = usersRepository;
         this.emailService = emailService;
+        this.notificationsService = notificationsService;
     }
     userLabel(user) {
         if (!user)
@@ -80,6 +83,21 @@ let MeetingsService = class MeetingsService {
         }
         catch {
         }
+        const actorUser = await this.usersRepository.findOne({ where: { id: actor.id } }).catch(() => null);
+        const actorName = actorUser
+            ? `${actorUser.first_name || ''} ${actorUser.last_name || ''}`.trim() || actorUser.email
+            : 'Someone';
+        const meetingTime = meeting.scheduled_at
+            ? new Date(meeting.scheduled_at).toLocaleString()
+            : `${meetingData.date} ${meetingData.start_time}`;
+        await Promise.all(viewers.map((uid) => this.notificationsService.create(org_id, {
+            user_id: uid,
+            type: 'meeting_invite',
+            title: 'Meeting Invitation',
+            message: `${actorName} invited you to "${meeting.title || 'a meeting'}" on ${meetingTime}`,
+            link: `/meetings`,
+            metadata: { meeting_id: meeting.id },
+        }).catch(() => null)));
         return {
             success: true,
             data: meeting,
@@ -356,6 +374,7 @@ exports.MeetingsService = MeetingsService = __decorate([
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        email_service_1.EmailService])
+        email_service_1.EmailService,
+        notifications_service_1.NotificationsService])
 ], MeetingsService);
 //# sourceMappingURL=meetings.service.js.map

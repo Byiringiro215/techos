@@ -51,17 +51,17 @@ export class DocumentsController {
 
   @Get()
   findAll(@CurrentUser() user: any, @Query() filters: any) {
-    return this.documentsService.findAll(user.org_id, filters);
+    return this.documentsService.findAll(user.org_id, filters, user.id);
   }
 
   @Get('search')
   search(@CurrentUser() user: any, @Query('q') query: string) {
-    return this.documentsService.search(user.org_id, query);
+    return this.documentsService.search(user.org_id, query, user.id);
   }
 
   @Get('folders')
   getFolders(@CurrentUser() user: any) {
-    return this.documentsService.getFolders(user.org_id);
+    return this.documentsService.getFolders(user.org_id, user.id);
   }
 
   @Post('folders')

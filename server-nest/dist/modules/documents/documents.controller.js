@@ -34,13 +34,13 @@ let DocumentsController = class DocumentsController {
         return this.documentsService.attachFile(id, user.org_id, file);
     }
     findAll(user, filters) {
-        return this.documentsService.findAll(user.org_id, filters);
+        return this.documentsService.findAll(user.org_id, filters, user.id);
     }
     search(user, query) {
-        return this.documentsService.search(user.org_id, query);
+        return this.documentsService.search(user.org_id, query, user.id);
     }
     getFolders(user) {
-        return this.documentsService.getFolders(user.org_id);
+        return this.documentsService.getFolders(user.org_id, user.id);
     }
     createFolder(user, body) {
         return this.documentsService.createFolder(user.org_id, user.id, body);
