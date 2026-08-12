@@ -10,6 +10,7 @@ import {
   useUnreadCount,
   useMarkAsRead,
   useMarkAllAsRead,
+  useDeleteNotification,
 } from '@/hooks/useNotifications';
 
 interface TopBarProps {
@@ -32,6 +33,7 @@ export function TopBar({ settingsHref = '/ceo/settings', profileHref = '/ceo/set
   const { data: unreadCount = 0 } = useUnreadCount();
   const markAsRead = useMarkAsRead();
   const markAllAsRead = useMarkAllAsRead();
+  const deleteNotification = useDeleteNotification();
 
   useEffect(() => {
     setShowUserMenu(false);
@@ -106,7 +108,9 @@ export function TopBar({ settingsHref = '/ceo/settings', profileHref = '/ceo/set
             >
               <Bell className="h-5 w-5 text-ink-secondary" />
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 min-w-[8px] h-2 w-2 bg-brand rounded-full" />
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-brand text-ink-inverse text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
               )}
             </button>
 
@@ -133,29 +137,39 @@ export function TopBar({ settingsHref = '/ceo/settings', profileHref = '/ceo/set
                     )}
                     {notifications.map((n) => (
                       <li key={n.id}>
-                        <button
-                          type="button"
-                          className={cn(
-                            'w-full text-left px-4 py-3 hover:bg-surface-hover transition-colors',
-                            !n.read && 'bg-brand-mist/50',
-                          )}
-                          onClick={() => {
-                            if (!n.read) markAsRead.mutate(n.id);
-                            if (n.link) {
-                              setShowNotifications(false);
-                              router.push(n.link);
-                            }
-                          }}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-medium text-ink">{n.title}</p>
-                            {!n.read && <span className="mt-1 h-1.5 w-1.5 rounded-full bg-brand shrink-0" />}
-                          </div>
-                          <p className="text-xs text-ink-muted mt-1 line-clamp-2">{n.message}</p>
-                          <p className="text-[11px] text-ink-muted mt-1">
-                            {n.created_at ? new Date(n.created_at).toLocaleString() : ''}
-                          </p>
-                        </button>
+                        <div className={cn(
+                          'w-full text-left px-4 py-3 hover:bg-surface-hover transition-colors flex items-start gap-2',
+                          !n.read && 'bg-brand-mist/50',
+                        )}>
+                          <button
+                            type="button"
+                            className="flex-1 text-left"
+                            onClick={() => {
+                              if (!n.read) markAsRead.mutate(n.id);
+                              if (n.link) {
+                                setShowNotifications(false);
+                                router.push(n.link);
+                              }
+                            }}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-sm font-medium text-ink">{n.title}</p>
+                              {!n.read && <span className="mt-1 h-1.5 w-1.5 rounded-full bg-brand shrink-0" />}
+                            </div>
+                            <p className="text-xs text-ink-muted mt-1 line-clamp-2">{n.message}</p>
+                            <p className="text-[11px] text-ink-muted mt-1">
+                              {n.created_at ? new Date(n.created_at).toLocaleString() : ''}
+                            </p>
+                          </button>
+                          <button
+                            type="button"
+                            className="shrink-0 p-1 rounded hover:bg-surface-hover text-ink-muted hover:text-danger transition-colors mt-0.5"
+                            aria-label="Delete notification"
+                            onClick={(e) => { e.stopPropagation(); deleteNotification.mutate(n.id); }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                          </button>
+                        </div>
                       </li>
                     ))}
                   </ul>

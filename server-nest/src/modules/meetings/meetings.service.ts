@@ -11,6 +11,7 @@ import { UpdateMeetingDto } from './dto/update-meeting.dto';
 import { CreateActionItemDto } from './dto/create-action-item.dto';
 import { EmailService } from '../../common/services/email.service';
 import { assertOrgAdmin, isOrgAdmin } from '../../common/utils/org-admin';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class MeetingsService {
@@ -24,6 +25,7 @@ export class MeetingsService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private emailService: EmailService,
+    private notificationsService: NotificationsService,
   ) {}
 
   private userLabel(user?: User | null) {
@@ -88,6 +90,27 @@ export class MeetingsService {
     } catch {
       /* non-fatal */
     }
+
+    // Send in-app notifications to invited participants
+    const actorUser = await this.usersRepository.findOne({ where: { id: actor.id } }).catch(() => null);
+    const actorName = actorUser
+      ? `${actorUser.first_name || ''} ${actorUser.last_name || ''}`.trim() || actorUser.email
+      : 'Someone';
+    const meetingTime = meeting.scheduled_at
+      ? new Date(meeting.scheduled_at).toLocaleString()
+      : `${meetingData.date} ${meetingData.start_time}`;
+    await Promise.all(
+      viewers.map((uid) =>
+        this.notificationsService.create(org_id, {
+          user_id: uid,
+          type: 'meeting_invite',
+          title: 'Meeting Invitation',
+          message: `${actorName} invited you to "${meeting.title || 'a meeting'}" on ${meetingTime}`,
+          link: `/meetings`,
+          metadata: { meeting_id: meeting.id },
+        }).catch(() => null),
+      ),
+    );
 
     return {
       success: true,

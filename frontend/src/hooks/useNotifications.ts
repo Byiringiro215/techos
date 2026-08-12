@@ -20,7 +20,7 @@ export function useUnreadCount() {
       const response = await api.get('/notifications/unread/count');
       return (response.data.data?.count ?? response.data.count ?? 0) as number;
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 10000, // Refetch every 10 seconds
   });
 }
 

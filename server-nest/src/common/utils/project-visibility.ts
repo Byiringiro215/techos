@@ -35,7 +35,7 @@ export function canViewProject(project: Partial<Project> | any, user?: ProjectVi
   if (role === 'ceo') return true;
   if (user?.id && project?.created_by && user.id === project.created_by) return true;
   const visible = parseProjectVisibleRoles(project);
-  if (!visible || visible.length === 0) return true;
+  if (!visible || visible.length === 0) return false;
   return Boolean(role && visible.includes(role));
 }
 

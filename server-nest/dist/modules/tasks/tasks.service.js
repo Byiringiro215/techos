@@ -23,6 +23,7 @@ const user_entity_1 = require("../../entities/user.entity");
 const activity_log_service_1 = require("../../common/services/activity-log.service");
 const project_visibility_1 = require("../../common/utils/project-visibility");
 const org_admin_1 = require("../../common/utils/org-admin");
+const notifications_service_1 = require("../notifications/notifications.service");
 function normalizeAssigneeFields(dto) {
     const fromArray = Array.isArray(dto?.assignee_ids)
         ? dto.assignee_ids.filter((id) => typeof id === 'string' && !!id.trim())
@@ -41,11 +42,13 @@ let TasksService = class TasksService {
     projectsRepository;
     usersRepository;
     activityLogService;
-    constructor(tasksRepository, projectsRepository, usersRepository, activityLogService) {
+    notificationsService;
+    constructor(tasksRepository, projectsRepository, usersRepository, activityLogService, notificationsService) {
         this.tasksRepository = tasksRepository;
         this.projectsRepository = projectsRepository;
         this.usersRepository = usersRepository;
         this.activityLogService = activityLogService;
+        this.notificationsService = notificationsService;
     }
     async getAccessibleProjectIds(org_id, user) {
         const projects = await this.projectsRepository.find({ where: { org_id } });
@@ -90,6 +93,18 @@ let TasksService = class TasksService {
             resource_id: saved.id,
             summary: `created task "${saved.title || 'Untitled'}"`,
         });
+        const notifyIds = assignee_ids.filter((aid) => aid !== actor?.id);
+        if (notifyIds.length) {
+            const actorName = [actor?.first_name, actor?.last_name].filter(Boolean).join(' ') || actor?.email || 'Someone';
+            await Promise.all(notifyIds.map((uid) => this.notificationsService.create(org_id, {
+                user_id: uid,
+                type: 'task_assigned',
+                title: 'New Task Assigned',
+                message: `${actorName} assigned you to "${saved.title || 'a task'}"`,
+                link: `/board`,
+                metadata: { task_id: saved.id },
+            }).catch(() => null)));
+        }
         return { success: true, data: await this.enrichTask(saved) };
     }
     parseAssigneeIds(task) {
@@ -297,6 +312,7 @@ exports.TasksService = TasksService = __decorate([
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        activity_log_service_1.ActivityLogService])
+        activity_log_service_1.ActivityLogService,
+        notifications_service_1.NotificationsService])
 ], TasksService);
 //# sourceMappingURL=tasks.service.js.map

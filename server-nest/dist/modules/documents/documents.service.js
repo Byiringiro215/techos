@@ -208,8 +208,10 @@ let DocumentsService = class DocumentsService {
         }
         throw new common_1.NotFoundException('File content is not available. Upload the file again from the document page.');
     }
-    async findAll(org_id, filters) {
+    async findAll(org_id, filters, user_id) {
         const where = { org_id, is_archived: false };
+        if (user_id)
+            where.created_by = user_id;
         if (filters?.type) {
             where.type = filters.type;
         }
@@ -324,11 +326,15 @@ let DocumentsService = class DocumentsService {
             message: 'Document archived successfully',
         };
     }
-    async search(org_id, query) {
-        const documents = await this.documentsRepository
+    async search(org_id, query, user_id) {
+        const qb = this.documentsRepository
             .createQueryBuilder('document')
             .where('document.org_id = :org_id', { org_id })
-            .andWhere('document.is_archived = :is_archived', { is_archived: false })
+            .andWhere('document.is_archived = :is_archived', { is_archived: false });
+        if (user_id) {
+            qb.andWhere('document.created_by = :user_id', { user_id });
+        }
+        const documents = await qb
             .andWhere('(document.title LIKE :query OR document.content LIKE :query OR document.tags LIKE :query)', { query: `%${query}%` })
             .orderBy('document.updated_at', 'DESC')
             .limit(50)
@@ -338,14 +344,18 @@ let DocumentsService = class DocumentsService {
             data: documents,
         };
     }
-    async getFolders(org_id) {
-        const folders = await this.documentsRepository
+    async getFolders(org_id, user_id) {
+        const qb = this.documentsRepository
             .createQueryBuilder('document')
             .select('document.folder', 'folder')
             .addSelect('COUNT(*)', 'document_count')
             .where('document.org_id = :org_id', { org_id })
             .andWhere('document.folder IS NOT NULL')
-            .andWhere('document.is_archived = :is_archived', { is_archived: false })
+            .andWhere('document.is_archived = :is_archived', { is_archived: false });
+        if (user_id) {
+            qb.andWhere('document.created_by = :user_id', { user_id });
+        }
+        const folders = await qb
             .groupBy('document.folder')
             .getRawMany();
         return {

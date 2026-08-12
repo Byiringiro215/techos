@@ -24,6 +24,16 @@ import { Modal } from '@/components/UI/Modal';
 import { LoadingSpinner } from '@/components/UI/LoadingSpinner';
 import { EmptyState } from '@/components/UI/EmptyState';
 import { useDeleteEmployee, useEmployee, useEmployeeActivity, useUpdateEmployee } from '@/hooks/useHR';
+import { UserRole } from '@/types/roles';
+
+const ROLE_OPTIONS = [
+  { value: UserRole.CTO, label: 'CTO' },
+  { value: UserRole.CISO, label: 'CISO' },
+  { value: UserRole.FINANCE, label: 'Finance' },
+  { value: UserRole.SOFTWARE_ENGINEER, label: 'Software Engineer' },
+  { value: UserRole.UI_UX_DESIGNER, label: 'UI/UX Designer' },
+  { value: UserRole.CUSTOMER_SUPPORT, label: 'Customer Support' },
+];
 
 function formatRoleLabel(role?: string | null) {
   if (!role) return '';
@@ -71,7 +81,8 @@ export default function EmployeeDetailPage() {
 
   useEffect(() => {
     if (!employee) return;
-    setPosition(employee.position || '');
+    // Initialize from user.role (enum value) so the dropdown pre-selects correctly
+    setPosition(employee.user?.role || employee.position || '');
     setEmploymentType(employee.employment_type || 'full-time');
     setSalary(employee.salary != null ? String(employee.salary) : '');
     setStatus(employee.status || 'active');
@@ -158,11 +169,12 @@ export default function EmployeeDetailPage() {
       id: employee.id,
       data: {
         position: position.trim() || employee.position,
+        role: position.trim() || undefined,  // sync user.role
         employment_type: employmentType,
         status: status as 'active' | 'on_leave' | 'terminated',
         start_date: startDate || employee.hire_date,
         ...(salary.trim() ? { salary: Number(salary) } : {}),
-      },
+      } as any,
     });
     setEditOpen(false);
   };
@@ -388,7 +400,12 @@ export default function EmployeeDetailPage() {
         <div className="space-y-4">
           <div>
             <label className="block text-sm text-ink-secondary mb-1">Position</label>
-            <Input value={position} onChange={(e) => setPosition(e.target.value)} />
+            <Select value={position} onChange={(e) => setPosition(e.target.value)}>
+              <option value="" disabled>Select a position...</option>
+              {ROLE_OPTIONS.map(role => (
+                <option key={role.value} value={role.value}>{role.label}</option>
+              ))}
+            </Select>
           </div>
           <div>
             <label className="block text-sm text-ink-secondary mb-1">Employment type</label>
