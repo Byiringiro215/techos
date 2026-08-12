@@ -33,7 +33,7 @@ function canViewProject(project, user) {
         return true;
     const visible = parseProjectVisibleRoles(project);
     if (!visible || visible.length === 0)
-        return true;
+        return false;
     return Boolean(role && visible.includes(role));
 }
 function assertCanViewProject(project, user) {

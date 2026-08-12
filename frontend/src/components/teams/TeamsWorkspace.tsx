@@ -200,9 +200,11 @@ export function TeamsWorkspace({ breadcrumbs }: TeamsWorkspaceProps) {
     title: state.name,
     description: state.description,
     status: state.status,
-    leadId: state.leadId,
-    memberIds: state.memberIds,
-    projectIds: state.projectIds,
+    metadata: {
+      leadId: state.leadId,
+      memberIds: state.memberIds,
+      projectIds: state.projectIds,
+    }
   });
 
   const handleCreate = async () => {

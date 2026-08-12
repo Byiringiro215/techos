@@ -10,6 +10,7 @@ import { CustomerFeedback } from '../../entities/customer-feedback.entity';
 import { Roadmap } from '../../entities/roadmap.entity';
 import { Project } from '../../entities/project.entity';
 import { User } from '../../entities/user.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { User } from '../../entities/user.entity';
       Project,
       User,
     ]),
+    NotificationsModule,
   ],
   controllers: [ProductController],
   providers: [ProductService],

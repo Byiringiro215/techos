@@ -12,6 +12,7 @@ import {
   ProjectViewer,
 } from '../../common/utils/project-visibility';
 import { assertDeliveryAdmin } from '../../common/utils/org-admin';
+import { NotificationsService } from '../notifications/notifications.service';
 
 function normalizeAssigneeFields(dto: any): { assignee_id: string | null; assignee_ids: string[] } {
   const fromArray: string[] = Array.isArray(dto?.assignee_ids)
@@ -38,6 +39,7 @@ export class TasksService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private activityLogService: ActivityLogService,
+    private notificationsService: NotificationsService,
   ) {}
 
   private async getAccessibleProjectIds(org_id: string, user?: ProjectViewer): Promise<string[]> {
@@ -88,6 +90,25 @@ export class TasksService {
       resource_id: saved.id,
       summary: `created task "${saved.title || 'Untitled'}"`,
     });
+
+    // Notify each assignee
+    const notifyIds = assignee_ids.filter((aid) => aid !== actor?.id);
+    if (notifyIds.length) {
+      const actorName = [actor?.first_name, actor?.last_name].filter(Boolean).join(' ') || actor?.email || 'Someone';
+      await Promise.all(
+        notifyIds.map((uid) =>
+          this.notificationsService.create(org_id, {
+            user_id: uid,
+            type: 'task_assigned',
+            title: 'New Task Assigned',
+            message: `${actorName} assigned you to "${saved.title || 'a task'}"`,
+            link: `/board`,
+            metadata: { task_id: saved.id },
+          }).catch(() => null),
+        ),
+      );
+    }
+
     return { success: true, data: await this.enrichTask(saved) };
   }
 

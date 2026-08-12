@@ -96,7 +96,7 @@ export declare class DocumentsService {
         stream?: undefined;
         size?: undefined;
     }>;
-    findAll(org_id: string, filters?: any): Promise<{
+    findAll(org_id: string, filters?: any, user_id?: string): Promise<{
         success: boolean;
         data: {
             created_by_name: string | null;
@@ -160,11 +160,11 @@ export declare class DocumentsService {
         success: boolean;
         message: string;
     }>;
-    search(org_id: string, query: string): Promise<{
+    search(org_id: string, query: string, user_id?: string): Promise<{
         success: boolean;
         data: Document[];
     }>;
-    getFolders(org_id: string): Promise<{
+    getFolders(org_id: string, user_id?: string): Promise<{
         success: boolean;
         data: any[];
     }>;

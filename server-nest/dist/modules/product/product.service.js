@@ -26,6 +26,7 @@ const roadmap_entity_1 = require("../../entities/roadmap.entity");
 const project_entity_1 = require("../../entities/project.entity");
 const user_entity_1 = require("../../entities/user.entity");
 const project_visibility_1 = require("../../common/utils/project-visibility");
+const notifications_service_1 = require("../notifications/notifications.service");
 let ProductService = class ProductService {
     featureRepository;
     epicRepository;
@@ -35,7 +36,8 @@ let ProductService = class ProductService {
     roadmapRepository;
     projectRepository;
     userRepository;
-    constructor(featureRepository, epicRepository, bugRepository, releaseRepository, feedbackRepository, roadmapRepository, projectRepository, userRepository) {
+    notificationsService;
+    constructor(featureRepository, epicRepository, bugRepository, releaseRepository, feedbackRepository, roadmapRepository, projectRepository, userRepository, notificationsService) {
         this.featureRepository = featureRepository;
         this.epicRepository = epicRepository;
         this.bugRepository = bugRepository;
@@ -44,6 +46,7 @@ let ProductService = class ProductService {
         this.roadmapRepository = roadmapRepository;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
+        this.notificationsService = notificationsService;
     }
     async createFeature(org_id, createDto) {
         const feature = this.featureRepository.create({
@@ -168,6 +171,20 @@ let ProductService = class ProductService {
             environment: createDto.environment || null,
         });
         await this.bugRepository.save(bug);
+        if (bug.assignee_id && bug.assignee_id !== reporter_id) {
+            const reporter = await this.userRepository.findOne({ where: { id: reporter_id } }).catch(() => null);
+            const reporterName = reporter
+                ? `${reporter.first_name || ''} ${reporter.last_name || ''}`.trim() || reporter.email
+                : 'Someone';
+            this.notificationsService.create(org_id, {
+                user_id: bug.assignee_id,
+                type: 'bug_assigned',
+                title: 'Bug Assigned to You',
+                message: `${reporterName} assigned bug "${bug.title}" to you`,
+                link: `/bugs`,
+                metadata: { bug_id: bug.id },
+            }).catch(() => null);
+        }
         return { success: true, data: await this.enrichBug(bug) };
     }
     async enrichBugs(bugs) {
@@ -394,6 +411,7 @@ exports.ProductService = ProductService = __decorate([
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        notifications_service_1.NotificationsService])
 ], ProductService);
 //# sourceMappingURL=product.service.js.map

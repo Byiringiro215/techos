@@ -15,12 +15,13 @@ const meeting_entity_1 = require("../../entities/meeting.entity");
 const meeting_participant_entity_1 = require("../../entities/meeting-participant.entity");
 const meeting_action_item_entity_1 = require("../../entities/meeting-action-item.entity");
 const user_entity_1 = require("../../entities/user.entity");
+const notifications_module_1 = require("../notifications/notifications.module");
 let MeetingsModule = class MeetingsModule {
 };
 exports.MeetingsModule = MeetingsModule;
 exports.MeetingsModule = MeetingsModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([meeting_entity_1.Meeting, meeting_participant_entity_1.MeetingParticipant, meeting_action_item_entity_1.MeetingActionItem, user_entity_1.User])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([meeting_entity_1.Meeting, meeting_participant_entity_1.MeetingParticipant, meeting_action_item_entity_1.MeetingActionItem, user_entity_1.User]), notifications_module_1.NotificationsModule],
         controllers: [meetings_controller_1.MeetingsController],
         providers: [meetings_service_1.MeetingsService],
         exports: [meetings_service_1.MeetingsService],
