@@ -23,6 +23,7 @@ export declare class AuthService implements OnModuleInit {
     private shouldKeepCeoOnly;
     private purgeNonCeoUsers;
     private seedCeoAccount;
+    private seedCisoAccount;
     register(registerDto: RegisterDto): Promise<{
         success: boolean;
         data: {

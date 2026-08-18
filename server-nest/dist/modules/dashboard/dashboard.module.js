@@ -24,6 +24,8 @@ const expense_entity_1 = require("../../entities/expense.entity");
 const leave_request_entity_1 = require("../../entities/leave-request.entity");
 const report_entity_1 = require("../../entities/report.entity");
 const user_entity_1 = require("../../entities/user.entity");
+const project_audit_entity_1 = require("../../entities/project-audit.entity");
+const audit_task_entity_1 = require("../../entities/audit-task.entity");
 let DashboardModule = class DashboardModule {
 };
 exports.DashboardModule = DashboardModule;
@@ -44,6 +46,8 @@ exports.DashboardModule = DashboardModule = __decorate([
                 leave_request_entity_1.LeaveRequest,
                 report_entity_1.Report,
                 user_entity_1.User,
+                project_audit_entity_1.ProjectAudit,
+                audit_task_entity_1.AuditTask,
             ]),
         ],
         controllers: [dashboard_controller_1.DashboardController],

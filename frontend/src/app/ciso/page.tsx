@@ -12,8 +12,8 @@ export default function CisoDashboardPage() {
   const { data: audits = [] } = useCisoAuditProjects();
   const { data: reports = [] } = useCisoReports();
 
-  const inProgressAudits = audits.filter((project) => project.audit_status === 'in_progress').length;
-  const neededAudits = audits.filter((project) => project.audit_status === 'needed').length;
+  const inProgressAudits = audits.filter((project) => project.status === 'in_progress').length;
+  const neededAudits = audits.filter((project) => project.status === 'needed').length;
 
   return (
     <div className="space-y-6">
@@ -32,14 +32,14 @@ export default function CisoDashboardPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <QuickCard
           href="/ciso/tasks"
-          title="Task Management"
-          description="Track finished and not finished security tasks."
+          title="Audit Tasks"
+          description="Create tasks and attach them to a project audit."
           icon={CheckSquare}
         />
         <QuickCard
           href="/ciso/projects"
           title="Project Audits"
-          description="See projects that need an audit or are in progress."
+          description="Create, edit, and track security audits."
           icon={ShieldCheck}
         />
         <QuickCard
