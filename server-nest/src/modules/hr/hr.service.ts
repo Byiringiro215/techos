@@ -189,9 +189,9 @@ export class HrService {
     ]);
 
     // Sync user.role with position when a valid role is provided
-    const VALID_ROLES = ['ceo', 'cto', 'ciso', 'finance', 'software_engineer', 'ui_ux_designer', 'customer_support'];
-    if (user && updateData.position && VALID_ROLES.includes(updateData.position as string)) {
-      user.role = updateData.position as string;
+    const validRoles = Object.values(UserRole) as string[];
+    if (user && updateData.position && validRoles.includes(updateData.position as string)) {
+      user.role = updateData.position as UserRole;
       await this.usersRepository.save(user);
     }
 

@@ -15,6 +15,8 @@ import { LoginDto } from './dto/login.dto';
 
 const SEEDED_CEO_EMAIL = 'ceo@gmail.com';
 const SEEDED_CEO_PASSWORD = 'Ceo@2026';
+const SEEDED_CISO_EMAIL = 'ciso@gmail.com';
+const SEEDED_CISO_PASSWORD = 'Ciso@2026';
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -38,6 +40,7 @@ export class AuthService implements OnModuleInit {
 
   async onModuleInit() {
     await this.seedCeoAccount();
+    await this.seedCisoAccount();
   }
 
   private shouldKeepCeoOnly(): boolean {
@@ -114,6 +117,47 @@ export class AuthService implements OnModuleInit {
     }
 
     await this.purgeNonCeoUsers(organization.id);
+  }
+
+  private async seedCisoAccount() {
+    if (this.shouldKeepCeoOnly()) return;
+
+    const organization = await this.organizationsRepository.findOne({
+      where: { slug: 'techos-company' },
+    });
+    if (!organization) return;
+
+    const password_hash = await bcrypt.hash(SEEDED_CISO_PASSWORD, 10);
+    const existing = await this.usersRepository.findOne({
+      where: { email: SEEDED_CISO_EMAIL },
+    });
+
+    if (existing) {
+      existing.password_hash = password_hash;
+      existing.role = UserRole.CISO;
+      existing.status = 'active';
+      existing.first_name = 'CISO';
+      existing.last_name = 'User';
+      existing.name = 'CISO User';
+      existing.org_id = organization.id;
+      await this.usersRepository.save(existing);
+      this.logger.log(`CISO account ready: ${SEEDED_CISO_EMAIL}`);
+      return;
+    }
+
+    const ciso = this.usersRepository.create({
+      id: randomUUID(),
+      org_id: organization.id,
+      email: SEEDED_CISO_EMAIL,
+      password_hash,
+      first_name: 'CISO',
+      last_name: 'User',
+      name: 'CISO User',
+      role: UserRole.CISO,
+      status: 'active',
+    });
+    await this.usersRepository.save(ciso);
+    this.logger.log(`Seeded CISO account: ${SEEDED_CISO_EMAIL} / ${SEEDED_CISO_PASSWORD}`);
   }
 
   async register(registerDto: RegisterDto) {

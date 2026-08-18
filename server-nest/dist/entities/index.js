@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CodeReview = exports.RecordComment = exports.ActivityEvent = exports.WorkspaceRecord = exports.Report = exports.KPI = exports.Roadmap = exports.AuditLog = exports.Integration = exports.CustomerFeedback = exports.Bug = exports.Release = exports.Epic = exports.Feature = exports.Announcement = exports.Goal = exports.Notification = exports.CalendarEvent = exports.Document = exports.LeaveRequest = exports.Employee = exports.Budget = exports.Expense = exports.Invoice = exports.Deal = exports.Contact = exports.Message = exports.ChannelMember = exports.Channel = exports.MeetingActionItem = exports.MeetingParticipant = exports.Meeting = exports.Task = exports.Sprint = exports.Project = exports.User = exports.Organization = exports.entities = void 0;
+exports.AuditTask = exports.ProjectAudit = exports.CodeReview = exports.RecordComment = exports.ActivityEvent = exports.WorkspaceRecord = exports.Report = exports.KPI = exports.Roadmap = exports.AuditLog = exports.Integration = exports.CustomerFeedback = exports.Bug = exports.Release = exports.Epic = exports.Feature = exports.Announcement = exports.Goal = exports.Notification = exports.CalendarEvent = exports.Document = exports.LeaveRequest = exports.Employee = exports.Budget = exports.Expense = exports.Invoice = exports.Deal = exports.Contact = exports.Message = exports.ChannelMember = exports.Channel = exports.MeetingActionItem = exports.MeetingParticipant = exports.Meeting = exports.Task = exports.Sprint = exports.Project = exports.User = exports.Organization = exports.entities = void 0;
 const organization_entity_1 = require("./organization.entity");
 Object.defineProperty(exports, "Organization", { enumerable: true, get: function () { return organization_entity_1.Organization; } });
 const user_entity_1 = require("./user.entity");
@@ -75,6 +75,10 @@ const record_comment_entity_1 = require("./record-comment.entity");
 Object.defineProperty(exports, "RecordComment", { enumerable: true, get: function () { return record_comment_entity_1.RecordComment; } });
 const code_review_entity_1 = require("./code-review.entity");
 Object.defineProperty(exports, "CodeReview", { enumerable: true, get: function () { return code_review_entity_1.CodeReview; } });
+const project_audit_entity_1 = require("./project-audit.entity");
+Object.defineProperty(exports, "ProjectAudit", { enumerable: true, get: function () { return project_audit_entity_1.ProjectAudit; } });
+const audit_task_entity_1 = require("./audit-task.entity");
+Object.defineProperty(exports, "AuditTask", { enumerable: true, get: function () { return audit_task_entity_1.AuditTask; } });
 exports.entities = [
     organization_entity_1.Organization,
     user_entity_1.User,
@@ -113,5 +117,7 @@ exports.entities = [
     activity_event_entity_1.ActivityEvent,
     record_comment_entity_1.RecordComment,
     code_review_entity_1.CodeReview,
+    project_audit_entity_1.ProjectAudit,
+    audit_task_entity_1.AuditTask,
 ];
 //# sourceMappingURL=index.js.map

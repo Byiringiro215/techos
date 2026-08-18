@@ -1,93 +1,206 @@
 import { CisoService } from './ciso.service';
-import { GetCisoTasksQueryDto } from './dto/get-ciso-tasks-query.dto';
-import { UpdateCisoTaskStatusDto } from './dto/update-ciso-task-status.dto';
-import { GetCisoAuditProjectsQueryDto } from './dto/get-ciso-audit-projects-query.dto';
-import { UpdateCisoAuditStatusDto } from './dto/update-ciso-audit-status.dto';
 import { CreateCisoReportDto } from './dto/create-ciso-report.dto';
+import { CreateProjectAuditDto } from './dto/create-project-audit.dto';
+import { UpdateProjectAuditDto } from './dto/update-project-audit.dto';
+import { GetCisoAuditProjectsQueryDto } from './dto/get-ciso-audit-projects-query.dto';
+import { CreateAuditTaskDto } from './dto/create-audit-task.dto';
+import { UpdateAuditTaskDto } from './dto/update-audit-task.dto';
+import { GetAuditTasksQueryDto } from './dto/get-audit-tasks-query.dto';
+import { UpdateCisoTaskStatusDto } from './dto/update-ciso-task-status.dto';
 export declare class CisoController {
     private cisoService;
     constructor(cisoService: CisoService);
     private ensureCisoAccess;
-    getTasks(user: any, query: GetCisoTasksQueryDto): Promise<{
+    createAudit(user: any, body: CreateProjectAuditDto): Promise<{
+        success: boolean;
+        data: {
+            task_count: number;
+            id: string;
+            org_id: string;
+            name: string;
+            description: string | null;
+            status: string;
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+            tasks: import("../../entities").AuditTask[];
+        };
+    }>;
+    getAudits(user: any, query: GetCisoAuditProjectsQueryDto): Promise<{
+        success: boolean;
+        data: {
+            task_count: number;
+            id: string;
+            org_id: string;
+            name: string;
+            description: string | null;
+            status: string;
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+            tasks: import("../../entities").AuditTask[];
+        }[];
+    }>;
+    getAudit(user: any, id: string): Promise<{
+        success: boolean;
+        data: {
+            task_count: number;
+            id: string;
+            org_id: string;
+            name: string;
+            description: string | null;
+            status: string;
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+            tasks: import("../../entities").AuditTask[];
+        };
+    }>;
+    updateAudit(user: any, id: string, body: UpdateProjectAuditDto): Promise<{
+        success: boolean;
+        data: {
+            task_count: number;
+            id: string;
+            org_id: string;
+            name: string;
+            description: string | null;
+            status: string;
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+            tasks: import("../../entities").AuditTask[];
+        };
+    }>;
+    deleteAudit(user: any, id: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    createAuditTask(user: any, body: CreateAuditTaskDto): Promise<{
         success: boolean;
         data: {
             finished: boolean;
+            audit_name: string | null;
             id: string;
             org_id: string;
-            project_id: string;
-            sprint_id: string;
-            parent_task_id: string;
+            project_audit_id: string;
             title: string;
-            description: string;
+            description: string | null;
             status: string;
             priority: string;
-            assignee_id: string;
-            assignee_ids: string[];
-            reporter_id: string;
-            estimated_hours: number;
-            time_logged: number;
-            story_points: number;
-            due_date: string;
-            dependencies: string[];
-            tags: string[];
+            created_by: string | null;
             created_at: Date;
-            project: import("../../entities").Project;
-            sprint: import("../../entities").Sprint;
+            updated_at: Date;
+            audit: import("../../entities").ProjectAudit;
+        };
+    }>;
+    getAuditTasks(user: any, query: GetAuditTasksQueryDto): Promise<{
+        success: boolean;
+        data: {
+            finished: boolean;
+            audit_name: string | null;
+            id: string;
+            org_id: string;
+            project_audit_id: string;
+            title: string;
+            description: string | null;
+            status: string;
+            priority: string;
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+            audit: import("../../entities").ProjectAudit;
+        }[];
+    }>;
+    updateAuditTask(user: any, id: string, body: UpdateAuditTaskDto): Promise<{
+        success: boolean;
+        data: {
+            finished: boolean;
+            audit_name: string | null;
+            id: string;
+            org_id: string;
+            project_audit_id: string;
+            title: string;
+            description: string | null;
+            status: string;
+            priority: string;
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+            audit: import("../../entities").ProjectAudit;
+        };
+    }>;
+    updateAuditTaskStatus(user: any, id: string, body: UpdateCisoTaskStatusDto): Promise<{
+        success: boolean;
+        data: {
+            finished: boolean;
+            audit_name: string | null;
+            id: string;
+            org_id: string;
+            project_audit_id: string;
+            title: string;
+            description: string | null;
+            status: string;
+            priority: string;
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+            audit: import("../../entities").ProjectAudit;
+        };
+    }>;
+    deleteAuditTask(user: any, id: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    getTasks(user: any, query: GetAuditTasksQueryDto): Promise<{
+        success: boolean;
+        data: {
+            finished: boolean;
+            audit_name: string | null;
+            id: string;
+            org_id: string;
+            project_audit_id: string;
+            title: string;
+            description: string | null;
+            status: string;
+            priority: string;
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+            audit: import("../../entities").ProjectAudit;
         }[];
     }>;
     updateTaskStatus(user: any, id: string, body: UpdateCisoTaskStatusDto): Promise<{
         success: boolean;
         data: {
             finished: boolean;
+            audit_name: string | null;
             id: string;
             org_id: string;
-            project_id: string;
-            sprint_id: string;
-            parent_task_id: string;
+            project_audit_id: string;
             title: string;
-            description: string;
+            description: string | null;
             status: string;
             priority: string;
-            assignee_id: string;
-            assignee_ids: string[];
-            reporter_id: string;
-            estimated_hours: number;
-            time_logged: number;
-            story_points: number;
-            due_date: string;
-            dependencies: string[];
-            tags: string[];
+            created_by: string | null;
             created_at: Date;
-            project: import("../../entities").Project;
-            sprint: import("../../entities").Sprint;
+            updated_at: Date;
+            audit: import("../../entities").ProjectAudit;
         };
     }>;
     getAuditProjects(user: any, query: GetCisoAuditProjectsQueryDto): Promise<{
         success: boolean;
         data: {
-            audit_required: boolean;
-            audit_status: string;
+            task_count: number;
             id: string;
             org_id: string;
             name: string;
-            description: string;
+            description: string | null;
             status: string;
-            priority: string;
-            start_date: string;
-            end_date: string;
-            budget: number;
-            created_by: string;
-            visible_to_roles: string[] | null;
-            metadata: any;
+            created_by: string | null;
             created_at: Date;
-            organization: import("../../entities").Organization;
-            sprints: import("../../entities").Sprint[];
-            tasks: import("../../entities").Task[];
+            updated_at: Date;
+            tasks: import("../../entities").AuditTask[];
         }[];
-    }>;
-    updateAuditStatus(user: any, id: string, body: UpdateCisoAuditStatusDto): Promise<{
-        success: boolean;
-        data: import("../../entities").Project;
     }>;
     getReports(user: any): Promise<{
         success: boolean;

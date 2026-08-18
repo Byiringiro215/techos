@@ -12,6 +12,8 @@ import { Expense } from '../../entities/expense.entity';
 import { LeaveRequest } from '../../entities/leave-request.entity';
 import { Report } from '../../entities/report.entity';
 import { User } from '../../entities/user.entity';
+import { ProjectAudit } from '../../entities/project-audit.entity';
+import { AuditTask } from '../../entities/audit-task.entity';
 export declare class DashboardService {
     private projectRepository;
     private taskRepository;
@@ -26,7 +28,9 @@ export declare class DashboardService {
     private leaveRequestRepository;
     private reportRepository;
     private usersRepository;
-    constructor(projectRepository: Repository<Project>, taskRepository: Repository<Task>, sprintRepository: Repository<Sprint>, bugRepository: Repository<Bug>, goalRepository: Repository<Goal>, meetingRepository: Repository<Meeting>, notificationRepository: Repository<Notification>, announcementRepository: Repository<Announcement>, invoiceRepository: Repository<Invoice>, expenseRepository: Repository<Expense>, leaveRequestRepository: Repository<LeaveRequest>, reportRepository: Repository<Report>, usersRepository: Repository<User>);
+    private projectAuditRepository;
+    private auditTaskRepository;
+    constructor(projectRepository: Repository<Project>, taskRepository: Repository<Task>, sprintRepository: Repository<Sprint>, bugRepository: Repository<Bug>, goalRepository: Repository<Goal>, meetingRepository: Repository<Meeting>, notificationRepository: Repository<Notification>, announcementRepository: Repository<Announcement>, invoiceRepository: Repository<Invoice>, expenseRepository: Repository<Expense>, leaveRequestRepository: Repository<LeaveRequest>, reportRepository: Repository<Report>, usersRepository: Repository<User>, projectAuditRepository: Repository<ProjectAudit>, auditTaskRepository: Repository<AuditTask>);
     getDeveloperDashboard(user_id: string, org_id: string, user_role?: string): Promise<{
         success: boolean;
         data: {

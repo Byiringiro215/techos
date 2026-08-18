@@ -61,6 +61,8 @@ const channel_member_entity_1 = require("../../entities/channel-member.entity");
 const meeting_participant_entity_1 = require("../../entities/meeting-participant.entity");
 const SEEDED_CEO_EMAIL = 'ceo@gmail.com';
 const SEEDED_CEO_PASSWORD = 'Ceo@2026';
+const SEEDED_CISO_EMAIL = 'ciso@gmail.com';
+const SEEDED_CISO_PASSWORD = 'Ciso@2026';
 let AuthService = AuthService_1 = class AuthService {
     usersRepository;
     organizationsRepository;
@@ -81,6 +83,7 @@ let AuthService = AuthService_1 = class AuthService {
     }
     async onModuleInit() {
         await this.seedCeoAccount();
+        await this.seedCisoAccount();
     }
     shouldKeepCeoOnly() {
         const flag = (process.env.SEED_CEO_ONLY || '').toLowerCase();
@@ -145,6 +148,44 @@ let AuthService = AuthService_1 = class AuthService {
             this.logger.log(`Seeded CEO account: ${SEEDED_CEO_EMAIL} / ${SEEDED_CEO_PASSWORD}`);
         }
         await this.purgeNonCeoUsers(organization.id);
+    }
+    async seedCisoAccount() {
+        if (this.shouldKeepCeoOnly())
+            return;
+        const organization = await this.organizationsRepository.findOne({
+            where: { slug: 'techos-company' },
+        });
+        if (!organization)
+            return;
+        const password_hash = await bcrypt.hash(SEEDED_CISO_PASSWORD, 10);
+        const existing = await this.usersRepository.findOne({
+            where: { email: SEEDED_CISO_EMAIL },
+        });
+        if (existing) {
+            existing.password_hash = password_hash;
+            existing.role = user_entity_1.UserRole.CISO;
+            existing.status = 'active';
+            existing.first_name = 'CISO';
+            existing.last_name = 'User';
+            existing.name = 'CISO User';
+            existing.org_id = organization.id;
+            await this.usersRepository.save(existing);
+            this.logger.log(`CISO account ready: ${SEEDED_CISO_EMAIL}`);
+            return;
+        }
+        const ciso = this.usersRepository.create({
+            id: (0, crypto_1.randomUUID)(),
+            org_id: organization.id,
+            email: SEEDED_CISO_EMAIL,
+            password_hash,
+            first_name: 'CISO',
+            last_name: 'User',
+            name: 'CISO User',
+            role: user_entity_1.UserRole.CISO,
+            status: 'active',
+        });
+        await this.usersRepository.save(ciso);
+        this.logger.log(`Seeded CISO account: ${SEEDED_CISO_EMAIL} / ${SEEDED_CISO_PASSWORD}`);
     }
     async register(registerDto) {
         const { email, password, firstName, lastName, role, organizationName } = registerDto;

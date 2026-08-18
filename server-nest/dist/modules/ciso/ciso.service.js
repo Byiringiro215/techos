@@ -17,86 +17,163 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const crypto_1 = require("crypto");
-const task_entity_1 = require("../../entities/task.entity");
-const project_entity_1 = require("../../entities/project.entity");
+const project_audit_entity_1 = require("../../entities/project-audit.entity");
+const audit_task_entity_1 = require("../../entities/audit-task.entity");
 const report_entity_1 = require("../../entities/report.entity");
 let CisoService = class CisoService {
-    tasksRepository;
-    projectsRepository;
+    auditsRepository;
+    auditTasksRepository;
     reportsRepository;
-    constructor(tasksRepository, projectsRepository, reportsRepository) {
-        this.tasksRepository = tasksRepository;
-        this.projectsRepository = projectsRepository;
+    constructor(auditsRepository, auditTasksRepository, reportsRepository) {
+        this.auditsRepository = auditsRepository;
+        this.auditTasksRepository = auditTasksRepository;
         this.reportsRepository = reportsRepository;
     }
-    async getTasks(org_id, status) {
-        const tasks = await this.tasksRepository.find({
-            where: { org_id },
-            order: { created_at: 'DESC' },
+    mapAudit(audit, taskCount = 0) {
+        return {
+            ...audit,
+            task_count: taskCount,
+        };
+    }
+    mapTask(task) {
+        return {
+            ...task,
+            finished: task.status === 'done',
+            audit_name: task.audit?.name || null,
+        };
+    }
+    async createAudit(org_id, user_id, dto) {
+        const audit = this.auditsRepository.create({
+            id: (0, crypto_1.randomUUID)(),
+            org_id,
+            name: dto.name.trim(),
+            description: dto.description?.trim() || null,
+            status: dto.status || 'needed',
+            created_by: user_id,
         });
-        const filtered = tasks.filter((task) => {
-            if (status === 'finished')
-                return task.status === 'done';
-            if (status === 'not_finished')
-                return task.status !== 'done';
-            return true;
+        await this.auditsRepository.save(audit);
+        return { success: true, data: this.mapAudit(audit, 0) };
+    }
+    async getAudits(org_id, status) {
+        const where = { org_id };
+        if (status)
+            where.status = status;
+        const audits = await this.auditsRepository.find({
+            where,
+            order: { updated_at: 'DESC' },
+            relations: ['tasks'],
         });
         return {
             success: true,
-            data: filtered.map((task) => ({
-                ...task,
-                finished: task.status === 'done',
-            })),
+            data: audits.map((audit) => this.mapAudit(audit, audit.tasks?.length || 0)),
         };
     }
-    async updateTaskStatus(org_id, task_id, finished) {
-        const task = await this.tasksRepository.findOne({ where: { id: task_id, org_id } });
-        if (!task) {
-            throw new common_1.NotFoundException('Task not found');
-        }
-        task.status = finished ? 'done' : task.status === 'done' ? 'todo' : task.status;
-        await this.tasksRepository.save(task);
-        return { success: true, data: { ...task, finished: task.status === 'done' } };
+    async getAudit(org_id, id) {
+        const audit = await this.auditsRepository.findOne({
+            where: { id, org_id },
+            relations: ['tasks'],
+        });
+        if (!audit)
+            throw new common_1.NotFoundException('Project audit not found');
+        return { success: true, data: this.mapAudit(audit, audit.tasks?.length || 0) };
     }
-    async getAuditProjects(org_id, status) {
-        const projects = await this.projectsRepository.find({
-            where: { org_id },
+    async updateAudit(org_id, id, dto) {
+        const audit = await this.auditsRepository.findOne({
+            where: { id, org_id },
+            relations: ['tasks'],
+        });
+        if (!audit)
+            throw new common_1.NotFoundException('Project audit not found');
+        if (dto.name !== undefined)
+            audit.name = dto.name.trim();
+        if (dto.description !== undefined)
+            audit.description = dto.description.trim() || null;
+        if (dto.status !== undefined)
+            audit.status = dto.status;
+        await this.auditsRepository.save(audit);
+        return { success: true, data: this.mapAudit(audit, audit.tasks?.length || 0) };
+    }
+    async deleteAudit(org_id, id) {
+        const audit = await this.auditsRepository.findOne({ where: { id, org_id } });
+        if (!audit)
+            throw new common_1.NotFoundException('Project audit not found');
+        await this.auditsRepository.remove(audit);
+        return { success: true, message: 'Project audit deleted' };
+    }
+    async createAuditTask(org_id, user_id, dto) {
+        const audit = await this.auditsRepository.findOne({
+            where: { id: dto.project_audit_id, org_id },
+        });
+        if (!audit)
+            throw new common_1.BadRequestException('Select a valid project audit');
+        const task = this.auditTasksRepository.create({
+            id: (0, crypto_1.randomUUID)(),
+            org_id,
+            project_audit_id: dto.project_audit_id,
+            title: dto.title.trim(),
+            description: dto.description?.trim() || null,
+            status: dto.status || 'todo',
+            priority: dto.priority || 'medium',
+            created_by: user_id,
+        });
+        await this.auditTasksRepository.save(task);
+        task.audit = audit;
+        return { success: true, data: this.mapTask(task) };
+    }
+    async getAuditTasks(org_id, filters) {
+        const where = { org_id };
+        if (filters?.project_audit_id)
+            where.project_audit_id = filters.project_audit_id;
+        const tasks = await this.auditTasksRepository.find({
+            where,
             order: { created_at: 'DESC' },
+            relations: ['audit'],
         });
-        const normalized = projects.map((project) => {
-            const metadata = project.metadata || {};
-            const priorityNeedsAudit = project.priority === 'high' || project.priority === 'critical';
-            const auditRequired = Boolean(metadata.audit_required ?? priorityNeedsAudit);
-            const auditStatus = metadata.audit_status || (auditRequired ? 'needed' : 'completed');
-            return {
-                ...project,
-                audit_required: auditRequired,
-                audit_status: auditStatus,
-            };
+        const filtered = tasks.filter((task) => {
+            if (filters?.status === 'finished')
+                return task.status === 'done';
+            if (filters?.status === 'not_finished')
+                return task.status !== 'done';
+            return true;
         });
-        const filtered = normalized.filter((project) => {
-            if (!project.audit_required && status !== 'completed')
-                return false;
-            if (status)
-                return project.audit_status === status;
-            return project.audit_required || project.audit_status === 'in_progress';
-        });
-        return { success: true, data: filtered };
+        return { success: true, data: filtered.map((task) => this.mapTask(task)) };
     }
-    async updateAuditStatus(org_id, project_id, audit_status) {
-        const project = await this.projectsRepository.findOne({ where: { id: project_id, org_id } });
-        if (!project) {
-            throw new common_1.NotFoundException('Project not found');
+    async updateAuditTask(org_id, id, dto) {
+        const task = await this.auditTasksRepository.findOne({
+            where: { id, org_id },
+            relations: ['audit'],
+        });
+        if (!task)
+            throw new common_1.NotFoundException('Audit task not found');
+        if (dto.project_audit_id && dto.project_audit_id !== task.project_audit_id) {
+            const audit = await this.auditsRepository.findOne({
+                where: { id: dto.project_audit_id, org_id },
+            });
+            if (!audit)
+                throw new common_1.BadRequestException('Select a valid project audit');
+            task.project_audit_id = dto.project_audit_id;
+            task.audit = audit;
         }
-        const metadata = project.metadata || {};
-        project.metadata = {
-            ...metadata,
-            audit_required: true,
-            audit_status,
-            audit_updated_at: new Date().toISOString(),
-        };
-        await this.projectsRepository.save(project);
-        return { success: true, data: project };
+        if (dto.title !== undefined)
+            task.title = dto.title.trim();
+        if (dto.description !== undefined)
+            task.description = dto.description.trim() || null;
+        if (dto.status !== undefined)
+            task.status = dto.status;
+        if (dto.priority !== undefined)
+            task.priority = dto.priority;
+        await this.auditTasksRepository.save(task);
+        return { success: true, data: this.mapTask(task) };
+    }
+    async updateAuditTaskStatus(org_id, id, finished) {
+        return this.updateAuditTask(org_id, id, { status: finished ? 'done' : 'todo' });
+    }
+    async deleteAuditTask(org_id, id) {
+        const task = await this.auditTasksRepository.findOne({ where: { id, org_id } });
+        if (!task)
+            throw new common_1.NotFoundException('Audit task not found');
+        await this.auditTasksRepository.remove(task);
+        return { success: true, message: 'Audit task deleted' };
     }
     async getReports(org_id) {
         const reports = await this.reportsRepository.find({
@@ -126,8 +203,8 @@ let CisoService = class CisoService {
 exports.CisoService = CisoService;
 exports.CisoService = CisoService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, typeorm_1.InjectRepository)(task_entity_1.Task)),
-    __param(1, (0, typeorm_1.InjectRepository)(project_entity_1.Project)),
+    __param(0, (0, typeorm_1.InjectRepository)(project_audit_entity_1.ProjectAudit)),
+    __param(1, (0, typeorm_1.InjectRepository)(audit_task_entity_1.AuditTask)),
     __param(2, (0, typeorm_1.InjectRepository)(report_entity_1.Report)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,

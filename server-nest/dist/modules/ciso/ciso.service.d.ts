@@ -1,92 +1,160 @@
 import { Repository } from 'typeorm';
-import { Task } from '../../entities/task.entity';
-import { Project } from '../../entities/project.entity';
+import { ProjectAudit } from '../../entities/project-audit.entity';
+import { AuditTask } from '../../entities/audit-task.entity';
 import { Report } from '../../entities/report.entity';
+import { CreateProjectAuditDto } from './dto/create-project-audit.dto';
+import { UpdateProjectAuditDto } from './dto/update-project-audit.dto';
+import { CreateAuditTaskDto } from './dto/create-audit-task.dto';
+import { UpdateAuditTaskDto } from './dto/update-audit-task.dto';
 export declare class CisoService {
-    private tasksRepository;
-    private projectsRepository;
+    private auditsRepository;
+    private auditTasksRepository;
     private reportsRepository;
-    constructor(tasksRepository: Repository<Task>, projectsRepository: Repository<Project>, reportsRepository: Repository<Report>);
-    getTasks(org_id: string, status?: 'finished' | 'not_finished'): Promise<{
+    constructor(auditsRepository: Repository<ProjectAudit>, auditTasksRepository: Repository<AuditTask>, reportsRepository: Repository<Report>);
+    private mapAudit;
+    private mapTask;
+    createAudit(org_id: string, user_id: string, dto: CreateProjectAuditDto): Promise<{
         success: boolean;
         data: {
-            finished: boolean;
-            id: string;
-            org_id: string;
-            project_id: string;
-            sprint_id: string;
-            parent_task_id: string;
-            title: string;
-            description: string;
-            status: string;
-            priority: string;
-            assignee_id: string;
-            assignee_ids: string[];
-            reporter_id: string;
-            estimated_hours: number;
-            time_logged: number;
-            story_points: number;
-            due_date: string;
-            dependencies: string[];
-            tags: string[];
-            created_at: Date;
-            project: Project;
-            sprint: import("../../entities").Sprint;
-        }[];
-    }>;
-    updateTaskStatus(org_id: string, task_id: string, finished: boolean): Promise<{
-        success: boolean;
-        data: {
-            finished: boolean;
-            id: string;
-            org_id: string;
-            project_id: string;
-            sprint_id: string;
-            parent_task_id: string;
-            title: string;
-            description: string;
-            status: string;
-            priority: string;
-            assignee_id: string;
-            assignee_ids: string[];
-            reporter_id: string;
-            estimated_hours: number;
-            time_logged: number;
-            story_points: number;
-            due_date: string;
-            dependencies: string[];
-            tags: string[];
-            created_at: Date;
-            project: Project;
-            sprint: import("../../entities").Sprint;
-        };
-    }>;
-    getAuditProjects(org_id: string, status?: 'needed' | 'in_progress' | 'completed'): Promise<{
-        success: boolean;
-        data: {
-            audit_required: boolean;
-            audit_status: string;
+            task_count: number;
             id: string;
             org_id: string;
             name: string;
-            description: string;
+            description: string | null;
             status: string;
-            priority: string;
-            start_date: string;
-            end_date: string;
-            budget: number;
-            created_by: string;
-            visible_to_roles: string[] | null;
-            metadata: any;
+            created_by: string | null;
             created_at: Date;
-            organization: import("../../entities").Organization;
-            sprints: import("../../entities").Sprint[];
-            tasks: Task[];
+            updated_at: Date;
+            tasks: AuditTask[];
+        };
+    }>;
+    getAudits(org_id: string, status?: 'needed' | 'in_progress' | 'completed'): Promise<{
+        success: boolean;
+        data: {
+            task_count: number;
+            id: string;
+            org_id: string;
+            name: string;
+            description: string | null;
+            status: string;
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+            tasks: AuditTask[];
         }[];
     }>;
-    updateAuditStatus(org_id: string, project_id: string, audit_status: 'needed' | 'in_progress' | 'completed'): Promise<{
+    getAudit(org_id: string, id: string): Promise<{
         success: boolean;
-        data: Project;
+        data: {
+            task_count: number;
+            id: string;
+            org_id: string;
+            name: string;
+            description: string | null;
+            status: string;
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+            tasks: AuditTask[];
+        };
+    }>;
+    updateAudit(org_id: string, id: string, dto: UpdateProjectAuditDto): Promise<{
+        success: boolean;
+        data: {
+            task_count: number;
+            id: string;
+            org_id: string;
+            name: string;
+            description: string | null;
+            status: string;
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+            tasks: AuditTask[];
+        };
+    }>;
+    deleteAudit(org_id: string, id: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    createAuditTask(org_id: string, user_id: string, dto: CreateAuditTaskDto): Promise<{
+        success: boolean;
+        data: {
+            finished: boolean;
+            audit_name: string | null;
+            id: string;
+            org_id: string;
+            project_audit_id: string;
+            title: string;
+            description: string | null;
+            status: string;
+            priority: string;
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+            audit: ProjectAudit;
+        };
+    }>;
+    getAuditTasks(org_id: string, filters?: {
+        project_audit_id?: string;
+        status?: 'finished' | 'not_finished';
+    }): Promise<{
+        success: boolean;
+        data: {
+            finished: boolean;
+            audit_name: string | null;
+            id: string;
+            org_id: string;
+            project_audit_id: string;
+            title: string;
+            description: string | null;
+            status: string;
+            priority: string;
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+            audit: ProjectAudit;
+        }[];
+    }>;
+    updateAuditTask(org_id: string, id: string, dto: UpdateAuditTaskDto): Promise<{
+        success: boolean;
+        data: {
+            finished: boolean;
+            audit_name: string | null;
+            id: string;
+            org_id: string;
+            project_audit_id: string;
+            title: string;
+            description: string | null;
+            status: string;
+            priority: string;
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+            audit: ProjectAudit;
+        };
+    }>;
+    updateAuditTaskStatus(org_id: string, id: string, finished: boolean): Promise<{
+        success: boolean;
+        data: {
+            finished: boolean;
+            audit_name: string | null;
+            id: string;
+            org_id: string;
+            project_audit_id: string;
+            title: string;
+            description: string | null;
+            status: string;
+            priority: string;
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+            audit: ProjectAudit;
+        };
+    }>;
+    deleteAuditTask(org_id: string, id: string): Promise<{
+        success: boolean;
+        message: string;
     }>;
     getReports(org_id: string): Promise<{
         success: boolean;

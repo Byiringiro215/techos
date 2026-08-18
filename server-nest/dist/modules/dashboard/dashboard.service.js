@@ -29,6 +29,8 @@ const expense_entity_1 = require("../../entities/expense.entity");
 const leave_request_entity_1 = require("../../entities/leave-request.entity");
 const report_entity_1 = require("../../entities/report.entity");
 const user_entity_1 = require("../../entities/user.entity");
+const project_audit_entity_1 = require("../../entities/project-audit.entity");
+const audit_task_entity_1 = require("../../entities/audit-task.entity");
 const project_visibility_1 = require("../../common/utils/project-visibility");
 let DashboardService = class DashboardService {
     projectRepository;
@@ -44,7 +46,9 @@ let DashboardService = class DashboardService {
     leaveRequestRepository;
     reportRepository;
     usersRepository;
-    constructor(projectRepository, taskRepository, sprintRepository, bugRepository, goalRepository, meetingRepository, notificationRepository, announcementRepository, invoiceRepository, expenseRepository, leaveRequestRepository, reportRepository, usersRepository) {
+    projectAuditRepository;
+    auditTaskRepository;
+    constructor(projectRepository, taskRepository, sprintRepository, bugRepository, goalRepository, meetingRepository, notificationRepository, announcementRepository, invoiceRepository, expenseRepository, leaveRequestRepository, reportRepository, usersRepository, projectAuditRepository, auditTaskRepository) {
         this.projectRepository = projectRepository;
         this.taskRepository = taskRepository;
         this.sprintRepository = sprintRepository;
@@ -58,6 +62,8 @@ let DashboardService = class DashboardService {
         this.leaveRequestRepository = leaveRequestRepository;
         this.reportRepository = reportRepository;
         this.usersRepository = usersRepository;
+        this.projectAuditRepository = projectAuditRepository;
+        this.auditTaskRepository = auditTaskRepository;
     }
     async getDeveloperDashboard(user_id, org_id, user_role) {
         const [assignedTasks, myBugs, upcomingMeetings, notifications, announcements, visibleProjects] = await Promise.all([
@@ -270,19 +276,11 @@ let DashboardService = class DashboardService {
         };
     }
     async getCisoDashboard(org_id) {
-        const [tasks, projects, reports] = await Promise.all([
-            this.taskRepository.find({ where: { org_id }, order: { created_at: 'DESC' } }),
-            this.projectRepository.find({ where: { org_id }, order: { created_at: 'DESC' } }),
+        const [tasks, audits, reports] = await Promise.all([
+            this.auditTaskRepository.find({ where: { org_id }, order: { created_at: 'DESC' } }),
+            this.projectAuditRepository.find({ where: { org_id }, order: { created_at: 'DESC' } }),
             this.reportRepository.find({ where: { org_id }, order: { created_at: 'DESC' } }),
         ]);
-        const auditProjects = projects
-            .map((project) => {
-            const metadata = project.metadata || {};
-            const auditStatus = metadata.audit_status || 'needed';
-            const auditRequired = Boolean(metadata.audit_required ?? ['high', 'critical'].includes(project.priority));
-            return { ...project, audit_status: auditStatus, audit_required: auditRequired };
-        })
-            .filter((project) => project.audit_required);
         const securityReports = reports.filter((report) => ['security', 'audit', 'compliance', 'risk'].includes((report.type || '').toLowerCase()));
         return {
             success: true,
@@ -293,10 +291,10 @@ let DashboardService = class DashboardService {
                     not_finished: tasks.filter((task) => task.status !== 'done').length,
                 },
                 audits: {
-                    total: auditProjects.length,
-                    needed: auditProjects.filter((project) => project.audit_status === 'needed').length,
-                    in_progress: auditProjects.filter((project) => project.audit_status === 'in_progress').length,
-                    completed: auditProjects.filter((project) => project.audit_status === 'completed').length,
+                    total: audits.length,
+                    needed: audits.filter((audit) => audit.status === 'needed').length,
+                    in_progress: audits.filter((audit) => audit.status === 'in_progress').length,
+                    completed: audits.filter((audit) => audit.status === 'completed').length,
                 },
                 reports: {
                     total: securityReports.length,
@@ -322,7 +320,11 @@ exports.DashboardService = DashboardService = __decorate([
     __param(10, (0, typeorm_1.InjectRepository)(leave_request_entity_1.LeaveRequest)),
     __param(11, (0, typeorm_1.InjectRepository)(report_entity_1.Report)),
     __param(12, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
+    __param(13, (0, typeorm_1.InjectRepository)(project_audit_entity_1.ProjectAudit)),
+    __param(14, (0, typeorm_1.InjectRepository)(audit_task_entity_1.AuditTask)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

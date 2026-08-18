@@ -9,8 +9,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CisoModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
-const task_entity_1 = require("../../entities/task.entity");
-const project_entity_1 = require("../../entities/project.entity");
+const project_audit_entity_1 = require("../../entities/project-audit.entity");
+const audit_task_entity_1 = require("../../entities/audit-task.entity");
 const report_entity_1 = require("../../entities/report.entity");
 const ciso_controller_1 = require("./ciso.controller");
 const ciso_service_1 = require("./ciso.service");
@@ -19,7 +19,7 @@ let CisoModule = class CisoModule {
 exports.CisoModule = CisoModule;
 exports.CisoModule = CisoModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([task_entity_1.Task, project_entity_1.Project, report_entity_1.Report])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([project_audit_entity_1.ProjectAudit, audit_task_entity_1.AuditTask, report_entity_1.Report])],
         controllers: [ciso_controller_1.CisoController],
         providers: [ciso_service_1.CisoService],
         exports: [ciso_service_1.CisoService],
